@@ -1,0 +1,186 @@
+@import "tailwindcss";
+
+/* Подключение шрифта Branch */
+@font-face {
+  font-family: "Branch";
+  src: url("./assets/fonts/Branch-Regular.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Подключение шрифта Gilroy */
+@font-face {
+  font-family: "Gilroy";
+  src: url("./assets/fonts/Gilroy-Light.woff2") format("woff2");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  font-family: "Branch", system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+  /* Скрываем scrollbar для Firefox */
+  scrollbar-width: none;
+  /* Скрываем scrollbar для старых версий Firefox */
+  overflow: -moz-scrollbars-none;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  /* Скрываем scrollbar для Firefox */
+  scrollbar-width: none;
+  /* Скрываем scrollbar для старых версий Firefox */
+  overflow: -moz-scrollbars-none;
+}
+
+/* Скрываем scrollbar для Webkit браузеров (Chrome, Safari, Edge) */
+body::-webkit-scrollbar {
+  display: none;
+}
+
+html::-webkit-scrollbar {
+  display: none;
+}
+
+/* Скрываем scrollbar для всех элементов */
+*::-webkit-scrollbar {
+  display: none;
+}
+
+#root {
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* Анимация пульсации для иконки scroll down */
+@keyframes pulse-opacity {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-pulse-opacity {
+  animation: pulse-opacity 1.5s ease-in-out infinite;
+}
+
+/* Анимация появления изображения через расширяющийся круг */
+@keyframes circle-reveal {
+  0% {
+    clip-path: circle(0% at 50% 100%);
+  }
+  100% {
+    clip-path: circle(150% at 50% 100%);
+  }
+}
+
+.circle-reveal {
+  animation: circle-reveal 2.5s ease-out forwards;
+}
+
+/* Анимация появления scroll indicator синхронно с изображением */
+@keyframes scroll-indicator-fade {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.scroll-indicator-reveal {
+  opacity: 0;
+}
+
+.scroll-indicator-visible {
+  animation: scroll-indicator-fade 1.5s ease-out forwards;
+  animation-delay: 0.3s; /* Та же задержка, что и у изображения */
+}
+
+/* Анимация вращения кругового текста логотипа */
+@keyframes rotate-circle {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.logo-circle-text {
+  animation: rotate-circle 5s linear infinite;
+  transform-origin: center;
+}
+
+/* Убеждаемся, что font-gilroy применяется правильно */
+.font-gilroy {
+  font-family: "Gilroy", system-ui, sans-serif !important;
+}
+
+/* Анимация изменения цвета текста с черного на белый */
+@keyframes text-to-white {
+  0% {
+    color: black;
+  }
+  100% {
+    color: #fbf9f5;
+  }
+}
+
+.text-white-animate {
+  animation: text-to-white 2s ease-out forwards;
+}
+
+/* Анимация изменения цвета логотипа с черного на белый */
+.logo-fill-black path {
+  fill: black;
+}
+
+.logo-fill-animate path {
+  animation: logo-fill-to-white 2.5s ease-out forwards;
+}
+
+@keyframes logo-fill-to-white {
+  0% {
+    fill: black;
+  }
+  100% {
+    fill: white;
+  }
+}
+
+/* Анимация стрелки влево-вправо при наведении на кнопку */
+@keyframes arrow-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(5px);
+  }
+}
+
+.group:hover .arrow-hover-animate {
+  animation: arrow-shake 0.5s ease-in-out infinite;
+}
