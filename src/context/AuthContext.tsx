@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import type { User, UserRole } from '../types';
+import { createContext, useContext, useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
+import type { User } from '../types';
 import { supabase } from '../lib/supabase';
 import type { Session, AuthError } from '@supabase/supabase-js';
 import { clearAllCache } from '../utils/cache';

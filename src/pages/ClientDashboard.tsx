@@ -73,26 +73,6 @@ const ClientDashboard = () => {
     }
   };
 
-  const handleDownloadDocument = async (document: Document) => {
-    try {
-      const blob = await documentService.downloadDocument(document);
-      
-      if (blob) {
-        // Создаем ссылку для скачивания
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = document.name;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-      }
-    } catch (err) {
-      console.error('Error downloading document:', err);
-      alert('Ошибка при скачивании документа');
-    }
-  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {

@@ -29,28 +29,30 @@ const OrganizerDashboard = () => {
   const tasks: Task[] = [
     {
       id: '1',
+      wedding_id: '1',
       title: 'Согласовать меню с клиентом',
-      description: 'Клиент Анна и Иван',
-      dueDate: '2024-05-01',
+      due_date: '2024-05-01',
       status: 'pending',
-      priority: 'high',
-      assignedTo: 'Анна',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     },
     {
       id: '2',
+      wedding_id: '2',
       title: 'Заказать декорации',
-      description: 'Для свадьбы Марии и Петра',
-      dueDate: '2024-05-15',
+      due_date: '2024-05-15',
       status: 'in_progress',
-      priority: 'high',
-      assignedTo: 'Мария',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     },
     {
       id: '3',
+      wedding_id: '1',
       title: 'Подготовить договор',
-      dueDate: '2024-04-25',
+      due_date: '2024-04-25',
       status: 'completed',
-      priority: 'medium',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     },
   ];
 
@@ -207,36 +209,13 @@ const OrganizerDashboard = () => {
                 >
                   <div className="flex justify-between items-start mb-2">
                     <h4 className="font-semibold text-gray-800">{task.title}</h4>
-                    <span
-                      className={`px-2 py-1 text-xs rounded-full ${
-                        task.priority === 'high'
-                          ? 'bg-red-100 text-red-800'
-                          : task.priority === 'medium'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-green-100 text-green-800'
-                      }`}
-                    >
-                      {task.priority === 'high'
-                        ? 'Высокий'
-                        : task.priority === 'medium'
-                        ? 'Средний'
-                        : 'Низкий'}
-                    </span>
                   </div>
-                  {task.description && (
-                    <p className="text-sm text-gray-600 mb-2">
-                      {task.description}
-                    </p>
-                  )}
-                  {task.assignedTo && (
-                    <p className="text-xs text-gray-500 mb-2">
-                      Назначено: {task.assignedTo}
-                    </p>
-                  )}
                   <div className="flex justify-between items-center">
-                    <span className="text-xs text-gray-500">
-                      До: {new Date(task.dueDate).toLocaleDateString('ru-RU')}
-                    </span>
+                    {task.due_date && (
+                      <span className="text-xs text-gray-500">
+                        До: {new Date(task.due_date).toLocaleDateString('ru-RU')}
+                      </span>
+                    )}
                     <span
                       className={`px-2 py-1 text-xs rounded-full ${
                         task.status === 'completed'

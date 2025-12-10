@@ -24,6 +24,17 @@ export interface Wedding {
   updated_at: string;
 }
 
+// Типы для событий свадьбы (для организатора)
+export interface WeddingEvent {
+  id: string;
+  title: string;
+  date: string;
+  location: string;
+  status: 'planning' | 'confirmed' | 'completed';
+  budget: number;
+  guestCount: number;
+}
+
 // Типы для заданий
 export interface Task {
   id: string;
