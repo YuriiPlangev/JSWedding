@@ -77,15 +77,15 @@ const OrganizerDashboard = () => {
       {/* Header */}
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-gray-800">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <h1 className="text-xl md:text-2xl font-bold text-gray-800">
               Панель организатора
             </h1>
-            <div className="flex items-center gap-4">
-              <span className="text-gray-700">{user?.name}</span>
+            <div className="flex items-center gap-2 md:gap-4">
+              <span className="text-sm md:text-base text-gray-700">{user?.name}</span>
               <button
                 onClick={logout}
-                className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
+                className="px-3 md:px-4 py-1.5 md:py-2 text-xs md:text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
               >
                 Выйти
               </button>
@@ -96,32 +96,32 @@ const OrganizerDashboard = () => {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Приветствие */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-800 mb-2">
+        <div className="mb-6 md:mb-8">
+          <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-800 mb-2">
             Добро пожаловать, {user?.name}!
           </h2>
-          <p className="text-gray-600">
+          <p className="text-sm md:text-base text-gray-600">
             Управление свадебными событиями и клиентами
           </p>
         </div>
 
         {/* Статистика */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <div className="text-3xl font-bold text-gray-800">{stats.totalEvents}</div>
-            <div className="text-sm text-gray-600 mt-1">Всего событий</div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
+          <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
+            <div className="text-2xl md:text-3xl font-bold text-gray-800">{stats.totalEvents}</div>
+            <div className="text-xs md:text-sm text-gray-600 mt-1">Всего событий</div>
           </div>
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <div className="text-3xl font-bold text-blue-600">{stats.activeEvents}</div>
-            <div className="text-sm text-gray-600 mt-1">Активных</div>
+          <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
+            <div className="text-2xl md:text-3xl font-bold text-blue-600">{stats.activeEvents}</div>
+            <div className="text-xs md:text-sm text-gray-600 mt-1">Активных</div>
           </div>
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <div className="text-3xl font-bold text-green-600">{stats.completedEvents}</div>
-            <div className="text-sm text-gray-600 mt-1">Завершено</div>
+          <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
+            <div className="text-2xl md:text-3xl font-bold text-green-600">{stats.completedEvents}</div>
+            <div className="text-xs md:text-sm text-gray-600 mt-1">Завершено</div>
           </div>
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <div className="text-3xl font-bold text-yellow-600">{stats.pendingTasks}</div>
-            <div className="text-sm text-gray-600 mt-1">Задач в ожидании</div>
+          <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
+            <div className="text-2xl md:text-3xl font-bold text-yellow-600">{stats.pendingTasks}</div>
+            <div className="text-xs md:text-sm text-gray-600 mt-1">Задач в ожидании</div>
           </div>
         </div>
 
@@ -139,10 +139,10 @@ const OrganizerDashboard = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Свадебные события */}
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-gray-800">События</h3>
-              <button className="text-sm text-pink-600 hover:text-pink-700 font-medium">
+          <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
+              <h3 className="text-lg md:text-xl font-bold text-gray-800">События</h3>
+              <button className="text-xs md:text-sm text-pink-600 hover:text-pink-700 font-medium">
                 + Добавить
               </button>
             </div>
@@ -192,10 +192,10 @@ const OrganizerDashboard = () => {
           </div>
 
           {/* Задачи */}
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-gray-800">Задачи</h3>
-              <button className="text-sm text-pink-600 hover:text-pink-700 font-medium">
+          <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
+              <h3 className="text-lg md:text-xl font-bold text-gray-800">Задачи</h3>
+              <button className="text-xs md:text-sm text-pink-600 hover:text-pink-700 font-medium">
                 + Добавить
               </button>
             </div>

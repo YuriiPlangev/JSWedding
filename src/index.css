@@ -6,7 +6,7 @@
   src: url("./assets/fonts/Branch-Regular.woff2") format("woff2");
   font-weight: normal;
   font-style: normal;
-  font-display: swap;
+  font-display: block;
 }
 
 /* Подключение шрифта Gilroy */
@@ -15,7 +15,16 @@
   src: url("./assets/fonts/Gilroy-Light.woff2") format("woff2");
   font-weight: 300;
   font-style: normal;
-  font-display: swap;
+  font-display: block;
+}
+
+/* Подключение шрифта Sloop */
+@font-face {
+  font-family: "Sloop";
+  src: url("./assets/fonts/Sloop-Regular.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
 }
 
 * {
@@ -47,6 +56,7 @@ body {
   scrollbar-width: none;
   /* Скрываем scrollbar для старых версий Firefox */
   overflow: -moz-scrollbars-none;
+  background: #fbf9f5;
 }
 
 /* Скрываем scrollbar для Webkit браузеров (Chrome, Safari, Edge) */
@@ -60,6 +70,101 @@ html::-webkit-scrollbar {
 
 /* Скрываем scrollbar для всех элементов */
 *::-webkit-scrollbar {
+  display: none;
+}
+
+/* Показываем scrollbar только для блока с незакрепленными документами */
+.documents-scrollable {
+  scrollbar-width: thin; /* Для Firefox */
+  scrollbar-color: #00000080 transparent; /* Для Firefox: цвет ползунка и трека */
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* Для Chrome - используем overlay для скрытия стрелок */
+  overflow-style: none;
+  -ms-overflow-style: none;
+}
+
+/* Для Webkit браузеров (Chrome, Safari, Edge) - полностью переопределяем scrollbar */
+.documents-scrollable::-webkit-scrollbar {
+  width: 2px !important;
+  height: 2px !important;
+  background: transparent !important;
+}
+
+.documents-scrollable::-webkit-scrollbar-track {
+  background: transparent !important;
+  -webkit-box-shadow: none !important;
+  box-shadow: none !important;
+}
+
+.documents-scrollable::-webkit-scrollbar-thumb {
+  background-color: #00000080 !important;
+  border-radius: 0 !important;
+  -webkit-box-shadow: none !important;
+  box-shadow: none !important;
+}
+
+.documents-scrollbar-thumb:hover {
+  background-color: #00000080 !important;
+}
+
+/* Полное скрытие всех кнопок прокрутки для Chrome */
+.documents-scrollable::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  -webkit-box-shadow: none !important;
+  box-shadow: none !important;
+}
+
+.documents-scrollable::-webkit-scrollbar-button:start:decrement,
+.documents-scrollable::-webkit-scrollbar-button:end:increment,
+.documents-scrollable::-webkit-scrollbar-button:single-button,
+.documents-scrollable::-webkit-scrollbar-button:double-button,
+.documents-scrollable::-webkit-scrollbar-button:vertical:start:decrement,
+.documents-scrollable::-webkit-scrollbar-button:vertical:end:increment,
+.documents-scrollable::-webkit-scrollbar-button:horizontal:start:decrement,
+.documents-scrollable::-webkit-scrollbar-button:horizontal:end:increment {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  -webkit-box-shadow: none !important;
+  box-shadow: none !important;
+}
+
+/* Убираем угол scrollbar */
+.documents-scrollable::-webkit-scrollbar-corner {
+  display: none !important;
+  background: transparent !important;
+  width: 0 !important;
+  height: 0 !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  -webkit-box-shadow: none !important;
+  box-shadow: none !important;
+}
+
+/* Стили для Swiper в презентации */
+.presentation-swiper .swiper-button-next,
+.presentation-swiper .swiper-button-prev {
+  display: none;
+}
+
+.presentation-swiper .swiper-pagination {
   display: none;
 }
 
@@ -138,6 +243,16 @@ html::-webkit-scrollbar {
   font-family: "Gilroy", system-ui, sans-serif !important;
 }
 
+/* Убеждаемся, что font-branch применяется правильно */
+.font-branch {
+  font-family: "Branch", cursive !important;
+}
+
+/* Убеждаемся, что font-sloop применяется правильно */
+.font-sloop {
+  font-family: "Sloop", cursive !important;
+}
+
 /* Анимация изменения цвета текста с черного на белый */
 @keyframes text-to-white {
   0% {
@@ -183,4 +298,49 @@ html::-webkit-scrollbar {
 
 .group:hover .arrow-hover-animate {
   animation: arrow-shake 0.5s ease-in-out infinite;
+}
+
+/* Кастомный чекбокс */
+.custom-checkbox {
+  position: relative;
+  display: inline-block;
+}
+
+.custom-checkbox input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.custom-checkbox .checkbox-label {
+  display: inline-block;
+  width: 40px;
+  height: 40px;
+  border: 1px solid #00000080;
+  background-color: transparent;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.custom-checkbox input[type="checkbox"]:checked + .checkbox-label {
+  background-color: white;
+}
+
+.custom-checkbox input[type="checkbox"]:checked + .checkbox-label::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) rotate(45deg);
+  width: 6px;
+  height: 12px;
+  border: solid black;
+  border-width: 0 2px 2px 0;
+}
+
+.custom-checkbox input[type="checkbox"]:focus + .checkbox-label {
+  outline: 2px solid #00000080;
+  outline-offset: 2px;
 }

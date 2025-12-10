@@ -1,203 +1,263 @@
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import type { WeddingEvent, Task, Notification } from '../types';
+import { weddingService, taskService, documentService } from '../services/weddingService';
+import type { Wedding, Task, Document } from '../types';
+import Header from '../components/Header';
+import TasksList from '../components/TasksList';
+import DocumentsList from '../components/DocumentsList';
+import Presentation from '../components/Presentation';
+import placeCircle from '../assets/placeCircle.svg';
 
 const ClientDashboard = () => {
   const { user, logout } = useAuth();
+  const [wedding, setWedding] = useState<Wedding | null>(null);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentLanguage, setCurrentLanguage] = useState<'en' | 'ru' | 'ua'>('ru');
+  const [showSplash, setShowSplash] = useState(true);
+  const [isAnimating, setIsAnimating] = useState(false);
 
-  // Пример данных (в реальном приложении будут загружаться с сервера)
-  const events: WeddingEvent[] = [
-    {
-      id: '1',
-      title: 'Свадьба Анны и Ивана',
-      date: '2024-06-15',
-      location: 'Ресторан "Элегант"',
-      status: 'planning',
-      budget: 500000,
-      guestCount: 100,
-    },
-  ];
+  useEffect(() => {
+    if (user?.id) {
+      loadWeddingData();
+    }
+  }, [user]);
 
-  const tasks: Task[] = [
-    {
-      id: '1',
-      title: 'Выбрать меню',
-      description: 'Согласовать меню с рестораном',
-      dueDate: '2024-05-01',
-      status: 'pending',
-      priority: 'high',
-    },
-    {
-      id: '2',
-      title: 'Заказать фотографа',
-      dueDate: '2024-05-10',
-      status: 'in_progress',
-      priority: 'medium',
-    },
-  ];
+  // Автоматически запускаем анимацию через 2.5 секунды после загрузки данных
+  useEffect(() => {
+    if (!loading && wedding && showSplash) {
+      const timer = setTimeout(() => {
+        setIsAnimating(true);
+        // После завершения анимации скрываем заглушку
+        setTimeout(() => {
+          setShowSplash(false);
+        }, 1000); // Длительность анимации
+      }, 1500); // Показываем заглушку 2.5 секунды
 
-  const notifications: Notification[] = [
-    {
-      id: '1',
-      title: 'Новое сообщение',
-      message: 'Организатор отправил вам новое сообщение',
-      type: 'info',
-      read: false,
-      createdAt: '2024-04-20T10:00:00',
-    },
-  ];
+      return () => clearTimeout(timer);
+    }
+  }, [loading, wedding, showSplash]);
+
+  const loadWeddingData = async (forceRefresh: boolean = false) => {
+    if (!user?.id) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Загружаем свадьбу клиента (используем кеш, если не принудительное обновление)
+      const weddingData = await weddingService.getClientWedding(user.id, !forceRefresh);
+      
+      if (!weddingData) {
+        setError('У вас пока нет активной свадьбы. Обратитесь к организатору.');
+        setLoading(false);
+        return;
+      }
+
+      setWedding(weddingData);
+
+      // Загружаем задания (используем кеш, если не принудительное обновление)
+      const tasksData = await taskService.getWeddingTasks(weddingData.id, !forceRefresh);
+      setTasks(tasksData);
+
+      // Загружаем документы (используем кеш, если не принудительное обновление)
+      const documentsData = await documentService.getWeddingDocuments(weddingData.id, !forceRefresh);
+      setDocuments(documentsData);
+    } catch (err) {
+      console.error('Error loading wedding data:', err);
+      setError('Ошибка при загрузке данных. Попробуйте обновить страницу.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDownloadDocument = async (document: Document) => {
+    try {
+      const blob = await documentService.downloadDocument(document);
+      
+      if (blob) {
+        // Создаем ссылку для скачивания
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = document.name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      }
+    } catch (err) {
+      console.error('Error downloading document:', err);
+      alert('Ошибка при скачивании документа');
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  };
+
+  const calculateDaysUntilWedding = (weddingDate: string): number => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Устанавливаем начало дня для точного расчета
+    
+    const wedding = new Date(weddingDate);
+    wedding.setHours(0, 0, 0, 0);
+    
+    const diffTime = wedding.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    return diffDays > 0 ? diffDays : 0;
+  };
+
+  // Показываем заглушку, пока идет загрузка или пока showSplash активен
+  if (showSplash && (loading || wedding)) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        {/* Header */}
+        <Header
+          onLogout={logout}
+          currentLanguage={currentLanguage}
+          onLanguageChange={setCurrentLanguage}
+        />
+
+        {/* Заглушка с анимацией */}
+        <div className="flex-1 flex items-center justify-center relative overflow-hidden">
+          <div
+            className={`text-center transition-all duration-1000 ease-in-out ${
+              isAnimating
+                ? 'transform -translate-y-full opacity-0'
+                : 'transform translate-y-0 opacity-100'
+            }`}
+            style={{ visibility: loading ? 'hidden' : 'visible' }}
+          >
+            {/* Имена пары */}
+            <h1 className="text-[48px] sm:text-[72px] md:text-[100px] lg:text-[150px] font-sloop text-black  md:mb-6 px-4">
+              {/* {wedding?.couple_name_1} & {wedding?.couple_name_2} */} Yurii & Angelina
+            </h1>
+            {/* Приветственный текст */}
+            <p className="text-[60px] sm:text-[32px] md:text-[48px] lg:text-[60px] font-gilroy text-black px-4">
+              Welcome to your wedding organization space!
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-gray-800">
-              Личный кабинет клиента
-            </h1>
-            <div className="flex items-center gap-4">
-              <span className="text-gray-700">{user?.name}</span>
-              <button
-                onClick={logout}
-                className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
-              >
-                Выйти
-              </button>
-            </div>
+    <div>
+      {/* Контент до презентации - на всю высоту экрана */}
+      <div className="min-h-screen flex flex-col">
+        {/* Header */}
+        <Header
+          onLogout={logout}
+          currentLanguage={currentLanguage}
+          onLanguageChange={setCurrentLanguage}
+        />
+
+        <main className="flex-1 flex flex-col">
+          {/* Приветствие */}
+          <div className=" border-b border-[#000000B2] py-6 px-15">
+            <h2 className="text-[32px] font-branch">
+            {wedding?.couple_name_1} & {wedding?.couple_name_2} Welcome to your weeding organization space!
+            </h2>
+            <p className="text-[16px] font-gilroy font-light text-[#4D3628]">
+            View and control every stage of your celebration
+            </p>
           </div>
-        </div>
-      </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Приветствие */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-800 mb-2">
-            Добро пожаловать, {user?.name}!
-          </h2>
-          <p className="text-gray-600">
-            Здесь вы можете управлять своими свадебными событиями
-          </p>
-        </div>
+          {/* Ошибка */}
+          {error && (
+            <div className="mb-8 bg-red-50 border border-red-200 rounded-lg p-4">
+              <p className="text-red-800">{error}</p>
+            </div>
+          )}
 
-        {/* Уведомления */}
-        {notifications.length > 0 && (
-          <div className="mb-8 bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="font-semibold text-blue-900 mb-2">Уведомления</h3>
-            {notifications.map((notif) => (
-              <div key={notif.id} className="text-blue-800">
-                {notif.title}: {notif.message}
+          {wedding && (
+            <>
+              {/* Основная информация о свадьбе */}
+              <div className='border-b border-[#000000B2] flex pl-15 flex-shrink-0'>
+                <div className='border-r border-[#00000033] py-6 pr-14'>
+                  <h2 className='text-[50px] font-branch'>
+                  Weeding details
+                  </h2>
+                  <p className='text-[24px] font-gilroy font-light text-[#00000080]'>
+                  Key details about your special day
+                  </p>
+                </div>
+                <div className='flex items-center flex-1'>
+                  <ul className='flex flex-row gap-4 px-15 justify-between w-full'>
+                    <li className='flex flex-col justify-center'>
+                      <p className='text-[16px] text-[#00000080] font-gilroy font-light'>wedding date</p>
+                      <p className='text-[32px] font-gilroy font-bold'>{formatDate(wedding.wedding_date)}</p>
+                    </li>
+                    <li className='flex flex-col justify-center'>
+                      <p className='text-[16px] text-[#00000080] font-gilroy font-light'>Venue</p>
+                      <p className='text-[32px] font-gilroy font-bold'>{wedding.venue}</p>
+                    </li>
+                    <li className='flex flex-col justify-center'>
+                      <div className='flex items-center gap-2'>
+                      <p className='text-[16px] text-[#00000080] font-gilroy font-light'>Celebration Place</p> <img src={placeCircle} alt="" />
+                      </div>
+                      <p className='text-[32px] font-gilroy font-bold text-[#00000080]'>Awaiting Selection</p>
+                    </li>
+                    <li className='flex flex-col justify-center'>
+                      <p className='text-[16px] text-[#00000080]  font-gilroy font-light'>Number of Guests</p>
+                      <p className='text-[32px] font-gilroy font-bold'>{wedding.guest_count}</p>
+                    </li>
+                    <li className='flex flex-col justify-center'>
+                      <p className='text-[32px] font-gilroy font-light'>
+                        {wedding ? calculateDaysUntilWedding(wedding.wedding_date) : 0} days
+                      </p>
+                      <p className='text-[24px] font-gilroy font-light'>till your celebration </p>
+                    </li>
+                  </ul>
+                </div>
               </div>
-            ))}
-          </div>
-        )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Свадебные события */}
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <h3 className="text-xl font-bold text-gray-800 mb-4">
-              Мои события
-            </h3>
-            <div className="space-y-4">
-              {events.map((event) => (
-                <div
-                  key={event.id}
-                  className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition"
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <h4 className="font-semibold text-gray-800">{event.title}</h4>
-                    <span
-                      className={`px-2 py-1 text-xs rounded-full ${
-                        event.status === 'planning'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : event.status === 'confirmed'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}
-                    >
-                      {event.status === 'planning'
-                        ? 'Планирование'
-                        : event.status === 'confirmed'
-                        ? 'Подтверждено'
-                        : event.status}
-                    </span>
+              <div className=" flex border-b border-[#00000033] flex-1">
+                {/* Задания */}
+                <div className='border-r border-[#000000B2] min-w-3/7 pl-15 self-stretch'>
+                  <div className='py-4'>
+                  <h2 className='text-[44px] font-branch mb-3'>
+                  Tasks
+                  </h2>
+                  <p className='text-[24px] font-gilroy font-light text-[#00000080]'>
+                  Wedding planning checklist you need to complete
+                  </p>
                   </div>
-                  <p className="text-sm text-gray-600 mb-1">
-                    Дата: {new Date(event.date).toLocaleDateString('ru-RU')}
-                  </p>
-                  <p className="text-sm text-gray-600 mb-1">
-                    Место: {event.location}
-                  </p>
-                  {event.budget && (
-                    <p className="text-sm text-gray-600">
-                      Бюджет: {event.budget.toLocaleString('ru-RU')} ₽
-                    </p>
-                  )}
+                  <TasksList tasks={tasks} />
                 </div>
-              ))}
-            </div>
-          </div>
 
-          {/* Задачи */}
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <h3 className="text-xl font-bold text-gray-800 mb-4">Задачи</h3>
-            <div className="space-y-4">
-              {tasks.map((task) => (
-                <div
-                  key={task.id}
-                  className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition"
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <h4 className="font-semibold text-gray-800">{task.title}</h4>
-                    <span
-                      className={`px-2 py-1 text-xs rounded-full ${
-                        task.priority === 'high'
-                          ? 'bg-red-100 text-red-800'
-                          : task.priority === 'medium'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-green-100 text-green-800'
-                      }`}
-                    >
-                      {task.priority === 'high'
-                        ? 'Высокий'
-                        : task.priority === 'medium'
-                        ? 'Средний'
-                        : 'Низкий'}
-                    </span>
+                {/* Документы */}
+                <div className='w-full h-full'>
+                  <div className='pt-4 px-15' >
+                  <h2 className='text-[44px] font-branch mb-3'>
+                    Documents
+                  </h2>
+                  <p className='text-[16px] font-gilroy font-light text-[#00000080]'>
+                  pinned documents
+                  </p>
                   </div>
-                  {task.description && (
-                    <p className="text-sm text-gray-600 mb-2">
-                      {task.description}
-                    </p>
-                  )}
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-gray-500">
-                      До: {new Date(task.dueDate).toLocaleDateString('ru-RU')}
-                    </span>
-                    <span
-                      className={`px-2 py-1 text-xs rounded-full ${
-                        task.status === 'completed'
-                          ? 'bg-green-100 text-green-800'
-                          : task.status === 'in_progress'
-                          ? 'bg-blue-100 text-blue-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}
-                    >
-                      {task.status === 'completed'
-                        ? 'Выполнено'
-                        : task.status === 'in_progress'
-                        ? 'В работе'
-                        : 'Ожидает'}
-                    </span>
-                  </div>
+                  <DocumentsList documents={documents} />
                 </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </main>
+                
+              </div>
+            </>
+          )}
+        </main>
+      </div>
+
+      {/* Презентация - на всю высоту экрана */}
+      {wedding && <Presentation />}
     </div>
   );
 };
 
 export default ClientDashboard;
-
