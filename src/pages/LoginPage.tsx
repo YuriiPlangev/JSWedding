@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import bgImg from '../assets/firstScreen.jpg';
+import bgImg from '../assets/firstScreen.JPG';
 import secondScreen from '../assets/bgJSSS.jpg';
 import scrollDown from '../assets/scroll-down.svg';
 import loginStar from '../assets/loginStar.svg';
