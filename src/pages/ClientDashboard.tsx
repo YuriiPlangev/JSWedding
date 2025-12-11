@@ -330,7 +330,7 @@ const ClientDashboard = () => {
                     })()}
                   </div>
                   <div className='flex-1 overflow-y-auto'>
-                    <TasksList tasks={tasks} currentLanguage={currentLanguage} />
+                    <TasksList tasks={tasks} />
                   </div>
                 </div>
 

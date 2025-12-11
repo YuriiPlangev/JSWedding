@@ -24,8 +24,7 @@ export function getFontForText(text: string): string {
 /**
  * Возвращает CSS класс для Tailwind с условным шрифтом
  */
-export function getFontClass(text: string, baseClass: string = ''): string {
-  const fontName = getFontForText(text);
+export function getFontClass(_text: string, baseClass: string = ''): string {
   // Для Tailwind нужно использовать inline style или создать классы
   // Возвращаем baseClass для совместимости
   return baseClass;

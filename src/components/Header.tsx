@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import logo from '../assets/logoV3.svg';
-import notesIcon from '../assets/notes.svg';
 import contactIcon from '../assets/tg.svg';
 import languageIcon from '../assets/language.svg';
 import { getTranslation } from '../utils/translations';

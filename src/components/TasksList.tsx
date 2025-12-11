@@ -7,7 +7,7 @@ interface TasksListProps {
   currentLanguage?: 'en' | 'ru' | 'ua';
 }
 
-const TasksList = ({ tasks, onTaskToggle, currentLanguage }: TasksListProps) => {
+const TasksList = ({ tasks, onTaskToggle }: TasksListProps) => {
   const handleCheckboxChange = (taskId: string, checked: boolean) => {
     if (onTaskToggle) {
       onTaskToggle(taskId, checked);
