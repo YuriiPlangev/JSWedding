@@ -6,6 +6,7 @@ const config: Config = {
       fontFamily: {
         'branch': ['Branch', 'system-ui', 'sans-serif'],
         'gilroy': ['Gilroy', 'system-ui', 'sans-serif'],
+        'lovelace': ['Lovelace', 'serif'],
       },
     },
   },

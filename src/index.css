@@ -27,6 +27,15 @@
   font-display: block;
 }
 
+/* Подключение шрифта Lovelace */
+@font-face {
+  font-family: "Lovelace";
+  src: url("./assets/fonts/LovelaceText-Regular.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+
 * {
   box-sizing: border-box;
 }
