@@ -209,7 +209,7 @@ const ClientDashboard = () => {
           
           {/* Scroll down indicator */}
           <div className="absolute bottom-4 lg:bottom-4 max-[1599px]:lg:bottom-4 min-[1600px]:xl:bottom-8 left-1/2 transform -translate-x-1/2 z-30 flex flex-col items-center">
-            <img src={scrollDown} alt="scrollDown" className='animate-pulse-opacity brightness-0' />
+            <img src={scrollDown} alt="scrollDown" className='brightness-0 w-8 h-8 md:w-10 md:h-10 lg:w-8 lg:h-8 xl:w-10 xl:h-10' />
             <p className='mt-2 text-black font-gilroy text-sm md:text-base lg:text-sm xl:text-base'>Scroll down to continue</p>
           </div>
         </div>
