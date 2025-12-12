@@ -68,7 +68,7 @@ const DocumentsList = ({ documents }: DocumentsListProps) => {
       {/* Незакрепленные документы */}
       {unpinnedDocuments.length > 0 && (
         <div ref={scrollableRef} className='px-4 md:px-8 lg:px-12 xl:px-[60px] max-h-[200px] overflow-y-auto documents-scrollable'>
-          <ul className='pt-4 max-[1599px]:pt-3 lg:max-[1599px]:pt-3 min-[1300px]:max-[1599px]:pt-3 pb-4 max-[1599px]:pb-3 lg:max-[1599px]:pb-3 min-[1300px]:max-[1599px]:pb-3'>
+          <ul className='pb-4 max-[1599px]:pb-3 lg:max-[1599px]:pb-3 min-[1300px]:max-[1599px]:pb-3'>
             {unpinnedDocuments.map((doc) => (
               <li key={doc.id} className='py-4 max-[1599px]:py-3 lg:max-[1599px]:py-3 min-[1300px]:max-[1599px]:py-3'> 
                   <a

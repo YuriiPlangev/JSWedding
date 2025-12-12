@@ -39,6 +39,21 @@ export interface Translations {
     documents: string;
     pinnedDocuments: string;
   };
+  months: {
+    january: string;
+    february: string;
+    march: string;
+    april: string;
+    may: string;
+    june: string;
+    july: string;
+    august: string;
+    september: string;
+    october: string;
+    november: string;
+    december: string;
+  };
+  year: string;
 }
 
 const translations: Record<Language, Translations> = {
@@ -77,6 +92,21 @@ const translations: Record<Language, Translations> = {
       documents: 'Documents',
       pinnedDocuments: 'pinned documents',
     },
+    months: {
+      january: 'January',
+      february: 'February',
+      march: 'March',
+      april: 'April',
+      may: 'May',
+      june: 'June',
+      july: 'July',
+      august: 'August',
+      september: 'September',
+      october: 'October',
+      november: 'November',
+      december: 'December',
+    },
+    year: 'year',
   },
   ru: {
     welcome: {
@@ -113,6 +143,21 @@ const translations: Record<Language, Translations> = {
       documents: 'Документы',
       pinnedDocuments: 'закрепленные документы',
     },
+    months: {
+      january: 'Января',
+      february: 'Февраля',
+      march: 'Марта',
+      april: 'Апреля',
+      may: 'Мая',
+      june: 'Июня',
+      july: 'Июля',
+      august: 'Августа',
+      september: 'Сентября',
+      october: 'Октября',
+      november: 'Ноября',
+      december: 'Декабря',
+    },
+    year: 'год',
   },
   ua: {
     welcome: {
@@ -149,6 +194,21 @@ const translations: Record<Language, Translations> = {
       documents: 'Документи',
       pinnedDocuments: 'закріплені документи',
     },
+    months: {
+      january: 'Січня',
+      february: 'Лютого',
+      march: 'Березня',
+      april: 'Квітня',
+      may: 'Травня',
+      june: 'Червня',
+      july: 'Липня',
+      august: 'Серпня',
+      september: 'Вересня',
+      october: 'Жовтня',
+      november: 'Листопада',
+      december: 'Грудня',
+    },
+    year: 'рік',
   },
 };
 

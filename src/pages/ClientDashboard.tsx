@@ -17,7 +17,23 @@ const ClientDashboard = () => {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentLanguage, setCurrentLanguage] = useState<'en' | 'ru' | 'ua'>('ru');
+  // Загружаем язык из localStorage при инициализации
+  const getInitialLanguage = (): 'en' | 'ru' | 'ua' => {
+    const savedLanguage = localStorage.getItem('preferredLanguage');
+    if (savedLanguage === 'en' || savedLanguage === 'ru' || savedLanguage === 'ua') {
+      return savedLanguage;
+    }
+    return 'ru';
+  };
+
+  const [currentLanguage, setCurrentLanguage] = useState<'en' | 'ru' | 'ua'>(getInitialLanguage());
+  
+  // Обработчик изменения языка с сохранением в localStorage
+  const handleLanguageChange = (lang: 'en' | 'ru' | 'ua') => {
+    setCurrentLanguage(lang);
+    localStorage.setItem('preferredLanguage', lang);
+  };
+
   const [isMobile, setIsMobile] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -195,11 +211,31 @@ const ClientDashboard = () => {
 
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
+    const date = new Date(dateString);
+    const day = date.getDate();
+    const monthIndex = date.getMonth();
+    const year = date.getFullYear();
+    
+    const translations = getTranslation(currentLanguage);
+    const monthNames = [
+      translations.months.january,
+      translations.months.february,
+      translations.months.march,
+      translations.months.april,
+      translations.months.may,
+      translations.months.june,
+      translations.months.july,
+      translations.months.august,
+      translations.months.september,
+      translations.months.october,
+      translations.months.november,
+      translations.months.december,
+    ];
+    
+    const monthName = monthNames[monthIndex];
+    const yearText = translations.year;
+    
+    return `${day} ${monthName} ${year} ${yearText}`;
   };
 
   const calculateDaysUntilWedding = (weddingDate: string): number => {
@@ -225,26 +261,10 @@ const ClientDashboard = () => {
     );
   }
 
-  // Показываем только загрузку, если данные еще не загружены
-  if (loading && !wedding) {
-    return (
-      <div className="min-h-screen flex flex-col">
-        <Header
-          onLogout={logout}
-          currentLanguage={currentLanguage}
-          onLanguageChange={setCurrentLanguage}
-        />
-        <div className="flex-1 flex items-center justify-center">
-          <p>Загрузка...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="relative">
       {/* Заглушка - первая секция */}
-      {wedding && showSplash && (
+      {(loading || (wedding && showSplash)) && (
         <div 
           ref={splashRef}
           className="relative h-screen w-full flex items-center justify-center"
@@ -260,11 +280,13 @@ const ClientDashboard = () => {
             }}
           >
             {/* Имена пары */}
-            <h1 
-              className="text-[48px] sm:text-[72px] md:text-[100px] lg:text-[100px] max-[1599px]:lg:text-[100px] min-[1600px]:lg:text-[120px] xl:text-[120px] max-[1599px]:xl:text-[120px] min-[1600px]:xl:text-[150px] font-sloop text-black  px-4"
-            >
-              {wedding?.couple_name_1} <span className='font-sloop'> & </span>  {wedding?.couple_name_2} 
-            </h1>
+            {wedding && (
+              <h1 
+                className="text-[48px] sm:text-[72px] md:text-[100px] lg:text-[100px] max-[1599px]:lg:text-[100px] min-[1600px]:lg:text-[120px] xl:text-[120px] max-[1599px]:xl:text-[120px] min-[1600px]:xl:text-[150px] font-sloop text-black  px-4"
+              >
+                {wedding.couple_name_1} <span className='font-sloop'> & </span>  {wedding.couple_name_2} 
+              </h1>
+            )}
             {/* Приветственный текст */}
             {(() => {
               const splashText = getTranslation(currentLanguage).welcome.splash;
@@ -282,6 +304,7 @@ const ClientDashboard = () => {
       )}
 
       {/* Основной контент - вторая секция */}
+      {wedding && !loading && (
       <div 
         ref={contentRef}
         className={`relative min-h-screen flex flex-col`}
@@ -294,13 +317,13 @@ const ClientDashboard = () => {
         <Header
           onLogout={logout}
           currentLanguage={currentLanguage}
-          onLanguageChange={setCurrentLanguage}
+          onLanguageChange={handleLanguageChange}
         />
-        <main className="flex-1 flex flex-col">
+        <main className="flex-1 flex flex-col font-forum">
           {/* Приветствие */}
           <div className="border-b border-[#00000033] py-6 max-[1599px]:py-3 md:max-[1599px]:py-4 lg:max-[1599px]:py-3 min-[1300px]:max-[1599px]:py-4 px-4 md:px-8 lg:px-12 xl:px-[60px]">
             <h2 
-              className="text-[32px] max-[1599px]:text-[24px] lg:max-[1599px]:text-[22px] min-[1300px]:max-[1599px]:text-[26px] font-forum"
+              className="text-[32px] max-[1599px]:text-[24px] lg:max-[1599px]:text-[22px] min-[1300px]:max-[1599px]:text-[26px] font-forum leading-tight"
             >
               {wedding?.couple_name_1} <span className='font-forum'> & </span> {wedding?.couple_name_2}, {getTranslation(currentLanguage).dashboard.welcome}
             </h2>
@@ -308,7 +331,7 @@ const ClientDashboard = () => {
               const descText = getTranslation(currentLanguage).dashboard.viewControl;
               return (
                 <p 
-                  className="text-[16px] max-[1599px]:text-[14px] lg:max-[1599px]:text-[13px] min-[1300px]:max-[1599px]:text-[14px] font-forum font-light text-[#00000080]"
+                  className="text-[16px] max-[1599px]:text-[14px] lg:max-[1599px]:text-[13px] min-[1300px]:max-[1599px]:text-[14px] font-forum font-light text-[#00000080] leading-tight mt-1"
                 >
                   {descText}
                 </p>
@@ -319,7 +342,7 @@ const ClientDashboard = () => {
           {/* Ошибка */}
           {error && (
             <div className="mb-8 bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-red-800">{error}</p>
+              <p className="text-red-800 font-forum">{error}</p>
             </div>
           )}
 
@@ -327,12 +350,12 @@ const ClientDashboard = () => {
             <>
               {/* Основная информация о свадьбе */}
               <div className='border-b border-[#00000033] flex flex-col lg:flex-row pl-4 md:pl-8 lg:pl-12 xl:pl-[60px] shrink-0'>
-                <div className='border-r-0 lg:border-r border-[#00000033] border-b lg:border-b-0 py-6 max-[1599px]:py-4 lg:max-[1599px]:py-3 min-[1300px]:max-[1599px]:py-4 pr-4 max-[1599px]:pr-4 md:max-[1599px]:pr-6 lg:max-[1599px]:pr-8 min-[1300px]:max-[1599px]:pr-10'>
+                <div className='border-r-0 lg:border-r border-[#00000033] border-b lg:border-b-0 py-2 lg:max-[1599px]:py-2 min-[1300px]:max-[1599px]:py-3 min-[1600px]:py-4 pr-4 max-[1599px]:pr-4 md:max-[1599px]:pr-6 lg:max-[1599px]:pr-8 min-[1300px]:max-[1599px]:pr-10'>
                   {(() => {
                     const titleText = getTranslation(currentLanguage).dashboard.weddingDetails;
                     return (
                       <h2 
-                        className='text-[50px] max-[1599px]:text-[36px] lg:max-[1599px]:text-[32px] min-[1300px]:max-[1599px]:text-[38px] font-forum'
+                        className='text-[50px] max-[1599px]:text-[36px] lg:max-[1599px]:text-[32px] min-[1300px]:max-[1599px]:text-[38px] font-forum leading-tight'
                       >
                         {titleText}
                       </h2>
@@ -342,7 +365,7 @@ const ClientDashboard = () => {
                     const descText = getTranslation(currentLanguage).dashboard.keyDetails;
                     return (
                       <p 
-                        className='text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[16px] min-[1300px]:max-[1599px]:text-[18px] font-forum font-light text-[#00000080]'
+                        className='text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[16px] min-[1300px]:max-[1599px]:text-[18px] font-forum font-light text-[#00000080] leading-tight mt-[-1]'
                       >
                         {descText}
                       </p>
@@ -397,8 +420,7 @@ const ClientDashboard = () => {
                         const labelText = getTranslation(currentLanguage).dashboard.numberOfGuests;
                         return (
                           <p 
-                            className='text-[16px] max-[1599px]:text-[14px] lg:max-[1599px]:text-[13px] min-[1300px]:max-[1599px]:text-[14px] text-[#00000080]  font-gilroy font-light'
-                            style={getFontStyle(labelText)}
+                            className='text-[16px] max-[1599px]:text-[14px] lg:max-[1599px]:text-[13px] min-[1300px]:max-[1599px]:text-[14px] text-[#00000080] font-forum font-light'
                           >
                             {labelText}
                           </p>
@@ -428,7 +450,7 @@ const ClientDashboard = () => {
               <div className="flex flex-col lg:flex-row border-b border-[#00000033] flex-1 overflow-hidden">
                 {/* Задания */}
                 <div className='border-r-0 lg:border-r border-[#00000033] lg:min-w-3/7 pl-4 md:pl-8 lg:pl-12 xl:pl-[60px] self-stretch overflow-hidden flex flex-col'>
-                  <div className='py-4 max-[1599px]:py-3 lg:max-[1599px]:py-2 min-[1300px]:max-[1599px]:py-3 pr-4 max-[1599px]:pr-4 md:max-[1599px]:pr-6 lg:max-[1599px]:pr-8 min-[1300px]:max-[1599px]:pr-10'>
+                  <div className='py-2 lg:max-[1599px]:py-2 min-[1300px]:max-[1599px]:py-3 min-[1600px]:py-4 pr-4 max-[1599px]:pr-4 md:max-[1599px]:pr-6 lg:max-[1599px]:pr-8 min-[1300px]:max-[1599px]:pr-10'>
                     {(() => {
                       const titleText = getTranslation(currentLanguage).dashboard.tasks;
                       return (
@@ -457,7 +479,7 @@ const ClientDashboard = () => {
 
                 {/* Документы */}
                 <div className='w-full h-full flex flex-col overflow-hidden'>
-                  <div className='pt-4 max-[1599px]:pt-3 lg:max-[1599px]:pt-2 min-[1300px]:max-[1599px]:pt-3 px-4 md:px-8 lg:px-12 xl:px-[60px] pb-0' >
+                  <div className='pt-2 lg:max-[1599px]:pt-2 min-[1300px]:max-[1599px]:pt-3 min-[1600px]:pt-4 px-4 md:px-8 lg:px-12 xl:px-[60px]' >
                     {(() => {
                       const titleText = getTranslation(currentLanguage).dashboard.documents;
                       return (
@@ -489,6 +511,7 @@ const ClientDashboard = () => {
           )}
         </main>
       </div>
+      )}
 
       {/* Презентация - на всю высоту экрана */}
       {/* {wedding && <Presentation />} */}

@@ -11,6 +11,7 @@ import logoV2 from '../assets/logoV2.svg';
 import openEye from '../assets/openEye.png';
 import closeEye from '../assets/closeEye.png';
 import { getFontStyle } from '../utils/fontUtils';
+import MobileNotSupported from '../components/MobileNotSupported';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -19,6 +20,7 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [bgLoaded, setBgLoaded] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const { login, isAuthenticated, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const firstSectionRef = useRef<HTMLDivElement>(null);
@@ -27,6 +29,23 @@ const LoginPage = () => {
   
   // Время перехода в миллисекундах (можно изменить здесь)
   const SCROLL_DURATION = 2000;
+
+  // Проверка размера экрана для мобильных устройств
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < 1024); // lg breakpoint в Tailwind
+    };
+
+    // Проверяем при загрузке
+    checkScreenSize();
+
+    // Проверяем при изменении размера окна
+    window.addEventListener('resize', checkScreenSize);
+
+    return () => {
+      window.removeEventListener('resize', checkScreenSize);
+    };
+  }, []);
 
   // Если пользователь уже залогинен, редиректим на dashboard
   useEffect(() => {
@@ -157,21 +176,20 @@ const LoginPage = () => {
     };
   }, []);
 
-  // Пока идет загрузка аутентификации, показываем загрузку
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
-          <p className="text-gray-600">Загрузка...</p>
-        </div>
-      </div>
-    );
+  // Показываем страницу для мобильных устройств, если экран меньше ноутбучного
+  if (isMobile) {
+    return <MobileNotSupported />;
   }
 
   // Если пользователь уже залогинен, редиректим
   if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
+  }
+
+  // Показываем загрузку только при первой загрузке страницы (когда еще нет данных о пользователе)
+  // После логина редирект происходит сразу, поэтому экран загрузки не нужен
+  if (authLoading) {
+    return null; // Не показываем экран загрузки, просто ничего не рендерим
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -229,7 +247,7 @@ const LoginPage = () => {
       </div>
 
       {/* Контент */}
-      <div className='relative z-20 flex flex-col items-center justify-start h-full pt-[80px] md:pt-[140px] lg:pt-[120px] xl:pt-[140px] px-4'>
+      <div className='relative z-20 flex flex-col items-center justify-start h-full pt-[80px] md:pt-[140px] lg:pt-[80px] max-[1599px]:lg:pt-[70px] min-[1300px]:max-[1599px]:lg:pt-[80px] xl:pt-[100px] max-[1599px]:xl:pt-[80px] min-[1600px]:xl:pt-[140px] px-4 pb-24 lg:pb-20 max-[1599px]:lg:pb-20 min-[1600px]:xl:pb-24'>
         {/* Логотип */}
         <div className="relative w-[200px] h-[200px] md:w-[300px] md:h-[300px] lg:w-[240px] lg:h-[240px] max-[1599px]:lg:w-[200px] max-[1599px]:lg:h-[200px] xl:w-[300px] max-[1599px]:xl:w-[240px] min-[1600px]:xl:h-[300px] overflow-visible flex items-center justify-center">
           <svg width="225" height="232" viewBox="0 0 225 232" fill="none" xmlns="http://www.w3.org/2000/svg" className={`relative z-50 w-[150px] h-[155px] md:w-[225px] md:h-[232px] lg:w-[180px] lg:h-[186px] max-[1599px]:lg:w-[150px] max-[1599px]:lg:h-[155px] xl:w-[225px] max-[1599px]:xl:w-[180px] min-[1600px]:xl:h-[232px] ${bgLoaded ? 'logo-fill-animate' : 'logo-fill-black'}`} style={{ overflow: 'visible' }}>
@@ -267,7 +285,7 @@ const LoginPage = () => {
 
         {/* Scroll down indicator - внизу экрана, появляется вместе с изображением */}
         <div 
-          className={`absolute bottom-8 lg:bottom-8 left-1/2 transform -translate-x-1/2 z-20 flex flex-col items-center scroll-indicator-reveal ${
+          className={`absolute bottom-4 lg:bottom-4 max-[1599px]:lg:bottom-4 min-[1600px]:xl:bottom-8 left-1/2 transform -translate-x-1/2 z-30 flex flex-col items-center scroll-indicator-reveal ${
             bgLoaded ? 'scroll-indicator-visible' : ''
           }`}
         >
@@ -308,24 +326,24 @@ const LoginPage = () => {
         />
 
         {/* Форма входа */}
-        <div className='relative z-20 flex flex-col items-center justify-center h-full'>
+        <div className='relative z-20 flex flex-col items-center justify-center h-full py-4 max-[1599px]:py-6 min-[1600px]:py-8'>
           {/* Логотип над формой */}
-          <div className="mb-8 max-[1599px]:mb-6 min-[1600px]:mb-8">
-            <img src={logoV2} alt="logo" className="max-[1599px]:scale-75 min-[1600px]:scale-100" />
+          <div className="mb-6 max-[1599px]:mb-4 lg:max-[1599px]:mb-4 min-[1300px]:max-[1599px]:mb-5 min-[1600px]:mb-8">
+            <img src={logoV2} alt="logo" className="w-auto h-auto max-w-[70vw] md:max-w-[60vw] lg:max-w-[50vw] max-[1599px]:lg:max-w-[45vw] min-[1300px]:max-[1599px]:max-w-[50vw] min-[1600px]:max-w-none" style={{ maxHeight: '100px', objectFit: 'contain' }} />
           </div>
           <form 
             onSubmit={handleSubmit}
-            className='relative bg-[#FBF9F5B2] backdrop-blur-sm rounded-lg w-full max-w-[480px] max-[1599px]:max-w-[480px] min-[1600px]:max-w-[764px] p-4 md:p-5 max-[1599px]:md:p-5 min-[1600px]:md:p-8 mx-4 border-2 border-[#BCADA4] flex flex-col items-center justify-center mb-24 max-[1599px]:mb-16 min-[1600px]:mb-24'
+            className='relative bg-[#FBF9F5B2] backdrop-blur-sm rounded-lg w-auto max-w-[420px] md:max-w-[480px] lg:max-w-[440px] max-[1599px]:lg:max-w-[400px] min-[1300px]:max-[1599px]:max-w-[440px] min-[1600px]:max-w-[520px] xl:max-w-[580px] max-[1599px]:xl:max-w-[460px] min-[1600px]:xl:max-w-[640px] p-3 md:p-4 lg:p-3 max-[1599px]:lg:p-3 min-[1300px]:max-[1599px]:p-4 min-[1600px]:p-6 xl:p-6 max-[1599px]:xl:p-4 min-[1600px]:xl:p-8 mx-4 border-2 border-[#BCADA4] flex flex-col items-center justify-center'
           >
-            <div className='flex flex-col items-center justify-center mb-9 max-[1599px]:mb-7 min-[1600px]:mb-9 w-full'>
+            <div className='flex flex-col items-center justify-center mb-6 max-[1599px]:mb-5 lg:max-[1599px]:mb-4 min-[1300px]:max-[1599px]:mb-5 min-[1600px]:mb-7 xl:mb-9 max-[1599px]:xl:mb-6 min-[1600px]:xl:mb-9 w-full'>
               {/* Изображение */}
               <img src={loginStar} alt="logo" className="max-[1599px]:scale-75 min-[1600px]:scale-100" />
               <h1 
-                className='text-black text-[24px] md:text-[26px] max-[1599px]:md:text-[26px] min-[1600px]:md:text-[32px] lg:text-[28px] max-[1599px]:lg:text-[28px] min-[1600px]:lg:text-[40px] font-branch font-regular mt-4 md:mt-4 max-[1599px]:md:mt-4 min-[1600px]:md:mt-6 mb-2 text-center'
+                className='text-black text-[18px] md:text-[20px] lg:text-[18px] max-[1599px]:lg:text-[17px] min-[1300px]:max-[1599px]:text-[20px] min-[1600px]:text-[24px] xl:text-[28px] max-[1599px]:xl:text-[22px] min-[1600px]:xl:text-[32px] font-branch font-regular mt-3 md:mt-3 lg:mt-2 max-[1599px]:lg:mt-2 min-[1300px]:max-[1599px]:mt-3 min-[1600px]:mt-4 xl:mt-5 max-[1599px]:xl:mt-3 min-[1600px]:xl:mt-6 mb-1.5 text-center'
               >
                 Enter your account
               </h1>
-              <p className='text-black text-brown font-gilroy font-light mb-4 md:mb-4 max-[1599px]:md:mb-4 min-[1600px]:md:mb-6 text-center text-[14px] md:text-[14px] max-[1599px]:md:text-[14px] min-[1600px]:md:text-[18px] lg:text-[15px] max-[1599px]:lg:text-[15px] min-[1600px]:lg:text-[20px] px-4 md:px-10 max-[1599px]:md:px-10 min-[1600px]:md:px-16 lg:px-16 max-[1599px]:lg:px-16 min-[1600px]:lg:px-28'>
+              <p className='text-black text-brown font-gilroy font-light mb-3 md:mb-3 lg:mb-2 max-[1599px]:lg:mb-2 min-[1300px]:max-[1599px]:mb-3 min-[1600px]:mb-4 xl:mb-5 max-[1599px]:xl:mb-3 min-[1600px]:xl:mb-6 text-center text-[11px] md:text-[12px] lg:text-[11px] max-[1599px]:lg:text-[10px] min-[1300px]:max-[1599px]:text-[12px] min-[1600px]:text-[13px] xl:text-[15px] max-[1599px]:xl:text-[13px] min-[1600px]:xl:text-[17px] px-3 md:px-6 lg:px-4 max-[1599px]:lg:px-3 min-[1300px]:max-[1599px]:px-6 min-[1600px]:px-8 xl:px-10 max-[1599px]:xl:px-6 min-[1600px]:xl:px-14'>
                 Here you'll find all documents, timelines, updates, and planning tools – everything you need to feel confident, informed, and supported at every stage.
               </p>
               {/* Контейнер для изображения loginCircle и полосок */}
@@ -341,7 +359,7 @@ const LoginPage = () => {
                   }}
                 />
                 {/* Изображение */}
-                <img src={loginCircle} alt="" className='relative z-10 w-12 h-12 md:w-auto md:h-auto max-[1599px]:scale-75 min-[1600px]:scale-100' />
+                <img src={loginCircle} alt="" className='relative z-10 w-8 h-8 md:w-9 md:h-9 lg:w-8 lg:h-8 max-[1599px]:lg:w-7 max-[1599px]:lg:h-7 min-[1300px]:max-[1599px]:w-8 min-[1300px]:max-[1599px]:h-8 min-[1600px]:w-10 min-[1600px]:h-10 xl:w-12 xl:h-12 max-[1599px]:xl:w-9 max-[1599px]:xl:h-9 min-[1600px]:xl:w-12 min-[1600px]:xl:h-12' />
                 {/* Полоска справа - от изображения до 100px от правого края */}
                 <div 
                   className='absolute h-px hidden md:block'
@@ -356,10 +374,10 @@ const LoginPage = () => {
             </div>
 
             {/* Поле Email */}
-            <div className='mb-6 max-[1599px]:mb-4 min-[1600px]:mb-6 self-start w-full'>
+            <div className='mb-4 max-[1599px]:mb-3 lg:max-[1599px]:mb-3 min-[1300px]:max-[1599px]:mb-4 min-[1600px]:mb-5 xl:mb-6 max-[1599px]:xl:mb-4 min-[1600px]:xl:mb-6 self-start w-full'>
               <label 
                 htmlFor='email' 
-                className='block text-sm font-gilroy mb-2 text-[13px] max-[1599px]:md:text-[13px] min-[1600px]:md:text-[16px]'
+                className='block text-sm font-gilroy mb-1.5 text-[11px] md:text-[11px] lg:text-[10px] max-[1599px]:lg:text-[10px] min-[1300px]:max-[1599px]:text-[11px] min-[1600px]:text-[13px] xl:text-[14px] max-[1599px]:xl:text-[12px] min-[1600px]:xl:text-[15px]'
                 style={{ color: 'black', fontWeight: "400" }}
               >
                 Email
@@ -370,19 +388,21 @@ const LoginPage = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder='Enter your Email'
-                className='w-full bg-transparent border-0 border-b-2 focus:outline-none focus:border-b-2 pb-2 font-gilroy text-[13px] max-[1599px]:md:text-[13px] min-[1600px]:md:text-[16px]'
+                className='w-full bg-transparent border-0 border-b-2 focus:outline-none focus:border-b-2 pb-1.5 font-gilroy text-[11px] md:text-[11px] lg:text-[10px] max-[1599px]:lg:text-[10px] min-[1300px]:max-[1599px]:text-[11px] min-[1600px]:text-[13px] xl:text-[14px] max-[1599px]:xl:text-[12px] min-[1600px]:xl:text-[15px] pl-1'
                 style={{ 
                   borderColor: '#00000080',
                   color: 'black',
+                  backgroundColor: 'transparent',
                 }}
+                autoComplete='off'
               />
             </div>
 
             {/* Поле Password */}
-            <div className='mb-8 max-[1599px]:mb-6 min-[1600px]:mb-8 self-start w-full'>
+            <div className='mb-6 max-[1599px]:mb-4 lg:max-[1599px]:mb-4 min-[1300px]:max-[1599px]:mb-5 min-[1600px]:mb-6 xl:mb-8 max-[1599px]:xl:mb-6 min-[1600px]:xl:mb-8 self-start w-full'>
               <label 
                 htmlFor='password' 
-                className='block text-sm font-gilroy mb-2 text-[13px] max-[1599px]:md:text-[13px] min-[1600px]:md:text-[16px]'
+                className='block text-sm font-gilroy mb-1.5 text-[11px] md:text-[11px] lg:text-[10px] max-[1599px]:lg:text-[10px] min-[1300px]:max-[1599px]:text-[11px] min-[1600px]:text-[13px] xl:text-[14px] max-[1599px]:xl:text-[12px] min-[1600px]:xl:text-[15px]'
                 style={{ color: 'black', fontWeight: "400" }}
               >
                 Password
@@ -394,11 +414,13 @@ const LoginPage = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder='Enter your password'
-                  className='w-full bg-transparent border-0 border-b-2 focus:outline-none focus:border-b-2 pb-2 pr-10 font-gilroy text-[13px] max-[1599px]:md:text-[13px] min-[1600px]:md:text-[16px]'
+                  className='w-full bg-transparent border-0 border-b-2 focus:outline-none focus:border-b-2 pb-1.5 pr-8 font-gilroy text-[11px] md:text-[11px] lg:text-[10px] max-[1599px]:lg:text-[10px] min-[1300px]:max-[1599px]:text-[11px] min-[1600px]:text-[13px] xl:text-[14px] max-[1599px]:xl:text-[12px] min-[1600px]:xl:text-[15px] pl-1'
                   style={{ 
                     borderColor: '#00000080',
                     color: 'black',
+                    backgroundColor: 'transparent',
                   }}
+                  autoComplete='off'
                 />
                 <button
                   type='button'
@@ -419,7 +441,7 @@ const LoginPage = () => {
             <button
               type='submit'
               disabled={loading}
-              className='w-full py-2 md:py-3 max-[1599px]:md:py-3 min-[1600px]:md:py-4 border font-gilroy text-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer relative overflow-hidden group'
+              className='w-full py-1.5 md:py-2 lg:py-1.5 max-[1599px]:lg:py-1.5 min-[1300px]:max-[1599px]:py-2 min-[1600px]:py-2.5 xl:py-3 max-[1599px]:xl:py-2.5 min-[1600px]:xl:py-4 border font-gilroy text-lg flex items-center justify-center gap-1.5 max-[1599px]:gap-1.5 min-[1600px]:gap-2 transition-all disabled:opacity-50 cursor-pointer relative overflow-hidden group'
               style={{ 
                 borderColor: 'black',
                 color: 'black',
@@ -427,10 +449,10 @@ const LoginPage = () => {
             >
               {/* Затемнение при наведении */}
               <div className='absolute inset-0 bg-black opacity-0 group-hover:opacity-[0.05] transition-opacity duration-300'></div>
-              <span className='relative z-10 font-branch text-[26px] max-[1599px]:md:text-[26px] min-[1600px]:md:text-[40px]'>
+              <span className='relative z-10 font-branch text-[18px] md:text-[20px] lg:text-[18px] max-[1599px]:lg:text-[17px] min-[1300px]:max-[1599px]:text-[20px] min-[1600px]:text-[24px] xl:text-[28px] max-[1599px]:xl:text-[22px] min-[1600px]:xl:text-[32px]'>
                 Start the preparation
               </span>
-              <img src={arrowRight} alt="arrow" className='relative z-10 arrow-hover-animate max-[1599px]:scale-75 min-[1600px]:scale-100' />
+              <img src={arrowRight} alt="arrow" className='relative z-10 arrow-hover-animate w-4 h-4 md:w-5 md:h-5 lg:w-4 lg:h-4 max-[1599px]:lg:w-3.5 max-[1599px]:lg:h-3.5 min-[1300px]:max-[1599px]:w-4 min-[1300px]:max-[1599px]:h-4 min-[1600px]:w-5 min-[1600px]:h-5 xl:w-6 xl:h-6 max-[1599px]:xl:w-4.5 max-[1599px]:xl:h-4.5 min-[1600px]:xl:w-6 min-[1600px]:xl:h-6' />
             </button>
 
             {/* Сообщение об ошибке */}
