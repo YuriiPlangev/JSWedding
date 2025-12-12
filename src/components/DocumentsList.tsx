@@ -49,7 +49,7 @@ const DocumentsList = ({ documents }: DocumentsListProps) => {
           <div className='px-4 md:px-8 lg:px-12 xl:px-[60px] pt-0 pb-6 max-[1599px]:pb-4 lg:max-[1599px]:pb-4 min-[1300px]:max-[1599px]:pb-5'>
             <ul>
               {pinnedDocuments.map((doc) => (
-                <li key={doc.id} className='py-4 max-[1599px]:py-3 lg:max-[1599px]:py-3 min-[1300px]:max-[1599px]:py-3'>
+                <li key={doc.id} className='py-1 max-[1599px]:py-1 lg:max-[1599px]:py-1 min-[1300px]:max-[1599px]:py-1 min-[1600px]:py-2'>
                   <a
                     href={doc.link || doc.file_url || '#'}
                     target={doc.link ? '_blank' : undefined}
@@ -70,7 +70,7 @@ const DocumentsList = ({ documents }: DocumentsListProps) => {
         <div ref={scrollableRef} className='px-4 md:px-8 lg:px-12 xl:px-[60px] max-h-[200px] overflow-y-auto documents-scrollable'>
           <ul className='pb-4 max-[1599px]:pb-3 lg:max-[1599px]:pb-3 min-[1300px]:max-[1599px]:pb-3'>
             {unpinnedDocuments.map((doc) => (
-              <li key={doc.id} className='py-4 max-[1599px]:py-3 lg:max-[1599px]:py-3 min-[1300px]:max-[1599px]:py-3'> 
+              <li key={doc.id} className='py-1 max-[1599px]:py-1 lg:max-[1599px]:py-1 min-[1300px]:max-[1599px]:py-1 min-[1600px]:py-2'> 
                   <a
                     href={doc.link || doc.file_url || '#'}
                     target={doc.link ? '_blank' : undefined}

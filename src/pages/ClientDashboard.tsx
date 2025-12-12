@@ -35,14 +35,7 @@ const ClientDashboard = () => {
   };
 
   const [isMobile, setIsMobile] = useState(false);
-  const [showSplash, setShowSplash] = useState(true);
-  const [isAnimating, setIsAnimating] = useState(false);
   const splashRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
-  const isScrollingRef = useRef(false);
-  
-  // Время перехода в миллисекундах
-  const SCROLL_DURATION = 2000;
 
   // Проверка размера экрана для мобильных устройств
   useEffect(() => {
@@ -67,114 +60,6 @@ const ClientDashboard = () => {
     }
   }, [user]);
 
-  // Функция плавного скролла с контролируемой длительностью
-  const smoothScrollTo = (targetPosition: number, duration: number) => {
-    const startPosition = window.pageYOffset || document.documentElement.scrollTop;
-    const distance = targetPosition - startPosition;
-    let startTime: number | null = null;
-
-    const animation = (currentTime: number) => {
-      if (startTime === null) startTime = currentTime;
-      const timeElapsed = currentTime - startTime;
-      const progress = Math.min(timeElapsed / duration, 1);
-      
-      // Easing функция для плавности (easeInOutCubic)
-      const ease = progress < 0.5
-        ? 4 * progress * progress * progress
-        : 1 - Math.pow(-2 * progress + 2, 3) / 2;
-      
-      window.scrollTo(0, startPosition + distance * ease);
-      
-      if (timeElapsed < duration) {
-        requestAnimationFrame(animation);
-      } else {
-        // Разблокируем скролл после завершения анимации
-        isScrollingRef.current = false;
-        document.body.style.overflow = '';
-        setIsAnimating(false);
-      }
-    };
-
-    requestAnimationFrame(animation);
-  };
-
-  // Обработка скролла для перехода от заглушки к контенту
-  useEffect(() => {
-    if (!showSplash) return; // Если заглушка уже скрыта, не обрабатываем события
-
-    const handleWheel = (e: WheelEvent) => {
-      // Если идет анимация скролла - блокируем все события
-      if (isScrollingRef.current) {
-        e.preventDefault();
-        e.stopPropagation();
-        return;
-      }
-
-      if (!splashRef.current || !contentRef.current) {
-        return;
-      }
-
-      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-
-      // Проверяем, находимся ли мы на заглушке (скролл вверху страницы)
-      const isOnSplash = scrollTop < 50;
-      
-      // Скролл вниз на заглушке - переходим к контенту
-      if (isOnSplash && e.deltaY > 0) {
-        e.preventDefault();
-        e.stopPropagation();
-        isScrollingRef.current = true;
-        setIsAnimating(true);
-        
-        // Блокируем скролл через CSS
-        document.body.style.overflow = 'hidden';
-        
-        // Запускаем анимацию перехода
-        const contentTop = contentRef.current.offsetTop;
-        smoothScrollTo(contentTop, SCROLL_DURATION);
-        
-        // После завершения анимации скрываем заглушку
-        setTimeout(() => {
-          setShowSplash(false);
-        }, SCROLL_DURATION);
-      }
-    };
-
-    // Обработчик для блокировки скролла клавиатурой во время анимации
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (isScrollingRef.current && (
-        e.key === 'ArrowUp' || 
-        e.key === 'ArrowDown' || 
-        e.key === 'PageUp' || 
-        e.key === 'PageDown' ||
-        e.key === 'Home' ||
-        e.key === 'End'
-      )) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    };
-
-    // Обработчик для блокировки touch-скролла
-    const handleTouchMove = (e: TouchEvent) => {
-      if (isScrollingRef.current) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    };
-
-    window.addEventListener('wheel', handleWheel, { passive: false });
-    window.addEventListener('keydown', handleKeyDown, { passive: false });
-    window.addEventListener('touchmove', handleTouchMove, { passive: false });
-
-    return () => {
-      window.removeEventListener('wheel', handleWheel);
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('touchmove', handleTouchMove);
-      // Восстанавливаем скролл при размонтировании
-      document.body.style.overflow = '';
-    };
-  }, [showSplash, SCROLL_DURATION]);
 
   const loadWeddingData = async (forceRefresh: boolean = false) => {
     if (!user?.id) return;
@@ -233,9 +118,8 @@ const ClientDashboard = () => {
     ];
     
     const monthName = monthNames[monthIndex];
-    const yearText = translations.year;
     
-    return `${day} ${monthName} ${year} ${yearText}`;
+    return `${day} ${monthName} ${year}`;
   };
 
   const calculateDaysUntilWedding = (weddingDate: string): number => {
@@ -264,25 +148,16 @@ const ClientDashboard = () => {
   return (
     <div className="relative">
       {/* Заглушка - первая секция */}
-      {(loading || (wedding && showSplash)) && (
+      {(loading || wedding) && (
         <div 
           ref={splashRef}
           className="relative h-screen w-full flex items-center justify-center"
         >
-          <div 
-            className={`text-center ease-in-out ${
-              isAnimating
-                ? 'transform -translate-y-full opacity-0'
-                : 'transform translate-y-0 opacity-100'
-            }`}
-            style={{
-              transition: `all ${SCROLL_DURATION}ms ease-in-out`,
-            }}
-          >
+          <div className="text-center">
             {/* Имена пары */}
             {wedding && (
               <h1 
-                className="text-[48px] sm:text-[72px] md:text-[100px] lg:text-[100px] max-[1599px]:lg:text-[100px] min-[1600px]:lg:text-[120px] xl:text-[120px] max-[1599px]:xl:text-[120px] min-[1600px]:xl:text-[150px] font-sloop text-black  px-4"
+                className="text-[48px] sm:text-[72px] md:text-[100px] lg:text-[80px] max-[1599px]:lg:text-[80px] min-[1600px]:lg:text-[120px] xl:text-[120px] max-[1599px]:xl:text-[100px] min-[1600px]:xl:text-[150px] font-sloop text-black  px-4"
               >
                 {wedding.couple_name_1} <span className='font-sloop'> & </span>  {wedding.couple_name_2} 
               </h1>
@@ -292,7 +167,7 @@ const ClientDashboard = () => {
               const splashText = getTranslation(currentLanguage).welcome.splash;
               return (
                 <p 
-                  className="text-[24px] sm:text-[32px] md:text-[40px] lg:text-[40px] max-[1599px]:lg:text-[40px] min-[1600px]:lg:text-[48px] xl:text-[50px] max-[1599px]:xl:text-[50px] min-[1600px]:xl:text-[60px] text-black px-4"
+                  className="text-[24px] sm:text-[32px] md:text-[40px] lg:text-[32px] max-[1599px]:lg:text-[32px] min-[1600px]:lg:text-[48px] xl:text-[50px] max-[1599px]:xl:text-[40px] min-[1600px]:xl:text-[60px] text-black px-4"
                   style={getFontStyle(splashText)}
                 >
                   {splashText}
@@ -305,14 +180,7 @@ const ClientDashboard = () => {
 
       {/* Основной контент - вторая секция */}
       {wedding && !loading && (
-      <div 
-        ref={contentRef}
-        className={`relative min-h-screen flex flex-col`}
-        style={{
-          opacity: (showSplash && !isAnimating) ? 0 : 1,
-          transition: `opacity ${SCROLL_DURATION * 0.5}ms ease-out`, // Контент появляется быстрее (50% от времени заглушки)
-        }}
-      >
+      <div className="relative min-h-screen flex flex-col">
         {/* Header внутри контента - появляется вместе с ним */}
         <Header
           onLogout={logout}
@@ -455,7 +323,7 @@ const ClientDashboard = () => {
                       const titleText = getTranslation(currentLanguage).dashboard.tasks;
                       return (
                         <h2 
-                          className='text-[50px] max-[1599px]:text-[36px] lg:max-[1599px]:text-[32px] min-[1300px]:max-[1599px]:text-[38px] mb-3 max-[1599px]:mb-2 lg:max-[1599px]:mb-2 min-[1300px]:max-[1599px]:mb-2 font-forum'
+                          className='text-[50px] max-[1599px]:text-[36px] lg:max-[1599px]:text-[32px] min-[1300px]:max-[1599px]:text-[38px] font-forum'
                         >
                           {titleText}
                         </h2>

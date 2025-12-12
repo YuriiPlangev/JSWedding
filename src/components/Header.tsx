@@ -43,7 +43,7 @@ const Header = ({ onLogout, currentLanguage, onLanguageChange, }: HeaderProps) =
               const contactText = getTranslation(currentLanguage).header.contactUs;
               return (
                 <button className="flex items-center gap-2 px-4 md:px-6 max-[1599px]:md:px-5 min-[1600px]:md:px-6 lg:px-5 max-[1599px]:lg:px-5 min-[1600px]:lg:px-7.5 py-4 md:py-6 max-[1599px]:md:py-5 min-[1600px]:md:py-6 lg:py-5 max-[1599px]:lg:py-5 min-[1600px]:lg:py-7.5 cursor-pointer border-x border-[#00000033] ">
-                  <img src={contactIcon} alt="contact" className="h-7 md:h-8 max-[1599px]:md:h-7 min-[1600px]:md:h-8 lg:h-7 max-[1599px]:lg:h-7 min-[1600px]:lg:h-9 w-auto" />
+                  <img src={contactIcon} alt="contact" className="h-5 md:h-6 max-[1599px]:md:h-5 min-[1600px]:md:h-6 lg:h-5 max-[1599px]:lg:h-5 min-[1600px]:lg:h-6 w-auto" />
                   <span 
                     className="hidden lg:inline font-forum text-[32px] max-[1599px]:text-[24px] lg:max-[1599px]:text-[22px] min-[1300px]:max-[1599px]:text-[26px] font-light text-[#00000080]"
                     style={getFontStyle(contactText)}
