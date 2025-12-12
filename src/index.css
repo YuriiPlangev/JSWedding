@@ -365,7 +365,7 @@ html::-webkit-scrollbar {
   }
 
   .custom-checkbox input[type="checkbox"]:checked + .checkbox-label {
-    background-color: black;
+    background-color: white;
     border-color: black;
   }
 
@@ -373,7 +373,7 @@ html::-webkit-scrollbar {
     width: 3px;
     height: 6px;
     border-width: 0 1px 1px 0;
-    border-color: white;
+    border-color: black;
   }
 }
 
@@ -385,7 +385,7 @@ html::-webkit-scrollbar {
   }
 
   .custom-checkbox input[type="checkbox"]:checked + .checkbox-label {
-    background-color: black;
+    background-color: white;
     border-color: black;
   }
 
@@ -393,7 +393,7 @@ html::-webkit-scrollbar {
     width: 3px;
     height: 6px;
     border-width: 0 1px 1px 0;
-    border-color: white;
+    border-color: black;
   }
 }
 
@@ -405,7 +405,7 @@ html::-webkit-scrollbar {
   }
 
   .custom-checkbox input[type="checkbox"]:checked + .checkbox-label {
-    background-color: black;
+    background-color: white;
     border-color: black;
   }
 
@@ -413,12 +413,12 @@ html::-webkit-scrollbar {
     width: 3px;
     height: 7px;
     border-width: 0 1px 1px 0;
-    border-color: white;
+    border-color: black;
   }
 }
 
 .custom-checkbox input[type="checkbox"]:checked + .checkbox-label {
-  background-color: black;
+  background-color: white;
   border-color: black;
 }
 
@@ -430,13 +430,25 @@ html::-webkit-scrollbar {
   transform: translate(-50%, -50%) rotate(45deg);
   width: 4px;
   height: 8px;
-  border: solid white;
+  border: solid black;
   border-width: 0 1.5px 1.5px 0;
 }
 
 .custom-checkbox input[type="checkbox"]:focus + .checkbox-label {
-  outline: 2px solid #00000080;
-  outline-offset: 2px;
+  outline: none;
+  outline-offset: 0;
+}
+
+.custom-checkbox input[type="checkbox"] {
+  outline: none;
+}
+
+.custom-checkbox input[type="checkbox"]:focus {
+  outline: none;
+}
+
+.custom-checkbox input[type="checkbox"]:active {
+  outline: none;
 }
 
 /* Устанавливаем Forum для всех элементов внутри main в ClientDashboard */
