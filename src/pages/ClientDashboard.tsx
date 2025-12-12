@@ -123,7 +123,7 @@ const ClientDashboard = () => {
               const namesText = `${wedding?.couple_name_1 || ''} & ${wedding?.couple_name_2 || ''}`;
               return (
                 <h1 
-                  className="text-[48px] sm:text-[72px] md:text-[100px] lg:text-[120px] xl:text-[150px] font-lovelace text-black md:mb-6 px-4"
+                  className="text-[48px] sm:text-[72px] md:text-[100px] lg:text-[100px] max-[1599px]:lg:text-[100px] min-[1600px]:lg:text-[120px] xl:text-[120px] max-[1599px]:xl:text-[120px] min-[1600px]:xl:text-[150px] font-lovelace text-black md:mb-6 max-[1599px]:md:mb-5 min-[1600px]:md:mb-6 px-4"
                   style={getFontStyle(namesText)}
                 >
                   {wedding?.couple_name_1} & {wedding?.couple_name_2} 
@@ -135,7 +135,7 @@ const ClientDashboard = () => {
               const splashText = getTranslation(currentLanguage).welcome.splash;
               return (
                 <p 
-                  className="text-[24px] sm:text-[32px] md:text-[40px] lg:text-[48px] xl:text-[60px] text-black px-4"
+                  className="text-[24px] sm:text-[32px] md:text-[40px] lg:text-[40px] max-[1599px]:lg:text-[40px] min-[1600px]:lg:text-[48px] xl:text-[50px] max-[1599px]:xl:text-[50px] min-[1600px]:xl:text-[60px] text-black px-4"
                   style={getFontStyle(splashText)}
                 >
                   {splashText}
@@ -264,7 +264,6 @@ const ClientDashboard = () => {
                             </p>
                           );
                         })()}
-                        <img src={placeCircle} alt="" className='w-4 h-4 lg:w-auto lg:h-auto' />
                       </div>
                       <p className='text-[32px] max-[1599px]:text-[24px] lg:max-[1599px]:text-[20px] min-[1300px]:max-[1599px]:text-[24px] font-gilroy font-bold '>{wedding.venue}</p>
                     </li>
