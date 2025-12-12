@@ -122,6 +122,36 @@ const ClientDashboard = () => {
     return `${day} ${monthName} ${year}`;
   };
 
+  const handleTaskToggle = async (taskId: string, completed: boolean) => {
+    if (!wedding) return;
+    
+    // Обновляем статус задачи локально для мгновенного отклика
+    setTasks(prevTasks => 
+      prevTasks.map(task => 
+        task.id === taskId 
+          ? { ...task, status: completed ? 'completed' : 'pending' }
+          : task
+      )
+    );
+
+    // Обновляем статус на сервере
+    try {
+      await taskService.updateTask(taskId, { 
+        status: completed ? 'completed' : 'pending' 
+      }, wedding.id);
+    } catch (error) {
+      console.error('Error updating task:', error);
+      // В случае ошибки возвращаем предыдущее состояние
+      setTasks(prevTasks => 
+        prevTasks.map(task => 
+          task.id === taskId 
+            ? { ...task, status: completed ? 'pending' : 'completed' }
+            : task
+        )
+      );
+    }
+  };
+
   const calculateDaysUntilWedding = (weddingDate: string): number => {
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Устанавливаем начало дня для точного расчета
@@ -341,7 +371,10 @@ const ClientDashboard = () => {
                     })()}
                   </div>
                   <div className='flex-1 overflow-y-auto'>
-                    <TasksList tasks={tasks} />
+                    <TasksList 
+                      tasks={tasks} 
+                      onTaskToggle={handleTaskToggle}
+                    />
                   </div>
                 </div>
 

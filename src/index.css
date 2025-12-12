@@ -364,10 +364,16 @@ html::-webkit-scrollbar {
     height: 18px;
   }
 
+  .custom-checkbox input[type="checkbox"]:checked + .checkbox-label {
+    background-color: black;
+    border-color: black;
+  }
+
   .custom-checkbox input[type="checkbox"]:checked + .checkbox-label::after {
     width: 3px;
     height: 6px;
     border-width: 0 1px 1px 0;
+    border-color: white;
   }
 }
 
@@ -378,10 +384,16 @@ html::-webkit-scrollbar {
     height: 17px;
   }
 
+  .custom-checkbox input[type="checkbox"]:checked + .checkbox-label {
+    background-color: black;
+    border-color: black;
+  }
+
   .custom-checkbox input[type="checkbox"]:checked + .checkbox-label::after {
     width: 3px;
     height: 6px;
     border-width: 0 1px 1px 0;
+    border-color: white;
   }
 }
 
@@ -392,15 +404,22 @@ html::-webkit-scrollbar {
     height: 19px;
   }
 
+  .custom-checkbox input[type="checkbox"]:checked + .checkbox-label {
+    background-color: black;
+    border-color: black;
+  }
+
   .custom-checkbox input[type="checkbox"]:checked + .checkbox-label::after {
     width: 3px;
     height: 7px;
     border-width: 0 1px 1px 0;
+    border-color: white;
   }
 }
 
 .custom-checkbox input[type="checkbox"]:checked + .checkbox-label {
-  background-color: white;
+  background-color: black;
+  border-color: black;
 }
 
 .custom-checkbox input[type="checkbox"]:checked + .checkbox-label::after {
@@ -411,7 +430,7 @@ html::-webkit-scrollbar {
   transform: translate(-50%, -50%) rotate(45deg);
   width: 4px;
   height: 8px;
-  border: solid black;
+  border: solid white;
   border-width: 0 1.5px 1.5px 0;
 }
 
