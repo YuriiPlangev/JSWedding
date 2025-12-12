@@ -333,6 +333,20 @@ html::-webkit-scrollbar {
   transition: all 0.2s ease;
 }
 
+/* Уменьшенный размер для экранов меньше 1600px */
+@media (max-width: 1599px) {
+  .custom-checkbox .checkbox-label {
+    width: 28px;
+    height: 28px;
+  }
+
+  .custom-checkbox input[type="checkbox"]:checked + .checkbox-label::after {
+    width: 4px;
+    height: 8px;
+    border-width: 0 1.5px 1.5px 0;
+  }
+}
+
 .custom-checkbox input[type="checkbox"]:checked + .checkbox-label {
   background-color: white;
 }

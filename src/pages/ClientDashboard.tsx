@@ -5,6 +5,7 @@ import type { Wedding, Task, Document } from '../types';
 import Header from '../components/Header';
 import TasksList from '../components/TasksList';
 import DocumentsList from '../components/DocumentsList';
+import MobileNotSupported from '../components/MobileNotSupported';
 // import Presentation from '../components/Presentation';
 import { getTranslation } from '../utils/translations';
 import { getFontStyle } from '../utils/fontUtils';
@@ -19,6 +20,24 @@ const ClientDashboard = () => {
   const [currentLanguage, setCurrentLanguage] = useState<'en' | 'ru' | 'ua'>('ru');
   const [showSplash, setShowSplash] = useState(true);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Проверка размера экрана для мобильных устройств
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < 1024); // lg breakpoint в Tailwind
+    };
+
+    // Проверяем при загрузке
+    checkScreenSize();
+
+    // Проверяем при изменении размера окна
+    window.addEventListener('resize', checkScreenSize);
+
+    return () => {
+      window.removeEventListener('resize', checkScreenSize);
+    };
+  }, []);
 
   useEffect(() => {
     if (user?.id) {
@@ -96,6 +115,16 @@ const ClientDashboard = () => {
     return diffDays > 0 ? diffDays : 0;
   };
 
+  // Показываем страницу для мобильных устройств, если экран меньше ноутбучного
+  if (isMobile) {
+    return (
+      <MobileNotSupported 
+        coupleName1={wedding?.couple_name_1}
+        coupleName2={wedding?.couple_name_2}
+      />
+    );
+  }
+
   // Показываем заглушку, пока идет загрузка или пока showSplash активен
   if (showSplash && (loading || wedding)) {
     return (
@@ -160,7 +189,7 @@ const ClientDashboard = () => {
 
         <main className="flex-1 flex flex-col">
           {/* Приветствие */}
-          <div className="border-b border-[#000000B2] py-6 max-[1599px]:py-3 md:max-[1599px]:py-4 lg:max-[1599px]:py-3 min-[1300px]:max-[1599px]:py-4 px-4 md:px-8 lg:px-12 xl:px-[60px]">
+          <div className="border-b border-[#00000033] py-6 max-[1599px]:py-3 md:max-[1599px]:py-4 lg:max-[1599px]:py-3 min-[1300px]:max-[1599px]:py-4 px-4 md:px-8 lg:px-12 xl:px-[60px]">
             {(() => {
               const welcomeText = `${wedding?.couple_name_1} & ${wedding?.couple_name_2} ${getTranslation(currentLanguage).dashboard.welcome}`;
               return (
@@ -195,7 +224,7 @@ const ClientDashboard = () => {
           {wedding && (
             <>
               {/* Основная информация о свадьбе */}
-              <div className='border-b border-[#000000B2] flex flex-col lg:flex-row pl-4 md:pl-8 lg:pl-12 xl:pl-[60px] shrink-0'>
+              <div className='border-b border-[#00000033] flex flex-col lg:flex-row pl-4 md:pl-8 lg:pl-12 xl:pl-[60px] shrink-0'>
                 <div className='border-r-0 lg:border-r border-[#00000033] border-b lg:border-b-0 py-6 max-[1599px]:py-4 lg:max-[1599px]:py-3 min-[1300px]:max-[1599px]:py-4 pr-14 max-[1599px]:pr-0 lg:max-[1599px]:pr-8 min-[1300px]:max-[1599px]:pr-10'>
                   {(() => {
                     const titleText = getTranslation(currentLanguage).dashboard.weddingDetails;
@@ -302,8 +331,8 @@ const ClientDashboard = () => {
 
               <div className="flex flex-col lg:flex-row border-b border-[#00000033] flex-1 overflow-hidden">
                 {/* Задания */}
-                <div className='border-r-0 lg:border-r border-[#000000B2] lg:min-w-3/7 pl-4 md:pl-8 lg:pl-12 xl:pl-[60px] self-stretch overflow-hidden flex flex-col'>
-                  <div className='py-4 max-[1599px]:py-3 lg:max-[1599px]:py-2 min-[1300px]:max-[1599px]:py-3'>
+                <div className='border-r-0 lg:border-r border-[#00000033] lg:min-w-3/7 pl-4 md:pl-8 lg:pl-12 xl:pl-[60px] self-stretch overflow-hidden flex flex-col'>
+                  <div className='py-4 max-[1599px]:py-3 lg:max-[1599px]:py-2 min-[1300px]:max-[1599px]:py-3 pr-4 md:pr-8 lg:pr-12 xl:pr-[60px]'>
                     {(() => {
                       const titleText = getTranslation(currentLanguage).dashboard.tasks;
                       return (
@@ -334,12 +363,12 @@ const ClientDashboard = () => {
 
                 {/* Документы */}
                 <div className='w-full h-full flex flex-col overflow-hidden'>
-                  <div className='pt-4 max-[1599px]:pt-3 lg:max-[1599px]:pt-2 min-[1300px]:max-[1599px]:pt-3 px-4 md:px-8 lg:px-12 xl:px-[60px]' >
+                  <div className='pt-4 max-[1599px]:pt-3 lg:max-[1599px]:pt-2 min-[1300px]:max-[1599px]:pt-3 px-4 md:px-8 lg:px-12 xl:px-[60px] pb-0' >
                     {(() => {
                       const titleText = getTranslation(currentLanguage).dashboard.documents;
                       return (
                         <h2 
-                          className='text-[44px] max-[1599px]:text-[32px] lg:max-[1599px]:text-[28px] min-[1300px]:max-[1599px]:text-[34px] mb-3 max-[1599px]:mb-2 lg:max-[1599px]:mb-2 min-[1300px]:max-[1599px]:mb-2'
+                          className='text-[44px] max-[1599px]:text-[32px] lg:max-[1599px]:text-[28px] min-[1300px]:max-[1599px]:text-[34px] mb-0'
                           style={getFontStyle(titleText)}
                         >
                           {titleText}
@@ -350,7 +379,7 @@ const ClientDashboard = () => {
                       const descText = getTranslation(currentLanguage).dashboard.pinnedDocuments;
                       return (
                         <p 
-                          className='text-[16px] max-[1599px]:text-[14px] lg:max-[1599px]:text-[13px] min-[1300px]:max-[1599px]:text-[14px] font-gilroy font-light text-[#00000080]'
+                          className='text-[16px] max-[1599px]:text-[14px] lg:max-[1599px]:text-[13px] min-[1300px]:max-[1599px]:text-[14px] font-gilroy font-light text-[#00000080] mb-0'
                           style={getFontStyle(descText)}
                         >
                           {descText}

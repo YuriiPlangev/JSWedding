@@ -16,8 +16,8 @@ const Header = ({ onLogout, currentLanguage, onLanguageChange, }: HeaderProps) =
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
 
   return (
-    <header className="w-full bg-[#FBF9F5] border-b border-[#000000B2] relative z-50" >
-      <div className="px-4 md:px-8 lg:px-10 max-[1599px]:lg:px-10 min-[1600px]:lg:px-12 xl:px-[60px] max-[1599px]:xl:px-10 min-[1600px]:xl:px-[60px]">
+    <header className="w-full bg-[#FBF9F5] border-b border-[#00000033] relative z-50" >
+      <div className="px-4 md:px-8 lg:px-12 xl:px-[60px]">
         <div className="flex justify-between items-center">
           {/* Left side - Logo and text */}
           <div className="flex items-center gap-3 md:gap-4">

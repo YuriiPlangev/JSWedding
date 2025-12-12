@@ -19,7 +19,7 @@ const TasksList = ({ tasks, onTaskToggle }: TasksListProps) => {
   }
 
   return (
-    <ul>
+    <ul className='pr-4 md:pr-8 lg:pr-12 xl:pr-[60px]'>
       {tasks.map((task) => {
         const isCompleted = task.status === 'completed';
 

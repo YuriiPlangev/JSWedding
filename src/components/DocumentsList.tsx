@@ -47,7 +47,7 @@ const DocumentsList = ({ documents }: DocumentsListProps) => {
       {/* Закрепленные документы */}
       {pinnedDocuments.length > 0 && (
         <div className='border-b border-[#00000033]'>
-          <div className='px-4 md:px-8 lg:px-12 xl:px-[60px] pb-6 max-[1599px]:pb-4 lg:max-[1599px]:pb-4 min-[1300px]:max-[1599px]:pb-5'>
+          <div className='px-4 md:px-8 lg:px-12 xl:px-[60px] pt-0 pb-6 max-[1599px]:pb-4 lg:max-[1599px]:pb-4 min-[1300px]:max-[1599px]:pb-5'>
             <ul>
               {pinnedDocuments.map((doc) => (
                 <li key={doc.id} className='py-4 max-[1599px]:py-3 lg:max-[1599px]:py-3 min-[1300px]:max-[1599px]:py-3'>
