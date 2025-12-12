@@ -119,13 +119,13 @@ const ClientDashboard = () => {
           >
             {/* Имена пары */}
             {(() => {
-              const namesText = `${wedding?.couple_name_1 || ''} & ${wedding?.couple_name_2 || ''}`;
+              const namesText = `${wedding?.couple_name_1 || ''} $ {wedding?.couple_name_2 || ''}`;
               return (
                 <h1 
                   className="text-[48px] sm:text-[72px] md:text-[100px] lg:text-[100px] max-[1599px]:lg:text-[100px] min-[1600px]:lg:text-[120px] xl:text-[120px] max-[1599px]:xl:text-[120px] min-[1600px]:xl:text-[150px] font-lovelace text-black md:mb-6 max-[1599px]:md:mb-5 min-[1600px]:md:mb-6 px-4"
                   style={getFontStyle(namesText)}
                 >
-                  {wedding?.couple_name_1} & {wedding?.couple_name_2} 
+                  {wedding?.couple_name_1} <span className='font-branch'> & </span> {wedding?.couple_name_2} 
                 </h1>
               );
             })()}
@@ -168,7 +168,7 @@ const ClientDashboard = () => {
                   className="text-[32px] max-[1599px]:text-[24px] lg:max-[1599px]:text-[22px] min-[1300px]:max-[1599px]:text-[26px]"
                   style={getFontStyle(welcomeText)}
                 >
-                  {wedding?.couple_name_1} & {wedding?.couple_name_2}, {getTranslation(currentLanguage).dashboard.welcome}
+                  {wedding?.couple_name_1} <span className='font-branch'> & </span> {wedding?.couple_name_2}, {getTranslation(currentLanguage).dashboard.welcome}
                 </h2>
               );
             })()}
