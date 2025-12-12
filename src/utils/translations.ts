@@ -7,6 +7,7 @@ export type Language = 'en' | 'ru' | 'ua';
 export interface Translations {
   welcome: {
     splash: string;
+    scrollDown: string;
   };
   login: {
     enterAccount: string;
@@ -60,6 +61,7 @@ const translations: Record<Language, Translations> = {
   en: {
     welcome: {
       splash: 'Welcome to your wedding organization space!',
+      scrollDown: 'Scroll down to continue',
     },
     login: {
       enterAccount: 'Enter your account',
@@ -93,24 +95,25 @@ const translations: Record<Language, Translations> = {
       pinnedDocuments: 'pinned documents',
     },
     months: {
-      january: 'January',
-      february: 'February',
-      march: 'March',
-      april: 'April',
-      may: 'May',
-      june: 'June',
-      july: 'July',
-      august: 'August',
-      september: 'September',
-      october: 'October',
-      november: 'November',
-      december: 'December',
+      january: 'january',
+      february: 'february',
+      march: 'march',
+      april: 'april',
+      may: 'may',
+      june: 'june',
+      july: 'july',
+      august: 'august',
+      september: 'september',
+      october: 'october',
+      november: 'november',
+      december: 'december',
     },
     year: 'year',
   },
   ru: {
     welcome: {
       splash: 'Добро пожаловать в пространство планирования вашей свадьбы!',
+      scrollDown: 'Листай вниз',
     },
     login: {
       enterAccount: 'Войдите в свой аккаунт',
@@ -144,24 +147,25 @@ const translations: Record<Language, Translations> = {
       pinnedDocuments: 'закрепленные документы',
     },
     months: {
-      january: 'Января',
-      february: 'Февраля',
-      march: 'Марта',
-      april: 'Апреля',
-      may: 'Мая',
-      june: 'Июня',
-      july: 'Июля',
-      august: 'Августа',
-      september: 'Сентября',
-      october: 'Октября',
-      november: 'Ноября',
-      december: 'Декабря',
+      january: 'января',
+      february: 'февраля',
+      march: 'марта',
+      april: 'апреля',
+      may: 'мая',
+      june: 'июня',
+      july: 'июля',
+      august: 'августа',
+      september: 'сентября',
+      october: 'октября',
+      november: 'ноября',
+      december: 'декабря',
     },
     year: 'год',
   },
   ua: {
     welcome: {
       splash: 'Ласкаво просимо до простору планування вашої весілля!',
+      scrollDown: 'Прокрутіть вниз',
     },
     login: {
       enterAccount: 'Увійдіть до свого акаунту',
@@ -195,18 +199,18 @@ const translations: Record<Language, Translations> = {
       pinnedDocuments: 'закріплені документи',
     },
     months: {
-      january: 'Січня',
-      february: 'Лютого',
-      march: 'Березня',
-      april: 'Квітня',
-      may: 'Травня',
-      june: 'Червня',
-      july: 'Липня',
-      august: 'Серпня',
-      september: 'Вересня',
-      october: 'Жовтня',
-      november: 'Листопада',
-      december: 'Грудня',
+      january: 'січня',
+      february: 'лютого',
+      march: 'березня',
+      april: 'квітня',
+      may: 'травня',
+      june: 'червня',
+      july: 'липня',
+      august: 'серпня',
+      september: 'вересня',
+      october: 'жовтня',
+      november: 'листопада',
+      december: 'грудня',
     },
     year: 'рік',
   },

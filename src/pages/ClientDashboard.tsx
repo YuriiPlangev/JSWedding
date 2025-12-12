@@ -9,6 +9,7 @@ import MobileNotSupported from '../components/MobileNotSupported';
 // import Presentation from '../components/Presentation';
 import { getTranslation } from '../utils/translations';
 import { getFontStyle } from '../utils/fontUtils';
+import scrollDown from '../assets/scroll-down.svg';
 
 const ClientDashboard = () => {
   const { user, logout } = useAuth();
@@ -183,11 +184,11 @@ const ClientDashboard = () => {
           ref={splashRef}
           className="relative h-screen w-full flex items-center justify-center"
         >
-          <div className="text-center">
+          <div className="text-center -mt-16">
             {/* Имена пары */}
             {wedding && (
               <h1 
-                className="text-[48px] sm:text-[72px] md:text-[100px] lg:text-[80px] max-[1599px]:lg:text-[80px] min-[1600px]:lg:text-[120px] xl:text-[120px] max-[1599px]:xl:text-[100px] min-[1600px]:xl:text-[150px] font-sloop text-black  px-4"
+                className="text-[36px] sm:text-[54px] md:text-[72px] lg:text-[58px] max-[1599px]:lg:text-[58px] min-[1600px]:lg:text-[90px] xl:text-[90px] max-[1599px]:xl:text-[76px] min-[1600px]:xl:text-[117px] font-sloop text-black px-4 leading-[1.1]"
               >
                 {wedding.couple_name_1} <span className='font-sloop'> & </span>  {wedding.couple_name_2} 
               </h1>
@@ -197,13 +198,19 @@ const ClientDashboard = () => {
               const splashText = getTranslation(currentLanguage).welcome.splash;
               return (
                 <p 
-                  className="text-[24px] sm:text-[32px] md:text-[40px] lg:text-[32px] max-[1599px]:lg:text-[32px] min-[1600px]:lg:text-[48px] xl:text-[50px] max-[1599px]:xl:text-[40px] min-[1600px]:xl:text-[60px] text-black px-4"
+                  className="text-[18px] sm:text-[23px] md:text-[28px] lg:text-[23px] max-[1599px]:lg:text-[23px] min-[1600px]:lg:text-[36px] xl:text-[38px] max-[1599px]:xl:text-[30px] min-[1600px]:xl:text-[47px] text-black px-4 leading-[1.2] mt-1"
                   style={getFontStyle(splashText)}
                 >
                   {splashText}
                 </p>
               );
             })()}
+          </div>
+          
+          {/* Scroll down indicator */}
+          <div className="absolute bottom-4 lg:bottom-4 max-[1599px]:lg:bottom-4 min-[1600px]:xl:bottom-8 left-1/2 transform -translate-x-1/2 z-30 flex flex-col items-center">
+            <img src={scrollDown} alt="scrollDown" className='animate-pulse-opacity brightness-0' />
+            <p className='mt-2 text-black font-gilroy text-sm md:text-base lg:text-sm xl:text-base'>Scroll down to continue</p>
           </div>
         </div>
       )}
