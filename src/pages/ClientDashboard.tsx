@@ -6,7 +6,6 @@ import Header from '../components/Header';
 import TasksList from '../components/TasksList';
 import DocumentsList from '../components/DocumentsList';
 // import Presentation from '../components/Presentation';
-import placeCircle from '../assets/placeCircle.svg';
 import { getTranslation } from '../utils/translations';
 import { getFontStyle } from '../utils/fontUtils';
 
