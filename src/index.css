@@ -18,10 +18,19 @@
   font-display: block;
 }
 
-/* Подключение шрифта Sloop */
+/* Подключение шрифта Russkopis Book Italic */
 @font-face {
-  font-family: "Sloop";
-  src: url("./assets/fonts/Sloop-Regular.woff2") format("woff2");
+  font-family: "Russkopis Book Italic";
+  src: url("./assets/fonts/russkopis-book-italic.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+
+/* Подключение шрифта AnastasiaScript Regular */
+@font-face {
+  font-family: "AnastasiaScript Regular";
+  src: url("./assets/fonts/anastasiascript.woff2") format("woff2");
   font-weight: normal;
   font-style: normal;
   font-display: block;
@@ -31,6 +40,15 @@
 @font-face {
   font-family: "Lovelace";
   src: url("./assets/fonts/LovelaceText-Regular.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+
+/* Подключение шрифта Forum */
+@font-face {
+  font-family: "Forum";
+  src: url("./assets/fonts/Forum.woff2") format("woff2");
   font-weight: normal;
   font-style: normal;
   font-display: block;
@@ -259,7 +277,11 @@ html::-webkit-scrollbar {
 
 /* Убеждаемся, что font-sloop применяется правильно */
 .font-sloop {
-  font-family: "Sloop", cursive !important;
+  font-family: "Russkopis Book Italic", cursive !important;
+}
+
+.font-anastasia {
+  font-family: "AnastasiaScript Regular", cursive !important;
 }
 
 /* Анимация изменения цвета текста с черного на белый */
@@ -324,8 +346,8 @@ html::-webkit-scrollbar {
 
 .custom-checkbox .checkbox-label {
   display: inline-block;
-  width: 40px;
-  height: 40px;
+  width: 24px;
+  height: 24px;
   border: 1px solid #00000080;
   background-color: transparent;
   cursor: pointer;
@@ -333,17 +355,46 @@ html::-webkit-scrollbar {
   transition: all 0.2s ease;
 }
 
-/* Уменьшенный размер для экранов меньше 1600px */
-@media (max-width: 1599px) {
+/* Адаптивные размеры чекбокса, соответствующие размеру шрифта текста задания */
+/* Для экранов меньше 1024px (до lg) */
+@media (max-width: 1023px) {
   .custom-checkbox .checkbox-label {
-    width: 28px;
-    height: 28px;
+    width: 18px;
+    height: 18px;
   }
 
   .custom-checkbox input[type="checkbox"]:checked + .checkbox-label::after {
-    width: 4px;
-    height: 8px;
-    border-width: 0 1.5px 1.5px 0;
+    width: 3px;
+    height: 6px;
+    border-width: 0 1px 1px 0;
+  }
+}
+
+/* Для lg экранов (1024px-1299px) */
+@media (min-width: 1024px) and (max-width: 1299px) {
+  .custom-checkbox .checkbox-label {
+    width: 17px;
+    height: 17px;
+  }
+
+  .custom-checkbox input[type="checkbox"]:checked + .checkbox-label::after {
+    width: 3px;
+    height: 6px;
+    border-width: 0 1px 1px 0;
+  }
+}
+
+/* Для промежуточных экранов (1300px-1599px) */
+@media (min-width: 1300px) and (max-width: 1599px) {
+  .custom-checkbox .checkbox-label {
+    width: 19px;
+    height: 19px;
+  }
+
+  .custom-checkbox input[type="checkbox"]:checked + .checkbox-label::after {
+    width: 3px;
+    height: 7px;
+    border-width: 0 1px 1px 0;
   }
 }
 
@@ -357,10 +408,10 @@ html::-webkit-scrollbar {
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%) rotate(45deg);
-  width: 6px;
-  height: 12px;
+  width: 4px;
+  height: 8px;
   border: solid black;
-  border-width: 0 2px 2px 0;
+  border-width: 0 1.5px 1.5px 0;
 }
 
 .custom-checkbox input[type="checkbox"]:focus + .checkbox-label {

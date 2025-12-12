@@ -21,7 +21,12 @@ const Header = ({ onLogout, currentLanguage, onLanguageChange, }: HeaderProps) =
         <div className="flex justify-between items-center">
           {/* Left side - Logo and text */}
           <div className="flex items-center gap-3 md:gap-4">
-            <img src={logo} alt="logo" className="h-8 md:h-10 lg:h-9 max-[1599px]:lg:h-9 min-[1600px]:lg:h-12 w-auto" />
+            <img 
+              src={logo} 
+              alt="logo" 
+              className="h-8 md:h-10 max-[1599px]:lg:h-9 min-[1600px]:lg:h-12 w-auto"
+              style={{ display: 'block' }}
+            />
           </div>
           
           {/* Right side - Navigation items */}

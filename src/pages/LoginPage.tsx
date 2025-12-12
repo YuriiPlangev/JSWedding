@@ -8,8 +8,8 @@ import loginStar from '../assets/loginStar.svg';
 import loginCircle from '../assets/loginCirle.svg';
 import arrowRight from '../assets/arrow-right.svg';
 import logoV2 from '../assets/logoV2.svg';
-import passwordOn from '../assets/passwordon.png';
-import passwordOff from '../assets/passwordoff.png';
+import openEye from '../assets/openEye.png';
+import closeEye from '../assets/closeEye.png';
 import { getFontStyle } from '../utils/fontUtils';
 
 const LoginPage = () => {
@@ -407,7 +407,7 @@ const LoginPage = () => {
                   style={{ paddingBottom: '8px' }}
                 >
                   <img 
-                    src={showPassword ? passwordOn : passwordOff} 
+                    src={showPassword ? openEye : closeEye} 
                     alt={showPassword ? 'Hide password' : 'Show password'} 
                     className='w-5 h-5'
                   />

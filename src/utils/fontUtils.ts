@@ -15,10 +15,10 @@ export function isCyrillicText(text: string): boolean {
 
 /**
  * Возвращает имя шрифта на основе языка текста
- * Для кириллицы (RU/UA) - Lovelace, для английского - Branch
+ * Для кириллицы (RU/UA) - Forum, для английского - Branch
  */
 export function getFontForText(text: string): string {
-  return isCyrillicText(text) ? 'Lovelace' : 'Branch';
+  return isCyrillicText(text) ? 'Forum' : 'Branch';
 }
 
 /**

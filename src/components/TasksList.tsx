@@ -1,5 +1,4 @@
 import type { Task } from '../types';
-import { getFontStyle } from '../utils/fontUtils';
 
 interface TasksListProps {
   tasks: Task[];
@@ -19,7 +18,7 @@ const TasksList = ({ tasks, onTaskToggle }: TasksListProps) => {
   }
 
   return (
-    <ul className='pr-4 md:pr-8 lg:pr-12 xl:pr-[60px]'>
+    <ul className='pr-4 max-[1599px]:pr-4 md:max-[1599px]:pr-6 lg:max-[1599px]:pr-8 min-[1300px]:max-[1599px]:pr-10'>
       {tasks.map((task) => {
         const isCompleted = task.status === 'completed';
 
@@ -34,16 +33,14 @@ const TasksList = ({ tasks, onTaskToggle }: TasksListProps) => {
               <span className="checkbox-label"></span>
             </label>
             <p 
-              className='text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-gilroy font-light'
-              style={getFontStyle(task.title)}
+              className='text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-light'
             >
               {task.title}
               {task.link && task.link_text && (
                 <>
                   :{' '}
                   <span 
-                    className='text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-gilroy font-light underline text-[#4D3628] cursor-pointer hover:opacity-70 transition-opacity'
-                    style={getFontStyle(task.link_text)}
+                    className='text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-light underline text-[#4D3628] cursor-pointer hover:opacity-70 transition-opacity'
                   >
                     <a href={task.link.startsWith('http') ? task.link : `https://${task.link}`} target="_blank" rel="noopener noreferrer">
                       {task.link_text}

@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
 import type { Document } from '../types';
-import { getFontStyle } from '../utils/fontUtils';
 
 interface DocumentsListProps {
   documents: Document[];
@@ -55,8 +54,7 @@ const DocumentsList = ({ documents }: DocumentsListProps) => {
                     href={doc.link || doc.file_url || '#'}
                     target={doc.link ? '_blank' : undefined}
                     rel={doc.link ? 'noopener noreferrer' : undefined}
-                    className='text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-gilroy font-light hover:underline hover:underline-offset-4'
-                    style={getFontStyle(doc.name)}
+                    className='text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-light hover:underline hover:underline-offset-4'
                   >
                     {doc.name}
                   </a>
@@ -73,15 +71,14 @@ const DocumentsList = ({ documents }: DocumentsListProps) => {
           <ul className='pt-4 max-[1599px]:pt-3 lg:max-[1599px]:pt-3 min-[1300px]:max-[1599px]:pt-3 pb-4 max-[1599px]:pb-3 lg:max-[1599px]:pb-3 min-[1300px]:max-[1599px]:pb-3'>
             {unpinnedDocuments.map((doc) => (
               <li key={doc.id} className='py-4 max-[1599px]:py-3 lg:max-[1599px]:py-3 min-[1300px]:max-[1599px]:py-3'> 
-                <a
-                  href={doc.link || doc.file_url || '#'}
-                  target={doc.link ? '_blank' : undefined}
-                  rel={doc.link ? 'noopener noreferrer' : undefined}
-                  className='text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-gilroy font-light hover:underline hover:underline-offset-4'
-                  style={getFontStyle(doc.name)}
-                >
-                  {doc.name}
-                </a>
+                  <a
+                    href={doc.link || doc.file_url || '#'}
+                    target={doc.link ? '_blank' : undefined}
+                    rel={doc.link ? 'noopener noreferrer' : undefined}
+                    className='text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-light hover:underline hover:underline-offset-4'
+                  >
+                    {doc.name}
+                  </a>
               </li>
             ))}
           </ul>

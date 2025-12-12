@@ -32,6 +32,7 @@ export interface Translations {
     celebrationPlace: string;
     awaitingSelection: string;
     numberOfGuests: string;
+    days: string;
     daysTillCelebration: string;
     tasks: string;
     tasksDescription: string;
@@ -69,6 +70,7 @@ const translations: Record<Language, Translations> = {
       celebrationPlace: 'Venue',
       awaitingSelection: 'Awaiting Selection',
       numberOfGuests: 'Number of Guests',
+      days: 'days',
       daysTillCelebration: 'till your celebration',
       tasks: 'Tasks',
       tasksDescription: 'Wedding planning checklist you need to complete',
@@ -104,6 +106,7 @@ const translations: Record<Language, Translations> = {
       celebrationPlace: 'локация',
       awaitingSelection: 'Ожидается выбор',
       numberOfGuests: 'количество гостей',
+      days: 'дней',
       daysTillCelebration: 'до вашей свадьбы',
       tasks: 'Задания',
       tasksDescription: 'Список задач, которые вам нужно выполнить в первую очередь',
@@ -139,6 +142,7 @@ const translations: Record<Language, Translations> = {
       celebrationPlace: 'Місце святкування',
       awaitingSelection: 'Очікується вибір',
       numberOfGuests: 'Кількість гостей',
+      days: 'днів',
       daysTillCelebration: 'до вашого свята',
       tasks: 'Завдання',
       tasksDescription: 'Чеклист планування весілля, який вам потрібно виконати',
