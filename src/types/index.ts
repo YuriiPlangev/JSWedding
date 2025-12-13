@@ -14,8 +14,10 @@ export interface Wedding {
   id: string;
   client_id: string; // ID клиента из auth.users
   organizer_id: string; // ID организатора из auth.users
-  couple_name_1: string; // Имя первого партнера
-  couple_name_2: string; // Имя второго партнера
+  couple_name_1_en: string; // Имя первого партнера на английском
+  couple_name_1_ru: string; // Имя первого партнера на русском
+  couple_name_2_en: string; // Имя второго партнера на английском
+  couple_name_2_ru: string; // Имя второго партнера на русском
   wedding_date: string; // Дата свадьбы
   country: string; // Страна празднования
   venue: string; // Место празднования

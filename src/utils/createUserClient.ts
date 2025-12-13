@@ -9,8 +9,10 @@ import { supabase } from '../lib/supabase';
 export async function createUserWithWeddingClient(
   email: string,
   password: string,
-  coupleName1: string,
-  coupleName2: string,
+  coupleName1En: string,
+  coupleName1Ru: string,
+  coupleName2En: string,
+  coupleName2Ru: string,
   weddingDate: string,
   venue: string,
   country: string,
@@ -25,7 +27,7 @@ export async function createUserWithWeddingClient(
       password,
       options: {
         data: {
-          name: `${coupleName1} & ${coupleName2}`,
+          name: `${coupleName1En} & ${coupleName2En}`,
           role: 'client',
         },
       },
@@ -49,7 +51,7 @@ export async function createUserWithWeddingClient(
       .insert({
         id: userId,
         email: email,
-        name: `${coupleName1} & ${coupleName2}`,
+        name: `${coupleName1En} & ${coupleName2En}`,
         role: 'client',
       });
 
@@ -64,8 +66,10 @@ export async function createUserWithWeddingClient(
       .insert({
         client_id: userId,
         organizer_id: organizerId,
-        couple_name_1: coupleName1,
-        couple_name_2: coupleName2,
+        couple_name_1_en: coupleName1En,
+        couple_name_1_ru: coupleName1Ru,
+        couple_name_2_en: coupleName2En,
+        couple_name_2_ru: coupleName2Ru,
         wedding_date: weddingDate,
         venue: venue,
         country: country,
@@ -82,7 +86,7 @@ export async function createUserWithWeddingClient(
     console.log('Данные пользователя:', {
       id: userId,
       email: email,
-      couple: `${coupleName1} & ${coupleName2}`,
+      couple: `${coupleName1En} & ${coupleName2En}`,
     });
     console.log('Данные свадьбы:', weddingData);
 
@@ -110,8 +114,10 @@ export async function createKonstantinDianaClient(
   return await createUserWithWeddingClient(
     email,
     password,
-    'Константин',
-    'Диана',
+    'Konstantin',  // coupleName1En
+    'Константин',  // coupleName1Ru
+    'Diana',       // coupleName2En
+    'Диана',       // coupleName2Ru
     '2026-05-28',
     'One & Only - заведение',
     'Черногория',

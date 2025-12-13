@@ -170,8 +170,8 @@ const ClientDashboard = () => {
   if (isMobile) {
     return (
       <MobileNotSupported 
-        coupleName1={wedding?.couple_name_1}
-        coupleName2={wedding?.couple_name_2}
+        coupleName1={wedding?.couple_name_1_en}
+        coupleName2={wedding?.couple_name_2_en}
       />
     );
   }
@@ -190,7 +190,7 @@ const ClientDashboard = () => {
               <h1 
                 className="text-[36px] sm:text-[54px] md:text-[72px] lg:text-[58px] max-[1599px]:lg:text-[58px] min-[1600px]:lg:text-[90px] xl:text-[90px] max-[1599px]:xl:text-[76px] min-[1600px]:xl:text-[117px] font-sloop text-black px-4 leading-[1.1]"
               >
-                {wedding.couple_name_1} <span className='font-sloop'> & </span>  {wedding.couple_name_2} 
+                {wedding.couple_name_1_en} <span className='font-sloop'> & </span>  {wedding.couple_name_2_en} 
               </h1>
             )}
             {/* Приветственный текст */}
@@ -198,7 +198,7 @@ const ClientDashboard = () => {
               const splashText = getTranslation(currentLanguage).welcome.splash;
               return (
                 <p 
-                  className="text-[18px] sm:text-[23px] md:text-[28px] lg:text-[23px] max-[1599px]:lg:text-[23px] min-[1600px]:lg:text-[36px] xl:text-[38px] max-[1599px]:xl:text-[30px] min-[1600px]:xl:text-[47px] text-black px-4 leading-[1.2] mt-1"
+                  className="text-[18px] sm:text-[23px] md:text-[28px] lg:text-[23px] max-[1599px]:lg:text-[23px] min-[1600px]:lg:text-[36px] xl:text-[38px] max-[1599px]:xl:text-[30px] min-[1600px]:xl:text-[47px] text-black px-4 leading-[1.2] mt-6 md:mt-8 lg:mt-6 xl:mt-8"
                   style={getFontStyle(splashText)}
                 >
                   {splashText}
@@ -230,7 +230,19 @@ const ClientDashboard = () => {
             <h2 
               className="text-[32px] max-[1599px]:text-[24px] lg:max-[1599px]:text-[22px] min-[1300px]:max-[1599px]:text-[26px] font-forum leading-tight"
             >
-              {wedding?.couple_name_1} <span className='font-forum'> & </span> {wedding?.couple_name_2}, {getTranslation(currentLanguage).dashboard.welcome}
+              {(() => {
+                const name1 = currentLanguage === 'ru' 
+                  ? wedding?.couple_name_1_ru
+                  : wedding?.couple_name_1_en;
+                const name2 = currentLanguage === 'ru'
+                  ? wedding?.couple_name_2_ru
+                  : wedding?.couple_name_2_en;
+                return (
+                  <>
+                    {name1} <span className='font-forum'> & </span> {name2}, {getTranslation(currentLanguage).dashboard.welcome}
+                  </>
+                );
+              })()}
             </h2>
             {(() => {
               const descText = getTranslation(currentLanguage).dashboard.viewControl;
@@ -396,16 +408,6 @@ const ClientDashboard = () => {
                         >
                           {titleText}
                         </h2>
-                      );
-                    })()}
-                    {documents.some(doc => doc.pinned) && (() => {
-                      const descText = getTranslation(currentLanguage).dashboard.pinnedDocuments;
-                      return (
-                        <p 
-                          className='text-[16px] max-[1599px]:text-[14px] lg:max-[1599px]:text-[13px] min-[1300px]:max-[1599px]:text-[14px] font-forum font-light text-[#00000080] mb-0'
-                        >
-                          {descText}
-                        </p>
                       );
                     })()}
                   </div>

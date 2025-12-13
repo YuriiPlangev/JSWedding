@@ -333,11 +333,11 @@ const LoginPage = () => {
           </div>
           <form 
             onSubmit={handleSubmit}
-            className='relative bg-[#FBF9F5B2] backdrop-blur-sm rounded-lg w-auto max-w-[420px] md:max-w-[480px] lg:max-w-[440px] max-[1599px]:lg:max-w-[400px] min-[1300px]:max-[1599px]:max-w-[440px] min-[1600px]:max-w-[520px] xl:max-w-[580px] max-[1599px]:xl:max-w-[460px] min-[1600px]:xl:max-w-[640px] p-3 md:p-4 lg:p-3 max-[1599px]:lg:p-3 min-[1300px]:max-[1599px]:p-4 min-[1600px]:p-6 xl:p-6 max-[1599px]:xl:p-4 min-[1600px]:xl:p-8 mx-4 border-2 border-[#BCADA4] flex flex-col items-center justify-center'
+            className='relative bg-[#FBF9F5B2] backdrop-blur-sm w-auto max-w-[420px] md:max-w-[480px] lg:max-w-[440px] max-[1599px]:lg:max-w-[400px] min-[1300px]:max-[1599px]:max-w-[440px] min-[1600px]:max-w-[520px] xl:max-w-[580px] max-[1599px]:xl:max-w-[460px] min-[1600px]:xl:max-w-[640px] p-3 md:p-4 lg:p-3 max-[1599px]:lg:p-3 min-[1300px]:max-[1599px]:p-4 min-[1600px]:p-6 xl:p-6 max-[1599px]:xl:p-4 min-[1600px]:xl:p-8 mx-4 flex flex-col items-center justify-center'
           >
             <div className='flex flex-col items-center justify-center mb-6 max-[1599px]:mb-5 lg:max-[1599px]:mb-4 min-[1300px]:max-[1599px]:mb-5 min-[1600px]:mb-7 xl:mb-9 max-[1599px]:xl:mb-6 min-[1600px]:xl:mb-9 w-full'>
-              {/* Изображение */}
-              <img src={loginStar} alt="logo" className="max-[1599px]:scale-75 min-[1600px]:scale-100" />
+             
+              
               <h1 
                 className='text-black text-[18px] md:text-[20px] lg:text-[18px] max-[1599px]:lg:text-[17px] min-[1300px]:max-[1599px]:text-[20px] min-[1600px]:text-[24px] xl:text-[28px] max-[1599px]:xl:text-[22px] min-[1600px]:xl:text-[32px] font-branch font-regular mt-3 md:mt-3 lg:mt-2 max-[1599px]:lg:mt-2 min-[1300px]:max-[1599px]:mt-3 min-[1600px]:mt-4 xl:mt-5 max-[1599px]:xl:mt-3 min-[1600px]:xl:mt-6 mb-1.5 text-center'
               >
@@ -347,30 +347,6 @@ const LoginPage = () => {
                 Here you'll find all documents, timelines, updates, and planning tools – everything you need to feel confident, informed, and supported at every stage.
               </p>
               {/* Контейнер для изображения loginCircle и полосок */}
-              <div className='relative w-full flex items-center justify-center'>
-                {/* Полоска слева - от 150px от левого края до изображения */}
-                <div 
-                  className='absolute h-px hidden md:block'
-                  style={{ 
-                    left: '100px',
-                    right: '50%',
-                    marginRight: '25px', // небольшой отступ от изображения
-                    backgroundColor: 'black'
-                  }}
-                />
-                {/* Изображение */}
-                <img src={loginCircle} alt="" className='relative z-10 w-8 h-8 md:w-9 md:h-9 lg:w-8 lg:h-8 max-[1599px]:lg:w-7 max-[1599px]:lg:h-7 min-[1300px]:max-[1599px]:w-8 min-[1300px]:max-[1599px]:h-8 min-[1600px]:w-10 min-[1600px]:h-10 xl:w-12 xl:h-12 max-[1599px]:xl:w-9 max-[1599px]:xl:h-9 min-[1600px]:xl:w-12 min-[1600px]:xl:h-12' />
-                {/* Полоска справа - от изображения до 100px от правого края */}
-                <div 
-                  className='absolute h-px hidden md:block'
-                  style={{ 
-                    left: '50%',
-                    marginLeft: '25px', // небольшой отступ от изображения
-                    right: '100px',
-                    backgroundColor: 'black'
-                  }}
-                />
-              </div>
             </div>
 
             {/* Поле Email */}
@@ -388,7 +364,7 @@ const LoginPage = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder='Enter your Email'
-                className='w-full bg-transparent border-0 border-b-2 focus:outline-none focus:border-b-2 pb-1.5 font-gilroy text-[11px] md:text-[11px] lg:text-[10px] max-[1599px]:lg:text-[10px] min-[1300px]:max-[1599px]:text-[11px] min-[1600px]:text-[13px] xl:text-[14px] max-[1599px]:xl:text-[12px] min-[1600px]:xl:text-[15px] pl-1'
+                className='w-full bg-transparent border-0 border-b-1 focus:outline-none focus:border-b-1 pb-1.5 font-gilroy text-[11px] md:text-[11px] lg:text-[10px] max-[1599px]:lg:text-[10px] min-[1300px]:max-[1599px]:text-[11px] min-[1600px]:text-[13px] xl:text-[14px] max-[1599px]:xl:text-[12px] min-[1600px]:xl:text-[15px] pl-1'
                 style={{ 
                   borderColor: '#00000080',
                   color: 'black',
@@ -414,7 +390,7 @@ const LoginPage = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder='Enter your password'
-                  className='w-full bg-transparent border-0 border-b-2 focus:outline-none focus:border-b-2 pb-1.5 pr-8 font-gilroy text-[11px] md:text-[11px] lg:text-[10px] max-[1599px]:lg:text-[10px] min-[1300px]:max-[1599px]:text-[11px] min-[1600px]:text-[13px] xl:text-[14px] max-[1599px]:xl:text-[12px] min-[1600px]:xl:text-[15px] pl-1'
+                    className='w-full bg-transparent border-0 border-b-1 focus:outline-none focus:border-b-1 pb-1.5 pr-8 font-gilroy text-[11px] md:text-[11px] lg:text-[10px] max-[1599px]:lg:text-[10px] min-[1300px]:max-[1599px]:text-[11px] min-[1600px]:text-[13px] xl:text-[14px] max-[1599px]:xl:text-[12px] min-[1600px]:xl:text-[15px] pl-1'
                   style={{ 
                     borderColor: '#00000080',
                     color: 'black',
