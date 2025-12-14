@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import type { Wedding, Task, Document } from '../types';
+import type { Wedding, Task, Document, User } from '../types';
 import { getCache, setCache, invalidateCache } from '../utils/cache';
 
 // Сервис для работы со свадьбами
@@ -49,6 +49,95 @@ export const weddingService = {
     }
 
     return data || [];
+  },
+
+  // Получить свадьбу по ID (для организатора)
+  async getWeddingById(weddingId: string): Promise<Wedding | null> {
+    const { data, error } = await supabase
+      .from('weddings')
+      .select('*')
+      .eq('id', weddingId)
+      .single();
+
+    if (error) {
+      console.error('Error fetching wedding:', error);
+      return null;
+    }
+
+    return data;
+  },
+
+  // Создать свадьбу (только для организатора)
+  async createWedding(wedding: Omit<Wedding, 'id' | 'created_at' | 'updated_at'>): Promise<Wedding | null> {
+    const { data, error } = await supabase
+      .from('weddings')
+      .insert(wedding)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating wedding:', error);
+      return null;
+    }
+
+    // Инвалидируем кеш
+    invalidateCache(`wedding_${wedding.client_id}`);
+
+    return data;
+  },
+
+  // Обновить свадьбу (только для организатора)
+  async updateWedding(weddingId: string, updates: Partial<Wedding>): Promise<Wedding | null> {
+    const { data: wedding } = await supabase
+      .from('weddings')
+      .select('client_id')
+      .eq('id', weddingId)
+      .single();
+
+    const { data, error } = await supabase
+      .from('weddings')
+      .update(updates)
+      .eq('id', weddingId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating wedding:', error);
+      return null;
+    }
+
+    // Инвалидируем кеш
+    if (wedding) {
+      invalidateCache(`wedding_${wedding.client_id}`);
+    }
+
+    return data;
+  },
+
+  // Удалить свадьбу (только для организатора)
+  async deleteWedding(weddingId: string): Promise<boolean> {
+    const { data: wedding } = await supabase
+      .from('weddings')
+      .select('client_id')
+      .eq('id', weddingId)
+      .single();
+
+    const { error } = await supabase
+      .from('weddings')
+      .delete()
+      .eq('id', weddingId);
+
+    if (error) {
+      console.error('Error deleting wedding:', error);
+      return false;
+    }
+
+    // Инвалидируем кеш
+    if (wedding) {
+      invalidateCache(`wedding_${wedding.client_id}`);
+    }
+
+    return true;
   },
 };
 
@@ -224,8 +313,37 @@ export const documentService = {
   // Создать документ (только для организатора)
   async createDocument(
     document: Omit<Document, 'id' | 'created_at' | 'updated_at' | 'file_url'>,
-    file: File
+    file?: File
   ): Promise<Document | null> {
+    // Если есть ссылка, создаем документ со ссылкой
+    if (document.link && !file) {
+      const { data, error } = await supabase
+        .from('documents')
+        .insert({
+          ...document,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating document:', error);
+        return null;
+      }
+
+      // Инвалидируем кеш документов для этой свадьбы
+      if (data) {
+        invalidateCache(`documents_${document.wedding_id}`);
+      }
+
+      return data;
+    }
+
+    // Если нет файла, возвращаем ошибку
+    if (!file) {
+      console.error('File or link is required to create document');
+      return null;
+    }
+
     // Загружаем файл в Storage
     const fileExt = file.name.split('.').pop();
     const fileName = `${document.wedding_id}/${Date.now()}.${fileExt}`;
@@ -266,15 +384,43 @@ export const documentService = {
     return data;
   },
 
-  // Удалить документ (только для организатора)
-  async deleteDocument(documentId: string, filePath: string, weddingId: string): Promise<boolean> {
-    // Удаляем файл из Storage
-    const { error: storageError } = await supabase.storage
-      .from('wedding-documents')
-      .remove([filePath]);
+  // Обновить документ (только для организатора)
+  async updateDocument(
+    documentId: string,
+    updates: Partial<Omit<Document, 'id' | 'created_at' | 'updated_at' | 'file_url'>>,
+    weddingId: string
+  ): Promise<Document | null> {
+    const { data, error } = await supabase
+      .from('documents')
+      .update(updates)
+      .eq('id', documentId)
+      .select()
+      .single();
 
-    if (storageError) {
-      console.error('Error deleting file from storage:', storageError);
+    if (error) {
+      console.error('Error updating document:', error);
+      return null;
+    }
+
+    // Инвалидируем кеш документов для этой свадьбы
+    if (data) {
+      invalidateCache(`documents_${weddingId}`);
+    }
+
+    return data;
+  },
+
+  // Удалить документ (только для организатора)
+  async deleteDocument(documentId: string, filePath: string | undefined, weddingId: string): Promise<boolean> {
+    // Удаляем файл из Storage (если он есть)
+    if (filePath) {
+      const { error: storageError } = await supabase.storage
+        .from('wedding-documents')
+        .remove([filePath]);
+
+      if (storageError) {
+        console.error('Error deleting file from storage:', storageError);
+      }
     }
 
     // Удаляем запись из базы данных
@@ -292,6 +438,56 @@ export const documentService = {
     invalidateCache(`documents_${weddingId}`);
 
     return true;
+  },
+};
+
+// Сервис для работы с клиентами (для организатора)
+export const clientService = {
+  // Получить всех клиентов (для организатора)
+  async getAllClients(): Promise<User[]> {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('role', 'client')
+      .order('name', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching clients:', error);
+      return [];
+    }
+
+    return (data || []).map((profile) => ({
+      id: profile.id,
+      email: profile.email || '',
+      name: profile.name || '',
+      role: 'client' as const,
+      avatar: profile.avatar_url,
+    }));
+  },
+
+  // Получить клиента по ID
+  async getClientById(clientId: string): Promise<User | null> {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', clientId)
+      .eq('role', 'client')
+      .single();
+
+    if (error) {
+      console.error('Error fetching client:', error);
+      return null;
+    }
+
+    if (!data) return null;
+
+    return {
+      id: data.id,
+      email: data.email || '',
+      name: data.name || '',
+      role: 'client' as const,
+      avatar: data.avatar_url,
+    };
   },
 };
 

@@ -125,6 +125,8 @@ const ClientDashboard = () => {
   const handleTaskToggle = async (taskId: string, completed: boolean) => {
     if (!wedding) return;
     
+    const previousStatus = tasks.find(t => t.id === taskId)?.status || 'pending';
+    
     // Обновляем статус задачи локально для мгновенного отклика
     setTasks(prevTasks => 
       prevTasks.map(task => 
@@ -136,16 +138,25 @@ const ClientDashboard = () => {
 
     // Обновляем статус на сервере
     try {
-      await taskService.updateTask(taskId, { 
+      const updatedTask = await taskService.updateTask(taskId, { 
         status: completed ? 'completed' : 'pending' 
       }, wedding.id);
+      
+      // Обновляем задачу с актуальными данными с сервера (включая updated_at)
+      if (updatedTask) {
+        setTasks(prevTasks => 
+          prevTasks.map(task => 
+            task.id === taskId ? updatedTask : task
+          )
+        );
+      }
     } catch (error) {
       console.error('Error updating task:', error);
       // В случае ошибки возвращаем предыдущее состояние
       setTasks(prevTasks => 
         prevTasks.map(task => 
           task.id === taskId 
-            ? { ...task, status: completed ? 'pending' : 'completed' }
+            ? { ...task, status: previousStatus }
             : task
         )
       );
@@ -216,6 +227,7 @@ const ClientDashboard = () => {
           onLogout={logout}
           currentLanguage={currentLanguage}
           onLanguageChange={handleLanguageChange}
+          chatLink={wedding?.chat_link}
         />
         <main className="flex-1 flex flex-col font-forum">
           {/* Приветствие */}
@@ -365,7 +377,7 @@ const ClientDashboard = () => {
                       const titleText = getTranslation(currentLanguage).dashboard.tasks;
                       return (
                         <h2 
-                          className='text-[50px] max-[1599px]:text-[36px] lg:max-[1599px]:text-[32px] min-[1300px]:max-[1599px]:text-[38px] font-forum'
+                          className='text-[50px] max-[1599px]:text-[36px] lg:max-[1599px]:text-[32px] min-[1300px]:max-[1599px]:text-[38px] mb-1 font-forum'
                         >
                           {titleText}
                         </h2>

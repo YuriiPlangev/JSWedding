@@ -22,6 +22,10 @@ export interface Translations {
   header: {
     contactUs: string;
     logout: string;
+    notes: string;
+    notesTitle: string;
+    notesPlaceholder: string;
+    close: string;
   };
   dashboard: {
     welcome: string;
@@ -76,6 +80,10 @@ const translations: Record<Language, Translations> = {
     header: {
       contactUs: 'Contact us directly',
       logout: 'Logout',
+      notes: 'Leave your Notes',
+      notesTitle: 'Notes',
+      notesPlaceholder: 'Leave your notes here...',
+      close: 'Close',
     },
     dashboard: {
       welcome: 'Welcome to your weeding organization space!',
@@ -128,6 +136,10 @@ const translations: Record<Language, Translations> = {
     header: {
       contactUs: 'Свяжитесь с нами',
       logout: 'Выйти',
+      notes: 'Оставьте заметки',
+      notesTitle: 'Заметки',
+      notesPlaceholder: 'Оставьте свои заметки здесь...',
+      close: 'Закрыть',
     },
     dashboard: {
       welcome: 'добро пожаловать в ваше пространство для организации свадеб!',
@@ -180,6 +192,10 @@ const translations: Record<Language, Translations> = {
     header: {
       contactUs: 'Зв\'яжіться з нами',
       logout: 'Вийти',
+      notes: 'Залиште нотатки',
+      notesTitle: 'Нотатки',
+      notesPlaceholder: 'Залиште свої нотатки тут...',
+      close: 'Закрити',
     },
     dashboard: {
       welcome: 'Ласкаво просимо до простору організації вашої весілля!',
