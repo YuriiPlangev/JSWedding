@@ -139,6 +139,32 @@ export const weddingService = {
 
     return true;
   },
+
+  // Обновить заметки клиента (только для клиента)
+  async updateNotes(weddingId: string, notes: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('weddings')
+      .update({ notes })
+      .eq('id', weddingId);
+
+    if (error) {
+      console.error('Error updating notes:', error);
+      return false;
+    }
+
+    // Инвалидируем кеш
+    const { data: wedding } = await supabase
+      .from('weddings')
+      .select('client_id')
+      .eq('id', weddingId)
+      .maybeSingle();
+
+    if (wedding) {
+      invalidateCache(`wedding_${wedding.client_id}`);
+    }
+
+    return true;
+  },
 };
 
 // Сервис для работы с заданиями

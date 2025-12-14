@@ -159,7 +159,7 @@ const ProjectsCalendar = ({ weddings, onDateClick }: ProjectsCalendarProps) => {
               </span>
               {hasProjects && (
                 <div className="flex gap-0.5 mt-0.5">
-                  {weddingsForDay.slice(0, 3).map((wedding, idx) => (
+                  {weddingsForDay.slice(0, 3).map((wedding) => (
                     <div
                       key={wedding.id}
                       className={`
