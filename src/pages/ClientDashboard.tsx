@@ -8,7 +8,6 @@ import DocumentsList from '../components/DocumentsList';
 import MobileNotSupported from '../components/MobileNotSupported';
 // import Presentation from '../components/Presentation';
 import { getTranslation } from '../utils/translations';
-import { getFontStyle } from '../utils/fontUtils';
 import scrollDown from '../assets/scroll-down.svg';
 
 const ClientDashboard = () => {
@@ -194,17 +193,11 @@ const ClientDashboard = () => {
               </h1>
             )}
             {/* Приветственный текст */}
-            {(() => {
-              const splashText = getTranslation(currentLanguage).welcome.splash;
-              return (
-                <p 
-                  className="text-[18px] sm:text-[23px] md:text-[28px] lg:text-[23px] max-[1599px]:lg:text-[23px] min-[1600px]:lg:text-[36px] xl:text-[38px] max-[1599px]:xl:text-[30px] min-[1600px]:xl:text-[47px] text-black px-4 leading-[1.2] mt-6 md:mt-8 lg:mt-6 xl:mt-8"
-                  style={getFontStyle(splashText)}
-                >
-                  {splashText}
-                </p>
-              );
-            })()}
+            <p 
+              className="text-[18px] sm:text-[23px] md:text-[28px] lg:text-[23px] max-[1599px]:lg:text-[23px] min-[1600px]:lg:text-[36px] xl:text-[38px] max-[1599px]:xl:text-[30px] min-[1600px]:xl:text-[47px] text-black px-4 leading-[1.2] mt-6 md:mt-8 lg:mt-6 xl:mt-8 font-branch"
+            >
+              Welcome to your wedding organization space!
+            </p>
           </div>
           
           {/* Scroll down indicator */}
@@ -282,7 +275,7 @@ const ClientDashboard = () => {
                     const descText = getTranslation(currentLanguage).dashboard.keyDetails;
                     return (
                       <p 
-                        className='text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[16px] min-[1300px]:max-[1599px]:text-[18px] font-forum font-light text-[#00000080] leading-tight mt-[-1]'
+                        className='text-[24px] -mt-1.5 max-[1599px]:text-[18px] lg:max-[1599px]:text-[16px] min-[1300px]:max-[1599px]:text-[18px] font-forum font-light text-[#00000080] leading-tight mt-[-1]'
                       >
                         {descText}
                       </p>
@@ -382,7 +375,7 @@ const ClientDashboard = () => {
                       const descText = getTranslation(currentLanguage).dashboard.tasksDescription;
                       return (
                         <p 
-                          className='text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[16px] min-[1300px]:max-[1599px]:text-[18px] font-forum font-light text-[#00000080]'
+                          className='text-[24px] max-[1599px]:text-[18px] -mt-2 lg:max-[1599px]:text-[16px] min-[1300px]:max-[1599px]:text-[18px] font-forum font-light text-[#00000080]'
                         >
                           {descText}
                         </p>

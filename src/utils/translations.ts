@@ -92,7 +92,7 @@ const translations: Record<Language, Translations> = {
       tasks: 'Tasks',
       tasksDescription: 'Wedding planning checklist you need to complete',
       documents: 'Documents',
-      pinnedDocuments: 'pinned documents',
+      pinnedDocuments: 'Pinned documents',
     },
     months: {
       january: 'january',
@@ -144,7 +144,7 @@ const translations: Record<Language, Translations> = {
       tasks: 'Задания',
       tasksDescription: 'Список задач, которые вам нужно выполнить в первую очередь',
       documents: 'Документы',
-      pinnedDocuments: 'закрепленные документы',
+      pinnedDocuments: 'Закрепленные документы',
     },
     months: {
       january: 'января',

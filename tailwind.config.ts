@@ -8,7 +8,7 @@ const config: Config = {
         'gilroy': ['Gilroy', 'system-ui', 'sans-serif'],
         'lovelace': ['Lovelace', 'serif'],
         'forum': ['Forum', 'system-ui', 'serif'],
-        'sloop': ['Russkopis Book Italic', 'system-ui', 'serif'],
+        'sloop': ['Sloop Script Three', 'system-ui', 'serif'],
         'anastasia': ['AnastasiaScript Regular', 'system-ui', 'serif'],
       },
     },

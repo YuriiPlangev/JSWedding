@@ -27,6 +27,15 @@
   font-display: block;
 }
 
+/* Подключение шрифта Sloop Script Three */
+@font-face {
+  font-family: "Sloop Script Three";
+  src: url("./assets/fonts/Sloop-ScriptThree.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+
 /* Подключение шрифта AnastasiaScript Regular */
 @font-face {
   font-family: "AnastasiaScript Regular";
@@ -84,6 +93,7 @@ body {
   /* Скрываем scrollbar для старых версий Firefox */
   overflow: -moz-scrollbars-none;
   background: #fbf9f5;
+  line-height: normal;
 }
 
 /* Скрываем scrollbar для Webkit браузеров (Chrome, Safari, Edge) */
@@ -277,7 +287,7 @@ html::-webkit-scrollbar {
 
 /* Убеждаемся, что font-sloop применяется правильно */
 .font-sloop {
-  font-family: "Russkopis Book Italic", cursive !important;
+  font-family: "Sloop Script Three", cursive !important;
 }
 
 .font-anastasia {
@@ -335,7 +345,7 @@ html::-webkit-scrollbar {
 .custom-checkbox {
   position: relative;
   display: inline-block;
-  top:3px;
+  top: 3px;
 }
 
 .custom-checkbox input[type="checkbox"] {

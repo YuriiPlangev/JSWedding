@@ -48,8 +48,8 @@ const DocumentsList = ({ documents, currentLanguage = 'ru' }: DocumentsListProps
       {/* Закрепленные документы */}
       {pinnedDocuments.length > 0 && (
         <div className='border-b border-[#00000033]'>
-          <div className='px-4 md:px-8 lg:px-12 xl:px-[60px] pt-0 pb-6 max-[1599px]:pb-4 lg:max-[1599px]:pb-4 min-[1300px]:max-[1599px]:pb-5'>
-            <p className='text-[16px] max-[1599px]:text-[14px] lg:max-[1599px]:text-[13px] min-[1300px]:max-[1599px]:text-[14px] font-forum font-light text-[#00000080] mb-2'>
+          <div className='px-4 md:px-8 lg:px-12 xl:px-[60px] pt-0 pb-2'>
+            <p className='text-[16px]  max-[1599px]:text-[14px] lg:max-[1599px]:text-[13px] min-[1300px]:max-[1599px]:text-[14px] font-forum font-light text-[#00000080] mb-2'>
               {getTranslation(currentLanguage).dashboard.pinnedDocuments}
             </p>
             <ul>
