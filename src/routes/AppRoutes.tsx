@@ -6,7 +6,7 @@ import ProtectedRoute from '../components/ProtectedRoute';
 import { useAuth } from '../context/AuthContext';
 
 const AppRoutes = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
 
   return (
     <Routes>
@@ -15,9 +15,16 @@ const AppRoutes = () => {
         path="/dashboard"
         element={
           <ProtectedRoute>
-            {user?.role === 'organizer' ? (
-              <OrganizerDashboard />
+            {loading || !user ? (
+              // Показываем загрузку, пока user не загружен
+              <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-gray-600">Загрузка...</div>
+              </div>
+            ) : user.role === 'organizer' ? (
+              // Если организатор, перенаправляем на /organizer
+              <Navigate to="/organizer" replace />
             ) : (
+              // Иначе показываем ClientDashboard
               <ClientDashboard />
             )}
           </ProtectedRoute>

@@ -24,11 +24,12 @@ const TasksList = ({ tasks, onTaskToggle }: TasksListProps) => {
 
         return (
           <li key={task.id} className='flex items-center gap-8 max-[1599px]:gap-4 lg:max-[1599px]:gap-4 min-[1300px]:max-[1599px]:gap-6 py-6 max-[1599px]:py-3 lg:max-[1599px]:py-3 min-[1300px]:max-[1599px]:py-4'>
-            <label className="custom-checkbox">
+            <label className="custom-checkbox cursor-pointer">
               <input
                 type="checkbox"
                 checked={isCompleted}
                 onChange={(e) => handleCheckboxChange(task.id, e.target.checked)}
+                className="cursor-pointer"
               />
               <span className="checkbox-label"></span>
             </label>

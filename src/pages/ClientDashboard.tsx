@@ -228,6 +228,14 @@ const ClientDashboard = () => {
           currentLanguage={currentLanguage}
           onLanguageChange={handleLanguageChange}
           chatLink={wedding?.chat_link}
+          weddingId={wedding?.id}
+          initialNotes={wedding?.notes || ''}
+          onNotesChange={(newNotes) => {
+            // Обновляем локальное состояние свадьбы
+            if (wedding) {
+              setWedding({ ...wedding, notes: newNotes });
+            }
+          }}
         />
         <main className="flex-1 flex flex-col font-forum">
           {/* Приветствие */}

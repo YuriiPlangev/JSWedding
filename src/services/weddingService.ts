@@ -20,7 +20,7 @@ export const weddingService = {
       .from('weddings')
       .select('*')
       .eq('client_id', clientId)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('Error fetching wedding:', error);
@@ -57,7 +57,7 @@ export const weddingService = {
       .from('weddings')
       .select('*')
       .eq('id', weddingId)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('Error fetching wedding:', error);
@@ -92,7 +92,7 @@ export const weddingService = {
       .from('weddings')
       .select('client_id')
       .eq('id', weddingId)
-      .single();
+      .maybeSingle();
 
     const { data, error } = await supabase
       .from('weddings')
@@ -388,26 +388,83 @@ export const documentService = {
   async updateDocument(
     documentId: string,
     updates: Partial<Omit<Document, 'id' | 'created_at' | 'updated_at' | 'file_url'>>,
-    weddingId: string
+    weddingId: string,
+    newFile?: File
   ): Promise<Document | null> {
-    const { data, error } = await supabase
-      .from('documents')
-      .update(updates)
-      .eq('id', documentId)
-      .select()
-      .single();
+    // Если есть новый файл, сначала загружаем его
+    if (newFile) {
+      // Получаем старый документ для удаления старого файла
+      const { data: oldDoc } = await supabase
+        .from('documents')
+        .select('file_path')
+        .eq('id', documentId)
+        .single();
 
-    if (error) {
-      console.error('Error updating document:', error);
-      return null;
+      // Загружаем новый файл
+      const fileExt = newFile.name.split('.').pop();
+      const fileName = `${weddingId}/${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('wedding-documents')
+        .upload(fileName, newFile);
+
+      if (uploadError) {
+        console.error('Error uploading new file:', uploadError);
+        return null;
+      }
+
+      // Удаляем старый файл, если он был
+      if (oldDoc?.file_path) {
+        await supabase.storage.from('wedding-documents').remove([oldDoc.file_path]);
+      }
+
+      // Обновляем документ с новым файлом
+      const { data, error } = await supabase
+        .from('documents')
+        .update({
+          ...updates,
+          file_path: fileName,
+          file_size: newFile.size,
+          mime_type: newFile.type,
+        })
+        .eq('id', documentId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating document:', error);
+        // Удаляем загруженный файл в случае ошибки
+        await supabase.storage.from('wedding-documents').remove([fileName]);
+        return null;
+      }
+
+      // Инвалидируем кеш документов для этой свадьбы
+      if (data) {
+        invalidateCache(`documents_${weddingId}`);
+      }
+
+      return data;
+    } else {
+      // Обновляем только метаданные без файла
+      const { data, error } = await supabase
+        .from('documents')
+        .update(updates)
+        .eq('id', documentId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating document:', error);
+        return null;
+      }
+
+      // Инвалидируем кеш документов для этой свадьбы
+      if (data) {
+        invalidateCache(`documents_${weddingId}`);
+      }
+
+      return data;
     }
-
-    // Инвалидируем кеш документов для этой свадьбы
-    if (data) {
-      invalidateCache(`documents_${weddingId}`);
-    }
-
-    return data;
   },
 
   // Удалить документ (только для организатора)
@@ -472,7 +529,7 @@ export const clientService = {
       .select('*')
       .eq('id', clientId)
       .eq('role', 'client')
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('Error fetching client:', error);

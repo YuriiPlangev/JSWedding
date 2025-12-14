@@ -23,6 +23,7 @@ export interface Wedding {
   venue: string; // Место празднования
   guest_count: number; // Число гостей
   chat_link?: string; // Ссылка на чат с организатором
+  notes?: string; // Заметки клиента о свадьбе
   created_at: string;
   updated_at: string;
 }

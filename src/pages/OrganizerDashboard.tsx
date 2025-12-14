@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { weddingService, taskService, documentService, clientService } from '../services/weddingService';
 import type { Wedding, Task, Document, User } from '../types';
+// import ProjectsCalendar from '../components/ProjectsCalendar';
 
 type ViewMode = 'overview' | 'weddings' | 'clients' | 'wedding-details';
 
@@ -13,6 +15,7 @@ interface SelectedWedding extends Wedding {
 
 const OrganizerDashboard = () => {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [weddings, setWeddings] = useState<Wedding[]>([]);
   const [clients, setClients] = useState<User[]>([]);
   const [selectedWedding, setSelectedWedding] = useState<SelectedWedding | null>(null);
@@ -28,16 +31,7 @@ const OrganizerDashboard = () => {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editingDocument, setEditingDocument] = useState<Document | null>(null);
 
-  useEffect(() => {
-    if (user?.id && user.role === 'organizer') {
-      loadData();
-    } else if (user && user.role !== 'organizer') {
-      // Если пользователь не организатор, перенаправляем
-      window.location.href = '/dashboard';
-    }
-  }, [user]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!user?.id) return;
 
     setLoading(true);
@@ -57,14 +51,23 @@ const OrganizerDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (user?.id && user.role === 'organizer') {
+      loadData();
+    } else if (user && user.role !== 'organizer') {
+      // Если пользователь не организатор, перенаправляем
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, navigate, loadData]);
 
   const loadWeddingDetails = async (weddingId: string) => {
     setLoading(true);
     try {
       const wedding = await weddingService.getWeddingById(weddingId);
       if (!wedding) {
-        setError('Свадьба не найдена');
+        setError('Проект не найден');
         setLoading(false);
         return;
       }
@@ -85,7 +88,7 @@ const OrganizerDashboard = () => {
       setViewMode('wedding-details');
     } catch (err) {
       console.error('Error loading wedding details:', err);
-      setError('Ошибка при загрузке деталей свадьбы');
+      setError('Ошибка при загрузке деталей проекта');
     } finally {
       setLoading(false);
     }
@@ -102,7 +105,7 @@ const OrganizerDashboard = () => {
   };
 
   const handleDeleteWedding = async (weddingId: string) => {
-    if (!confirm('Вы уверены, что хотите удалить эту свадьбу? Это действие нельзя отменить.')) {
+    if (!confirm('Вы уверены, что хотите удалить этот проект? Это действие нельзя отменить.')) {
       return;
     }
 
@@ -115,11 +118,11 @@ const OrganizerDashboard = () => {
           setViewMode('weddings');
         }
       } else {
-        setError('Не удалось удалить свадьбу');
+        setError('Не удалось удалить проект');
       }
     } catch (err) {
       console.error('Error deleting wedding:', err);
-      setError('Ошибка при удалении свадьбы');
+      setError('Ошибка при удалении проекта');
     }
   };
 
@@ -238,10 +241,17 @@ const OrganizerDashboard = () => {
     if (!selectedWedding) return;
 
     try {
+      let result: Document | null = null;
+      
       if (editingDocument) {
-        await documentService.updateDocument(editingDocument.id, docData, selectedWedding.id);
+        result = await documentService.updateDocument(editingDocument.id, docData, selectedWedding.id, file);
       } else {
-        await documentService.createDocument(docData, file);
+        result = await documentService.createDocument(docData, file);
+      }
+
+      if (!result) {
+        setError('Не удалось сохранить документ. Проверьте подключение к интернету и попробуйте снова.');
+        return;
       }
 
       setShowDocumentModal(false);
@@ -249,7 +259,7 @@ const OrganizerDashboard = () => {
       await loadWeddingDetails(selectedWedding.id);
     } catch (err) {
       console.error('Error saving document:', err);
-      setError('Ошибка при сохранении документа');
+      setError('Ошибка при сохранении документа. Попробуйте еще раз.');
     }
   };
 
@@ -269,18 +279,18 @@ const OrganizerDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#FBF9F5]">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <header className="bg-[#FBF9F5] border-b border-[#00000033]">
+        <div className="px-4 md:px-8 lg:px-12 xl:px-[60px] py-4 md:py-6">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-2xl font-bold text-gray-800">Панель организатора</h1>
-              <p className="text-sm text-gray-600 mt-1">Добро пожаловать, {user?.name}</p>
+              <h1 className="text-[32px] max-[1599px]:text-[24px] lg:max-[1599px]:text-[22px] min-[1300px]:max-[1599px]:text-[26px] font-forum leading-tight text-black">Панель организатора</h1>
+              <p className="text-[16px] max-[1599px]:text-[14px] lg:max-[1599px]:text-[13px] min-[1300px]:max-[1599px]:text-[14px] font-forum font-light text-[#00000080] leading-tight mt-1">Добро пожаловать, {user?.name}</p>
             </div>
             <button
               onClick={logout}
-              className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
+              className="px-4 md:px-6 py-2 md:py-3 text-[16px] max-[1599px]:text-[14px] font-forum text-[#00000080] hover:text-black transition-colors cursor-pointer border border-[#00000033] rounded-lg hover:bg-white"
             >
               Выйти
             </button>
@@ -289,42 +299,32 @@ const OrganizerDashboard = () => {
       </header>
 
       {/* Navigation */}
-      <nav className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex space-x-8">
+      <nav className="bg-[#FBF9F5] border-b border-[#00000033]">
+        <div className="px-4 md:px-8 lg:px-12 xl:px-[60px]">
+          <div className="flex space-x-6 md:space-x-8">
             <button
               onClick={() => setViewMode('overview')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              className={`py-4 px-1 border-b-2 font-forum text-[16px] max-[1599px]:text-[14px] transition-colors cursor-pointer ${
                 viewMode === 'overview'
-                  ? 'border-pink-500 text-pink-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-black text-black'
+                  : 'border-transparent text-[#00000080] hover:text-black hover:border-[#00000033]'
               }`}
             >
               Обзор
             </button>
             <button
               onClick={() => setViewMode('weddings')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              className={`py-4 px-1 border-b-2 font-forum text-[16px] max-[1599px]:text-[14px] transition-colors cursor-pointer ${
                 viewMode === 'weddings'
-                  ? 'border-pink-500 text-pink-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-black text-black'
+                  : 'border-transparent text-[#00000080] hover:text-black hover:border-[#00000033]'
               }`}
             >
-              Свадьбы ({weddings.length})
-            </button>
-            <button
-              onClick={() => setViewMode('clients')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                viewMode === 'clients'
-                  ? 'border-pink-500 text-pink-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Клиенты ({clients.length})
+              Проекты ({weddings.length})
             </button>
             {viewMode === 'wedding-details' && selectedWedding && (
               <button
-                className="py-4 px-1 border-b-2 font-medium text-sm border-pink-500 text-pink-600"
+                className="py-4 px-1 border-b-2 font-forum text-[16px] max-[1599px]:text-[14px] border-black text-black cursor-pointer"
               >
                 {selectedWedding.couple_name_1_ru} & {selectedWedding.couple_name_2_ru}
               </button>
@@ -334,13 +334,13 @@ const OrganizerDashboard = () => {
       </nav>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="px-4 md:px-8 lg:px-12 xl:px-[60px] py-6 md:py-8 font-forum">
         {error && (
           <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-            <p className="text-red-800">{error}</p>
+            <p className="text-red-800 font-forum">{error}</p>
             <button
               onClick={() => setError(null)}
-              className="mt-2 text-sm text-red-600 hover:text-red-800"
+              className="mt-2 text-sm text-red-600 hover:text-red-800 font-forum cursor-pointer"
             >
               Закрыть
             </button>
@@ -349,37 +349,41 @@ const OrganizerDashboard = () => {
 
         {viewMode === 'overview' && (
           <div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-6">Обзор</h2>
+            <h2 className="text-[50px] max-[1599px]:text-[36px] lg:max-[1599px]:text-[32px] min-[1300px]:max-[1599px]:text-[38px] font-forum leading-tight text-black mb-6">Обзор</h2>
             
             {/* Statistics */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <div className="bg-white rounded-xl shadow-md p-6">
-                <div className="text-3xl font-bold text-gray-800">{stats.totalWeddings}</div>
-                <div className="text-sm text-gray-600 mt-1">Всего свадеб</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              <div className="bg-white border border-[#00000033] rounded-lg p-6 hover:shadow-md transition">
+                <div className="text-[36px] max-[1599px]:text-[28px] font-forum font-bold text-black">{stats.totalWeddings}</div>
+                <div className="text-[16px] max-[1599px]:text-[14px] font-forum font-light text-[#00000080] mt-1">Всего проектов</div>
               </div>
-              <div className="bg-white rounded-xl shadow-md p-6">
-                <div className="text-3xl font-bold text-blue-600">{stats.totalClients}</div>
-                <div className="text-sm text-gray-600 mt-1">Клиентов</div>
+              <div className="bg-white border border-[#00000033] rounded-lg p-6 hover:shadow-md transition">
+                <div className="text-[36px] max-[1599px]:text-[28px] font-forum font-bold text-black">{stats.completedTasks}</div>
+                <div className="text-[16px] max-[1599px]:text-[14px] font-forum font-light text-[#00000080] mt-1">Выполненных задач</div>
               </div>
-              <div className="bg-white rounded-xl shadow-md p-6">
-                <div className="text-3xl font-bold text-green-600">{stats.completedTasks}</div>
-                <div className="text-sm text-gray-600 mt-1">Выполненных задач</div>
-              </div>
-              <div className="bg-white rounded-xl shadow-md p-6">
-                <div className="text-3xl font-bold text-yellow-600">
+              <div className="bg-white border border-[#00000033] rounded-lg p-6 hover:shadow-md transition">
+                <div className="text-[36px] max-[1599px]:text-[28px] font-forum font-bold text-black">
                   {stats.totalTasks - stats.completedTasks}
                 </div>
-                <div className="text-sm text-gray-600 mt-1">Задач в работе</div>
+                <div className="text-[16px] max-[1599px]:text-[14px] font-forum font-light text-[#00000080] mt-1">Задач в работе</div>
               </div>
             </div>
 
+            {/* Calendar */}
+            {/* <div className="mb-8">
+              <div className="bg-white border border-[#00000033] rounded-lg p-6">
+                <h3 className="text-[24px] max-[1599px]:text-[20px] font-forum font-bold text-black mb-4">Календарь проектов</h3>
+                <ProjectsCalendar weddings={weddings} onDateClick={(weddingId: string) => loadWeddingDetails(weddingId)} />
+              </div>
+            </div> */}
+
             {/* Recent Weddings */}
-            <div className="bg-white rounded-xl shadow-md p-6">
+            <div className="bg-white border border-[#00000033] rounded-lg p-6">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-bold text-gray-800">Последние свадьбы</h3>
+                <h3 className="text-[24px] max-[1599px]:text-[20px] font-forum font-bold text-black">Последние проекты</h3>
                 <button
                   onClick={() => setViewMode('weddings')}
-                  className="text-sm text-pink-600 hover:text-pink-700"
+                  className="text-[16px] max-[1599px]:text-[14px] font-forum text-[#00000080] hover:text-black transition-colors cursor-pointer"
                 >
                   Смотреть все →
                 </button>
@@ -389,15 +393,15 @@ const OrganizerDashboard = () => {
                   {weddings.slice(0, 5).map((wedding) => (
                     <div
                       key={wedding.id}
-                      className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition cursor-pointer"
+                      className="border border-[#00000033] rounded-lg p-4 hover:shadow-md transition cursor-pointer"
                       onClick={() => loadWeddingDetails(wedding.id)}
                     >
                       <div className="flex justify-between items-start">
                         <div>
-                          <h4 className="font-semibold text-gray-800">
+                          <h4 className="text-[18px] max-[1599px]:text-[16px] font-forum font-bold text-black">
                             {wedding.couple_name_1_ru} & {wedding.couple_name_2_ru}
                           </h4>
-                          <p className="text-sm text-gray-600 mt-1">
+                          <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080] mt-1">
                             {new Date(wedding.wedding_date).toLocaleDateString('ru-RU')} • {wedding.venue}
                           </p>
                         </div>
@@ -406,7 +410,7 @@ const OrganizerDashboard = () => {
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-500">Нет свадеб</p>
+                <p className="text-[16px] font-forum font-light text-[#00000080]">Нет свадеб</p>
               )}
             </div>
           </div>
@@ -415,12 +419,12 @@ const OrganizerDashboard = () => {
         {viewMode === 'weddings' && (
           <div>
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-800">Свадьбы</h2>
+              <h2 className="text-[50px] max-[1599px]:text-[36px] lg:max-[1599px]:text-[32px] min-[1300px]:max-[1599px]:text-[38px] font-forum leading-tight text-black">Проекты</h2>
               <button
                 onClick={handleCreateWedding}
-                className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition"
+                className="px-4 md:px-6 py-2 md:py-3 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum"
               >
-                + Добавить свадьбу
+                + Добавить проект
               </button>
             </div>
 
@@ -429,21 +433,21 @@ const OrganizerDashboard = () => {
                 {weddings.map((wedding) => (
                   <div
                     key={wedding.id}
-                    className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition"
+                    className="bg-white border border-[#00000033] rounded-lg p-6 hover:shadow-lg transition"
                   >
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex-1">
-                        <h3 className="text-lg font-bold text-gray-800 mb-2">
+                        <h3 className="text-[20px] max-[1599px]:text-[18px] font-forum font-bold text-black mb-2">
                           {wedding.couple_name_1_ru} & {wedding.couple_name_2_ru}
                         </h3>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">
                           Дата: {new Date(wedding.wedding_date).toLocaleDateString('ru-RU')}
                         </p>
-                        <p className="text-sm text-gray-600">Место: {wedding.venue}</p>
-                        <p className="text-sm text-gray-600">Гостей: {wedding.guest_count}</p>
+                        <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">Место: {wedding.venue}</p>
+                        <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">Гостей: {wedding.guest_count}</p>
                         {wedding.chat_link && (
-                          <p className="text-sm text-blue-600 mt-1">
-                            <a href={wedding.chat_link} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                          <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-black mt-1">
+                            <a href={wedding.chat_link} target="_blank" rel="noopener noreferrer" className="hover:underline cursor-pointer">
                               Чат: {wedding.chat_link.length > 30 ? wedding.chat_link.substring(0, 30) + '...' : wedding.chat_link}
                             </a>
                           </p>
@@ -453,19 +457,19 @@ const OrganizerDashboard = () => {
                     <div className="flex space-x-2">
                       <button
                         onClick={() => loadWeddingDetails(wedding.id)}
-                        className="flex-1 px-3 py-2 bg-pink-100 text-pink-700 rounded-lg hover:bg-pink-200 transition text-sm"
+                        className="flex-1 px-3 py-2 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[14px] font-forum"
                       >
                         Подробнее
                       </button>
                       <button
                         onClick={() => handleEditWedding(wedding)}
-                        className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm"
+                        className="px-3 py-2 bg-white border border-[#00000033] text-black rounded-lg hover:bg-gray-50 transition-colors cursor-pointer text-[14px] font-forum"
                       >
                         Редактировать
                       </button>
                       <button
                         onClick={() => handleDeleteWedding(wedding.id)}
-                        className="px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition text-sm"
+                        className="px-3 py-2 bg-white border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors cursor-pointer text-[14px] font-forum"
                       >
                         Удалить
                       </button>
@@ -473,76 +477,15 @@ const OrganizerDashboard = () => {
                   </div>
                 ))}
               </div>
-            ) : (
-              <div className="bg-white rounded-xl shadow-md p-12 text-center">
-                <p className="text-gray-500 mb-4">У вас пока нет свадеб</p>
+              ) : (
+              <div className="bg-white border border-[#00000033] rounded-lg p-12 text-center">
+                <p className="text-[16px] font-forum font-light text-[#00000080] mb-4">У вас пока нет проектов</p>
                 <button
                   onClick={handleCreateWedding}
-                  className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition"
+                  className="px-4 md:px-6 py-2 md:py-3 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum"
                 >
-                  Создать первую свадьбу
+                  Создать первый проект
                 </button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {viewMode === 'clients' && (
-          <div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-6">Клиенты</h2>
-
-            {clients.length > 0 ? (
-              <div className="bg-white rounded-xl shadow-md overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Имя
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Email
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Свадьбы
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {clients.map((client) => {
-                      const clientWeddings = weddings.filter(w => w.client_id === client.id);
-                      return (
-                        <tr key={client.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">{client.name}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-500">{client.email}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-500">
-                              {clientWeddings.length > 0 ? (
-                                <button
-                                  onClick={() => {
-                                    loadWeddingDetails(clientWeddings[0].id);
-                                  }}
-                                  className="text-pink-600 hover:text-pink-700"
-                                >
-                                  {clientWeddings.length} свадьба(и)
-                                </button>
-                              ) : (
-                                'Нет свадеб'
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="bg-white rounded-xl shadow-md p-12 text-center">
-                <p className="text-gray-500">Клиентов пока нет</p>
               </div>
             )}
           </div>
@@ -554,61 +497,73 @@ const OrganizerDashboard = () => {
               <div>
                 <button
                   onClick={() => setViewMode('weddings')}
-                  className="text-sm text-gray-600 hover:text-gray-800 mb-2"
+                  className="text-[16px] max-[1599px]:text-[14px] font-forum text-[#00000080] hover:text-black transition-colors mb-2 cursor-pointer"
                 >
-                  ← Назад к списку свадеб
+                  ← Назад к списку проектов
                 </button>
-                <h2 className="text-2xl font-bold text-gray-800">
+                <h2 className="text-[50px] max-[1599px]:text-[36px] lg:max-[1599px]:text-[32px] min-[1300px]:max-[1599px]:text-[38px] font-forum leading-tight text-black">
                   {selectedWedding.couple_name_1_ru} & {selectedWedding.couple_name_2_ru}
                 </h2>
               </div>
               <button
                 onClick={() => handleEditWedding(selectedWedding)}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+                className="px-4 md:px-6 py-2 md:py-3 bg-white border border-[#00000033] text-black rounded-lg hover:bg-gray-50 transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum"
               >
-                Редактировать свадьбу
+                Редактировать проект
               </button>
             </div>
 
             {/* Wedding Info */}
-            <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-              <h3 className="text-lg font-bold text-gray-800 mb-4">Информация о свадьбе</h3>
+            <div className="bg-white border border-[#00000033] rounded-lg p-6 mb-6">
+              <h3 className="text-[24px] max-[1599px]:text-[20px] font-forum font-bold text-black mb-4">Информация о проекте</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-gray-600">Дата свадьбы</p>
-                  <p className="text-base font-medium">
+                  <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">Дата свадьбы</p>
+                  <p className="text-[18px] max-[1599px]:text-[16px] font-forum font-bold text-black mt-1">
                     {new Date(selectedWedding.wedding_date).toLocaleDateString('ru-RU')}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Страна</p>
-                  <p className="text-base font-medium">{selectedWedding.country}</p>
+                  <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">Страна</p>
+                  <p className="text-[18px] max-[1599px]:text-[16px] font-forum font-bold text-black mt-1">{selectedWedding.country}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Место</p>
-                  <p className="text-base font-medium">{selectedWedding.venue}</p>
+                  <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">Место</p>
+                  <p className="text-[18px] max-[1599px]:text-[16px] font-forum font-bold text-black mt-1">{selectedWedding.venue}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Количество гостей</p>
-                  <p className="text-base font-medium">{selectedWedding.guest_count}</p>
+                  <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">Количество гостей</p>
+                  <p className="text-[18px] max-[1599px]:text-[16px] font-forum font-bold text-black mt-1">{selectedWedding.guest_count}</p>
                 </div>
                 {selectedWedding.client && (
                   <div>
-                    <p className="text-sm text-gray-600">Клиент</p>
-                    <p className="text-base font-medium">{selectedWedding.client.name}</p>
-                    <p className="text-sm text-gray-500">{selectedWedding.client.email}</p>
+                    <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">Клиент</p>
+                    <p className="text-[18px] max-[1599px]:text-[16px] font-forum font-bold text-black mt-1">{selectedWedding.client.name}</p>
+                    <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080] mt-1">{selectedWedding.client.email}</p>
                   </div>
                 )}
               </div>
             </div>
 
+            {/* Client Notes */}
+            {selectedWedding.notes && (
+              <div className="bg-white border border-[#00000033] rounded-lg p-6 mb-6">
+                <h3 className="text-[24px] max-[1599px]:text-[20px] font-forum font-bold text-black mb-4">Заметки клиента</h3>
+                <div className="bg-[#FBF9F5] border border-[#00000033] rounded-lg p-4">
+                  <p className="text-[16px] max-[1599px]:text-[14px] font-forum font-light text-black whitespace-pre-wrap">
+                    {selectedWedding.notes}
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Tasks */}
-            <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+            <div className="bg-white border border-[#00000033] rounded-lg p-6 mb-6">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-bold text-gray-800">Задачи</h3>
+                <h3 className="text-[24px] max-[1599px]:text-[20px] font-forum font-bold text-black">Задачи</h3>
                 <button
                   onClick={handleCreateTask}
-                  className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition text-sm"
+                  className="px-4 md:px-6 py-2 md:py-3 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum"
                 >
                   + Добавить задачу
                 </button>
@@ -618,12 +573,12 @@ const OrganizerDashboard = () => {
                   {selectedWedding.tasks.map((task) => (
                     <div
                       key={task.id}
-                      className="border border-gray-200 rounded-lg p-4 flex justify-between items-start"
+                      className="border border-[#00000033] rounded-lg p-4 flex justify-between items-start hover:shadow-md transition"
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <span
-                            className={`px-2 py-1 text-xs rounded-full ${
+                            className={`px-2 py-1 text-[12px] rounded-full font-forum ${
                               task.status === 'completed'
                                 ? 'bg-green-100 text-green-800'
                                 : task.status === 'in_progress'
@@ -638,18 +593,18 @@ const OrganizerDashboard = () => {
                               : 'Ожидает'}
                           </span>
                           {task.due_date && (
-                            <span className="text-xs text-gray-500">
+                            <span className="text-[12px] font-forum font-light text-[#00000080]">
                               До: {new Date(task.due_date).toLocaleDateString('ru-RU')}
                             </span>
                           )}
                         </div>
-                        <h4 className="font-medium text-gray-800 mt-2">{task.title}</h4>
+                        <h4 className="text-[18px] max-[1599px]:text-[16px] font-forum font-bold text-black mt-2">{task.title}</h4>
                         {task.link && task.link_text && (
                           <a
                             href={task.link.startsWith('http') ? task.link : `https://${task.link}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-sm text-pink-600 hover:text-pink-700 mt-1 inline-block"
+                            className="text-[14px] max-[1599px]:text-[13px] font-forum text-black hover:underline mt-1 inline-block cursor-pointer"
                           >
                             {task.link_text} →
                           </a>
@@ -658,13 +613,13 @@ const OrganizerDashboard = () => {
                       <div className="flex space-x-2 ml-4">
                         <button
                           onClick={() => handleEditTask(task)}
-                          className="px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition text-sm"
+                          className="px-3 py-1 bg-white border border-[#00000033] text-black rounded hover:bg-gray-50 transition-colors cursor-pointer text-[14px] font-forum"
                         >
                           Редактировать
                         </button>
                         <button
                           onClick={() => handleDeleteTask(task.id)}
-                          className="px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition text-sm"
+                          className="px-3 py-1 bg-white border border-red-300 text-red-600 rounded hover:bg-red-50 transition-colors cursor-pointer text-[14px] font-forum"
                         >
                           Удалить
                         </button>
@@ -673,17 +628,17 @@ const OrganizerDashboard = () => {
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-500">Задач пока нет</p>
+                <p className="text-[16px] font-forum font-light text-[#00000080]">Задач пока нет</p>
               )}
             </div>
 
             {/* Documents */}
-            <div className="bg-white rounded-xl shadow-md p-6">
+            <div className="bg-white border border-[#00000033] rounded-lg p-6">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-bold text-gray-800">Документы</h3>
+                <h3 className="text-[24px] max-[1599px]:text-[20px] font-forum font-bold text-black">Документы</h3>
                 <button
                   onClick={handleCreateDocument}
-                  className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition text-sm"
+                  className="px-4 md:px-6 py-2 md:py-3 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum"
                 >
                   + Добавить документ
                 </button>
@@ -693,13 +648,13 @@ const OrganizerDashboard = () => {
                   {selectedWedding.documents.map((doc) => (
                     <div
                       key={doc.id}
-                      className="border border-gray-200 rounded-lg p-4 flex justify-between items-center"
+                      className="border border-[#00000033] rounded-lg p-4 flex justify-between items-center hover:shadow-md transition"
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <h4 className="font-medium text-gray-800">{doc.name}</h4>
+                          <h4 className="text-[18px] max-[1599px]:text-[16px] font-forum font-bold text-black">{doc.name}</h4>
                           {doc.pinned && (
-                            <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded">
+                            <span className="px-2 py-1 text-[12px] font-forum bg-yellow-100 text-yellow-800 rounded">
                               Закреплен
                             </span>
                           )}
@@ -709,7 +664,7 @@ const OrganizerDashboard = () => {
                             href={doc.link}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-sm text-pink-600 hover:text-pink-700 mt-1 inline-block"
+                            className="text-[14px] max-[1599px]:text-[13px] font-forum text-black hover:underline mt-1 inline-block cursor-pointer"
                           >
                             Открыть ссылку →
                           </a>
@@ -719,27 +674,34 @@ const OrganizerDashboard = () => {
                             href={doc.file_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-sm text-pink-600 hover:text-pink-700 mt-1 inline-block"
+                            className="text-[14px] max-[1599px]:text-[13px] font-forum text-black hover:underline mt-1 inline-block cursor-pointer"
                           >
                             Скачать →
                           </a>
                         )}
                         {doc.file_size && (
-                          <p className="text-xs text-gray-500 mt-1">
-                            Размер: {(doc.file_size / 1024).toFixed(2)} KB
+                          <p className="text-[12px] font-forum font-light text-[#00000080] mt-1">
+                            Размер: {doc.file_size < 1024 * 1024 
+                              ? `${(doc.file_size / 1024).toFixed(2)} KB`
+                              : `${(doc.file_size / 1024 / 1024).toFixed(2)} MB`}
+                          </p>
+                        )}
+                        {doc.mime_type && (
+                          <p className="text-[12px] font-forum font-light text-[#00000080]">
+                            Тип: {doc.mime_type}
                           </p>
                         )}
                       </div>
                       <div className="flex space-x-2 ml-4">
                         <button
                           onClick={() => handleEditDocument(doc)}
-                          className="px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition text-sm"
+                          className="px-3 py-1 bg-white border border-[#00000033] text-black rounded hover:bg-gray-50 transition-colors cursor-pointer text-[14px] font-forum"
                         >
                           Редактировать
                         </button>
                         <button
                           onClick={() => handleDeleteDocument(doc)}
-                          className="px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition text-sm"
+                          className="px-3 py-1 bg-white border border-red-300 text-red-600 rounded hover:bg-red-50 transition-colors cursor-pointer text-[14px] font-forum"
                         >
                           Удалить
                         </button>
@@ -748,7 +710,7 @@ const OrganizerDashboard = () => {
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-500">Документов пока нет</p>
+                <p className="text-[16px] font-forum font-light text-[#00000080]">Документов пока нет</p>
               )}
             </div>
           </div>
@@ -825,27 +787,27 @@ const WeddingModal = ({ wedding, clients, onClose, onSave }: WeddingModalProps) 
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-[#FBF9F5] border border-[#00000033] rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-800">
-              {wedding ? 'Редактировать свадьбу' : 'Создать свадьбу'}
+            <h2 className="text-[32px] max-[1599px]:text-[24px] font-forum font-bold text-black">
+              {wedding ? 'Редактировать проект' : 'Создать проект'}
             </h2>
-            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            <button onClick={onClose} className="text-[#00000080] hover:text-black transition-colors cursor-pointer text-2xl font-light">
               ✕
             </button>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
                 Клиент *
               </label>
               <select
                 required
                 value={formData.client_id}
                 onChange={(e) => setFormData({ ...formData, client_id: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500"
+                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum cursor-pointer bg-white"
                 disabled={!!wedding}
               >
                 <option value="">Выберите клиента</option>
@@ -859,7 +821,7 @@ const WeddingModal = ({ wedding, clients, onClose, onSave }: WeddingModalProps) 
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
                   Имя партнера 1 (EN) *
                 </label>
                 <input
@@ -867,11 +829,11 @@ const WeddingModal = ({ wedding, clients, onClose, onSave }: WeddingModalProps) 
                   required
                   value={formData.couple_name_1_en}
                   onChange={(e) => setFormData({ ...formData, couple_name_1_en: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500"
+                  className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
                   Имя партнера 1 (RU) *
                 </label>
                 <input
@@ -879,14 +841,14 @@ const WeddingModal = ({ wedding, clients, onClose, onSave }: WeddingModalProps) 
                   required
                   value={formData.couple_name_1_ru}
                   onChange={(e) => setFormData({ ...formData, couple_name_1_ru: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500"
+                  className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
                   Имя партнера 2 (EN) *
                 </label>
                 <input
@@ -894,11 +856,11 @@ const WeddingModal = ({ wedding, clients, onClose, onSave }: WeddingModalProps) 
                   required
                   value={formData.couple_name_2_en}
                   onChange={(e) => setFormData({ ...formData, couple_name_2_en: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500"
+                  className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
                   Имя партнера 2 (RU) *
                 </label>
                 <input
@@ -906,13 +868,13 @@ const WeddingModal = ({ wedding, clients, onClose, onSave }: WeddingModalProps) 
                   required
                   value={formData.couple_name_2_ru}
                   onChange={(e) => setFormData({ ...formData, couple_name_2_ru: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500"
+                  className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
                 Дата свадьбы *
               </label>
               <input
@@ -920,12 +882,12 @@ const WeddingModal = ({ wedding, clients, onClose, onSave }: WeddingModalProps) 
                 required
                 value={formData.wedding_date}
                 onChange={(e) => setFormData({ ...formData, wedding_date: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500"
+                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white cursor-pointer"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
                 Страна *
               </label>
               <input
@@ -933,12 +895,12 @@ const WeddingModal = ({ wedding, clients, onClose, onSave }: WeddingModalProps) 
                 required
                 value={formData.country}
                 onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500"
+                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
                 Место празднования *
               </label>
               <input
@@ -946,12 +908,12 @@ const WeddingModal = ({ wedding, clients, onClose, onSave }: WeddingModalProps) 
                 required
                 value={formData.venue}
                 onChange={(e) => setFormData({ ...formData, venue: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500"
+                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
                 Количество гостей *
               </label>
               <input
@@ -960,12 +922,12 @@ const WeddingModal = ({ wedding, clients, onClose, onSave }: WeddingModalProps) 
                 min="0"
                 value={formData.guest_count}
                 onChange={(e) => setFormData({ ...formData, guest_count: parseInt(e.target.value) })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500"
+                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
                 Ссылка на чат с организатором
               </label>
               <input
@@ -973,7 +935,7 @@ const WeddingModal = ({ wedding, clients, onClose, onSave }: WeddingModalProps) 
                 value={formData.chat_link}
                 onChange={(e) => setFormData({ ...formData, chat_link: e.target.value })}
                 placeholder="https://t.me/..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500"
+                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
               />
             </div>
 
@@ -981,13 +943,13 @@ const WeddingModal = ({ wedding, clients, onClose, onSave }: WeddingModalProps) 
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+                className="px-4 md:px-6 py-2 md:py-3 border border-[#00000033] rounded-lg text-black hover:bg-white transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum bg-[#FBF9F5]"
               >
                 Отмена
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition"
+                className="px-4 md:px-6 py-2 md:py-3 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum"
               >
                 {wedding ? 'Сохранить' : 'Создать'}
               </button>
@@ -1025,20 +987,20 @@ const TaskModal = ({ task, onClose, onSave }: TaskModalProps) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-lg w-full">
+      <div className="bg-[#FBF9F5] border border-[#00000033] rounded-lg max-w-lg w-full">
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-800">
+            <h2 className="text-[32px] max-[1599px]:text-[24px] font-forum font-bold text-black">
               {task ? 'Редактировать задачу' : 'Создать задачу'}
             </h2>
-            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            <button onClick={onClose} className="text-[#00000080] hover:text-black transition-colors cursor-pointer text-2xl font-light">
               ✕
             </button>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
                 Название задачи *
               </label>
               <input
@@ -1046,18 +1008,18 @@ const TaskModal = ({ task, onClose, onSave }: TaskModalProps) => {
                 required
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500"
+                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
                 Статус
               </label>
               <select
                 value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500"
+                onChange={(e) => setFormData({ ...formData, status: e.target.value as 'pending' | 'in_progress' | 'completed' })}
+                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum cursor-pointer bg-white"
               >
                 <option value="pending">Ожидает</option>
                 <option value="in_progress">В работе</option>
@@ -1066,19 +1028,19 @@ const TaskModal = ({ task, onClose, onSave }: TaskModalProps) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
                 Срок выполнения
               </label>
               <input
                 type="date"
                 value={formData.due_date}
                 onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500"
+                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white cursor-pointer"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
                 Ссылка (опционально)
               </label>
               <input
@@ -1086,12 +1048,12 @@ const TaskModal = ({ task, onClose, onSave }: TaskModalProps) => {
                 value={formData.link}
                 onChange={(e) => setFormData({ ...formData, link: e.target.value })}
                 placeholder="https://example.com"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500"
+                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
                 Текст ссылки (опционально)
               </label>
               <input
@@ -1099,7 +1061,7 @@ const TaskModal = ({ task, onClose, onSave }: TaskModalProps) => {
                 value={formData.link_text}
                 onChange={(e) => setFormData({ ...formData, link_text: e.target.value })}
                 placeholder="Нажмите здесь"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500"
+                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
               />
             </div>
 
@@ -1107,13 +1069,13 @@ const TaskModal = ({ task, onClose, onSave }: TaskModalProps) => {
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+                className="px-4 md:px-6 py-2 md:py-3 border border-[#00000033] rounded-lg text-black hover:bg-white transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum bg-[#FBF9F5]"
               >
                 Отмена
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition"
+                className="px-4 md:px-6 py-2 md:py-3 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum"
               >
                 {task ? 'Сохранить' : 'Создать'}
               </button>
@@ -1144,65 +1106,143 @@ const DocumentModal = ({ document, weddingId, onClose, onSave }: DocumentModalPr
   });
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+      // Проверка размера файла (максимум 50MB)
+      const maxSize = 50 * 1024 * 1024; // 50MB в байтах
+      if (selectedFile.size > maxSize) {
+        setError('Размер файла не должен превышать 50MB');
+        setFile(null);
+        return;
+      }
+      setFile(selectedFile);
+      setError(null);
+      // Очищаем ссылку при выборе файла
+      setFormData({ ...formData, link: '' });
+    }
+  };
+
+  const handleLinkChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const link = e.target.value;
+    setFormData({ ...formData, link });
+    // Очищаем файл при вводе ссылки
+    if (link) {
+      setFile(null);
+    }
+    setError(null);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+
+    if (!formData.name.trim()) {
+      setError('Пожалуйста, укажите название документа');
+      return;
+    }
 
     const docData: Omit<Document, 'id' | 'created_at' | 'updated_at' | 'file_url'> = {
       wedding_id: weddingId,
-      name: formData.name,
+      name: formData.name.trim(),
       pinned: formData.pinned,
-      ...(formData.link && { link: formData.link }),
+      ...(formData.link && { link: formData.link.trim() }),
     };
 
     // Если есть ссылка, используем её
-    if (formData.link) {
-      onSave(docData);
+    if (formData.link && formData.link.trim()) {
+      try {
+        await onSave(docData);
+        onClose();
+      } catch (err) {
+        setError('Ошибка при сохранении документа');
+        console.error('Error saving document:', err);
+      }
       return;
     }
 
     // Если нет файла, требуем его или ссылку
     if (!file && !document) {
-      alert('Пожалуйста, выберите файл или укажите ссылку');
+      setError('Пожалуйста, выберите файл или укажите ссылку');
       return;
     }
 
-    // Если редактируем документ без файла, только обновляем данные
-    if (document && !file) {
-      onSave(docData);
+    // Если редактируем документ, обновляем данные (с файлом или без)
+    if (document) {
+      try {
+        await onSave(docData, file || undefined);
+        // Закрываем модальное окно только после успешного сохранения
+        // (закрытие происходит в handleSaveDocument)
+      } catch (err) {
+        setError('Ошибка при обновлении документа');
+        console.error('Error updating document:', err);
+      }
       return;
     }
 
     // Если есть файл, используем его
     if (file) {
       setUploading(true);
+      setUploadProgress(0);
+      let progressInterval: number | null = null;
+      
       try {
-        onSave(docData, file);
-      } catch (error) {
-        console.error('Error uploading document:', error);
-        alert('Ошибка при загрузке документа');
+        // Симулируем прогресс загрузки
+        progressInterval = window.setInterval(() => {
+          setUploadProgress((prev) => {
+            if (prev >= 90) {
+              if (progressInterval !== null) {
+                clearInterval(progressInterval);
+              }
+              return 90;
+            }
+            return prev + 10;
+          });
+        }, 200);
+
+        await onSave(docData, file);
+        
+        if (progressInterval !== null) {
+          clearInterval(progressInterval);
+        }
+        setUploadProgress(100);
+        
+        // Небольшая задержка перед закрытием, чтобы показать 100%
+        setTimeout(() => {
+          onClose();
+        }, 300);
+      } catch (err) {
+        if (progressInterval !== null) {
+          clearInterval(progressInterval);
+        }
+        setError('Ошибка при загрузке документа. Проверьте подключение к интернету и попробуйте снова.');
+        console.error('Error uploading document:', err);
       } finally {
         setUploading(false);
+        setUploadProgress(0);
       }
     }
   };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-lg w-full">
+      <div className="bg-[#FBF9F5] border border-[#00000033] rounded-lg max-w-lg w-full">
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-800">
+            <h2 className="text-[32px] max-[1599px]:text-[24px] font-forum font-bold text-black">
               {document ? 'Редактировать документ' : 'Создать документ'}
             </h2>
-            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            <button onClick={onClose} className="text-[#00000080] hover:text-black transition-colors cursor-pointer text-2xl font-light">
               ✕
             </button>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
                 Название документа *
               </label>
               <input
@@ -1210,29 +1250,61 @@ const DocumentModal = ({ document, weddingId, onClose, onSave }: DocumentModalPr
                 required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500"
+                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
                 Ссылка на документ (Google Docs/Sheets/Drive) или файл
               </label>
               <input
                 type="url"
                 value={formData.link}
-                onChange={(e) => setFormData({ ...formData, link: e.target.value })}
+                onChange={handleLinkChange}
                 placeholder="https://docs.google.com/..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500 mb-2"
+                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white mb-2"
+                disabled={!!file}
               />
-              <p className="text-xs text-gray-500 mb-2">или</p>
+              <p className="text-[14px] font-forum font-light text-[#00000080] mb-2">или</p>
               <input
                 type="file"
-                onChange={(e) => setFile(e.target.files?.[0] || null)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500"
-                disabled={!!formData.link}
+                onChange={handleFileChange}
+                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white cursor-pointer"
+                disabled={!!formData.link || uploading}
               />
+              {file && (
+                <div className="mt-2 p-2 bg-gray-50 border border-[#00000033] rounded-lg">
+                  <p className="text-[14px] font-forum font-light text-black">
+                    Выбран файл: <span className="font-bold">{file.name}</span>
+                  </p>
+                  <p className="text-[12px] font-forum font-light text-[#00000080]">
+                    Размер: {(file.size / 1024 / 1024).toFixed(2)} MB
+                  </p>
+                </div>
+              )}
             </div>
+
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-[14px] font-forum text-red-600">{error}</p>
+              </div>
+            )}
+
+            {uploading && (
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-[14px] font-forum font-light text-[#00000080]">Загрузка файла...</span>
+                  <span className="text-[14px] font-forum font-bold text-black">{uploadProgress}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-black h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="flex items-center">
               <input
@@ -1240,9 +1312,9 @@ const DocumentModal = ({ document, weddingId, onClose, onSave }: DocumentModalPr
                 id="pinned"
                 checked={formData.pinned}
                 onChange={(e) => setFormData({ ...formData, pinned: e.target.checked })}
-                className="h-4 w-4 text-pink-600 focus:ring-pink-500 border-gray-300 rounded"
+                className="h-4 w-4 text-black focus:ring-black border-[#00000033] rounded cursor-pointer"
               />
-              <label htmlFor="pinned" className="ml-2 block text-sm text-gray-700">
+              <label htmlFor="pinned" className="ml-2 block text-[16px] max-[1599px]:text-[14px] font-forum text-black cursor-pointer">
                 Закрепить документ
               </label>
             </div>
@@ -1251,14 +1323,14 @@ const DocumentModal = ({ document, weddingId, onClose, onSave }: DocumentModalPr
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+                className="px-4 md:px-6 py-2 md:py-3 border border-[#00000033] rounded-lg text-black hover:bg-white transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum bg-[#FBF9F5]"
               >
                 Отмена
               </button>
               <button
                 type="submit"
                 disabled={uploading}
-                className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition disabled:opacity-50"
+                className="px-4 md:px-6 py-2 md:py-3 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-[16px] max-[1599px]:text-[14px] font-forum"
               >
                 {uploading ? 'Загрузка...' : document ? 'Сохранить' : 'Создать'}
               </button>

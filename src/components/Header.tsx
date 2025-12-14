@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import logo from '../assets/logoV3.svg';
 import contactIcon from '../assets/tg.svg';
 import languageIcon from '../assets/language.svg';
 import notesIcon from '../assets/notes.svg';
 import { getTranslation } from '../utils/translations';
 import { getFontStyle } from '../utils/fontUtils';
+import { weddingService } from '../services/weddingService';
 
 interface HeaderProps {
   onLogout: () => void;
@@ -12,21 +13,57 @@ interface HeaderProps {
   onLanguageChange: (lang: 'en' | 'ru' | 'ua') => void;
   bgColor?: string;
   chatLink?: string;
+  weddingId?: string; // ID свадьбы для сохранения заметок
+  initialNotes?: string; // Начальные заметки из БД
+  onNotesChange?: (notes: string) => void; // Callback при изменении заметок
 }
 
-const Header = ({ onLogout, currentLanguage, onLanguageChange, chatLink }: HeaderProps) => {
+const Header = ({ onLogout, currentLanguage, onLanguageChange, chatLink, weddingId, initialNotes = '', onNotesChange }: HeaderProps) => {
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
   const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
-  // Ленивая инициализация состояния из localStorage
-  const [notes, setNotes] = useState(() => {
-    const savedNotes = localStorage.getItem('userNotes');
-    return savedNotes || '';
-  });
+  const [notes, setNotes] = useState(initialNotes);
+  const [saving, setSaving] = useState(false);
+  const saveTimeoutRef = useRef<number | null>(null);
 
-  // Сохраняем заметки в localStorage при изменении
+  // Обновляем заметки при изменении initialNotes
   useEffect(() => {
-    localStorage.setItem('userNotes', notes);
-  }, [notes]);
+    setNotes(initialNotes);
+  }, [initialNotes]);
+
+  // Сохраняем заметки в БД с задержкой (debounce)
+  useEffect(() => {
+    if (!weddingId) {
+      // Если нет weddingId, сохраняем в localStorage как fallback
+      localStorage.setItem('userNotes', notes);
+      return;
+    }
+
+    // Очищаем предыдущий таймер
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    // Устанавливаем новый таймер для сохранения через 1 секунду после последнего изменения
+    saveTimeoutRef.current = window.setTimeout(async () => {
+      setSaving(true);
+      try {
+        const success = await weddingService.updateNotes(weddingId, notes);
+        if (success && onNotesChange) {
+          onNotesChange(notes);
+        }
+      } catch (error) {
+        console.error('Error saving notes:', error);
+      } finally {
+        setSaving(false);
+      }
+    }, 1000);
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [notes, weddingId, onNotesChange]);
 
   // Вариант 1: Блокируем скролл страницы при открытии модального окна
   // useEffect(() => {
@@ -118,7 +155,13 @@ const Header = ({ onLogout, currentLanguage, onLanguageChange, chatLink }: Heade
                           className="w-full min-h-[200px] p-4 border border-[#00000033] rounded bg-white text-black font-gilroy text-[14px] md:text-[16px] resize-none focus:outline-none focus:ring-2 focus:ring-black focus:ring-opacity-20"
                           style={{ fontFamily: 'inherit' }}
                         />
-                        <div className="mt-3 flex justify-end">
+                        <div className="mt-3 flex justify-between items-center">
+                          {saving && (
+                            <span className="text-[12px] font-gilroy text-[#00000080]">Сохранение...</span>
+                          )}
+                          {!saving && weddingId && (
+                            <span className="text-[12px] font-gilroy text-[#00000080]">Сохранено</span>
+                          )}
                           <button
                             onClick={handleToggleNotes}
                             className="px-4 py-2 text-black font-gilroy text-[14px] md:text-[16px] hover:bg-black hover:text-white transition-colors cursor-pointer"

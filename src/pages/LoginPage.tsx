@@ -19,7 +19,7 @@ const LoginPage = () => {
   const [bgLoaded, setBgLoaded] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const { login, isAuthenticated, loading: authLoading } = useAuth();
+  const { login, isAuthenticated, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const firstSectionRef = useRef<HTMLDivElement>(null);
   const secondSectionRef = useRef<HTMLDivElement>(null);
@@ -45,12 +45,17 @@ const LoginPage = () => {
     };
   }, []);
 
-  // Если пользователь уже залогинен, редиректим на dashboard
+  // Если пользователь уже залогинен, редиректим в зависимости от роли
   useEffect(() => {
-    if (!authLoading && isAuthenticated) {
-      navigate('/dashboard', { replace: true });
+    // Ждем полной загрузки пользователя (не только сессии, но и профиля)
+    if (!authLoading && isAuthenticated && user && user.role) {
+      if (user.role === 'organizer') {
+        navigate('/organizer', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
     }
-  }, [isAuthenticated, authLoading, navigate]);
+  }, [isAuthenticated, authLoading, user, navigate]);
 
   useEffect(() => {
     // Запускаем анимацию после небольшой задержки для плавности
@@ -179,8 +184,11 @@ const LoginPage = () => {
     return <MobileNotSupported />;
   }
 
-  // Если пользователь уже залогинен, редиректим
-  if (isAuthenticated) {
+  // Если пользователь уже залогинен, редиректим в зависимости от роли
+  if (isAuthenticated && user) {
+    if (user.role === 'organizer') {
+      return <Navigate to="/organizer" replace />;
+    }
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -197,7 +205,7 @@ const LoginPage = () => {
 
     try {
       await login(email, password);
-      navigate('/dashboard');
+      // Перенаправление произойдет автоматически через useEffect при обновлении user
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Неверный email или пароль';
       setError(errorMessage);
