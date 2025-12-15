@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import type { Wedding, Task, Document, User } from '../types';
+import type { Wedding, Task, Document, User, Presentation, PresentationSection } from '../types';
 import { getCache, setCache, invalidateCache } from '../utils/cache';
 
 // Сервис для работы со свадьбами
@@ -594,6 +594,169 @@ export const clientService = {
       role: 'client' as const,
       avatar: data.avatar_url,
     };
+  },
+};
+
+// Сервис для работы с презентациями
+export const presentationService = {
+  // Получить презентацию компании по умолчанию
+  getDefaultCompanyPresentation(): Presentation {
+    return {
+      type: 'company',
+      title: 'Презентація компанії',
+      sections: [
+        { id: 0, name: 'Ваш організатор - Юлія Солодченко', image_url: '' },
+        { id: 1, name: 'Про нас', image_url: '' },
+        { id: 2, name: 'Чому обирають нас?', image_url: '' },
+        { id: 3, name: 'Етапи роботи з нами', image_url: '' },
+        { id: 4, name: 'Вартість', image_url: '' },
+        { id: 5, name: 'Контакти', image_url: '' },
+      ],
+    };
+  },
+
+  // Загрузить изображение презентации в Storage
+  async uploadPresentationImage(weddingId: string, file: File, sectionId: number): Promise<string | null> {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `presentations/${weddingId}/section_${sectionId}_${Date.now()}.${fileExt}`;
+
+    const { error } = await supabase.storage
+      .from('wedding-documents')
+      .upload(fileName, file);
+
+    if (error) {
+      console.error('Error uploading presentation image:', error);
+      return null;
+    }
+
+    // Создаем signed URL для изображения
+    const { data: urlData } = await supabase.storage
+      .from('wedding-documents')
+      .createSignedUrl(fileName, 31536000); // URL действителен 1 год
+
+    return urlData?.signedUrl || null;
+  },
+
+  // Удалить изображение презентации из Storage
+  async deletePresentationImage(imageUrl: string): Promise<boolean> {
+    if (!imageUrl) return true; // Если URL пустой, ничего не делаем
+    
+    // Извлекаем путь из URL, если это signed URL
+    // Signed URL имеет формат: https://...?token=...
+    // Нужно извлечь путь из query параметра или из самого URL
+    let filePath = imageUrl;
+    
+    // Если это signed URL, пытаемся извлечь путь
+    try {
+      const url = new URL(imageUrl);
+      // Путь обычно находится в самом URL до знака вопроса
+      const pathMatch = url.pathname.match(/presentations\/.+$/);
+      if (pathMatch) {
+        filePath = pathMatch[0];
+      } else {
+        // Если не нашли в pathname, пробуем найти в самом URL
+        const altMatch = imageUrl.match(/presentations\/[^?]+/);
+        if (altMatch) {
+          filePath = altMatch[0];
+        } else {
+          console.error('Could not extract file path from URL:', imageUrl);
+          return false;
+        }
+      }
+    } catch (e) {
+      // Если это не валидный URL, возможно это уже путь
+      const pathMatch = imageUrl.match(/presentations\/.+/);
+      if (pathMatch) {
+        filePath = pathMatch[0];
+      } else {
+        console.error('Invalid file path format:', imageUrl);
+        return false;
+      }
+    }
+
+    const { error } = await supabase.storage
+      .from('wedding-documents')
+      .remove([filePath]);
+
+    if (error) {
+      console.error('Error deleting presentation image:', error);
+      return false;
+    }
+
+    return true;
+  },
+
+  // Обновить презентацию свадьбы
+  async updatePresentation(weddingId: string, presentation: Presentation): Promise<boolean> {
+    const { error } = await supabase
+      .from('weddings')
+      .update({ presentation })
+      .eq('id', weddingId);
+
+    if (error) {
+      console.error('Error updating presentation:', error);
+      return false;
+    }
+
+    // Инвалидируем кеш
+    const { data: wedding } = await supabase
+      .from('weddings')
+      .select('client_id')
+      .eq('id', weddingId)
+      .maybeSingle();
+
+    if (wedding) {
+      invalidateCache(`wedding_${wedding.client_id}`);
+    }
+
+    return true;
+  },
+
+  // Удалить презентацию (вернуть к презентации компании по умолчанию)
+  async deletePresentation(weddingId: string): Promise<boolean> {
+    // Получаем текущую презентацию
+    const { data: wedding } = await supabase
+      .from('weddings')
+      .select('presentation')
+      .eq('id', weddingId)
+      .maybeSingle();
+
+    if (!wedding) {
+      return false;
+    }
+
+    // Удаляем изображения из Storage, если это была презентация свадьбы
+    if (wedding.presentation && wedding.presentation.type === 'wedding') {
+      const deletePromises = wedding.presentation.sections
+        .filter(section => section.image_url)
+        .map(section => this.deletePresentationImage(section.image_url));
+
+      await Promise.all(deletePromises);
+    }
+
+    // Удаляем презентацию из БД (устанавливаем null)
+    const { error } = await supabase
+      .from('weddings')
+      .update({ presentation: null })
+      .eq('id', weddingId);
+
+    if (error) {
+      console.error('Error deleting presentation:', error);
+      return false;
+    }
+
+    // Инвалидируем кеш
+    const { data: updatedWedding } = await supabase
+      .from('weddings')
+      .select('client_id')
+      .eq('id', weddingId)
+      .maybeSingle();
+
+    if (updatedWedding) {
+      invalidateCache(`wedding_${updatedWedding.client_id}`);
+    }
+
+    return true;
   },
 };
 

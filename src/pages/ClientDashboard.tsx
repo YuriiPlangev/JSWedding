@@ -604,7 +604,7 @@ const ClientDashboard = () => {
       )}
 
       {/* Презентация - на всю высоту экрана */}
-      {wedding && <Presentation />}
+      {wedding && <Presentation presentation={wedding.presentation} currentLanguage={currentLanguage} />}
     </div>
   );
 };

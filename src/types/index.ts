@@ -24,6 +24,7 @@ export interface Wedding {
   guest_count: number; // Число гостей
   chat_link?: string; // Ссылка на чат с организатором
   notes?: string; // Заметки клиента о свадьбе
+  presentation?: Presentation; // Презентация (компании или свадьбы)
   created_at: string;
   updated_at: string;
 }
@@ -75,4 +76,17 @@ export interface Notification {
   type: 'info' | 'success' | 'warning' | 'error';
   read: boolean;
   createdAt: string;
+}
+
+// Типы для презентации
+export interface PresentationSection {
+  id: number;
+  name: string;
+  image_url: string; // URL изображения из Storage или внешний URL
+}
+
+export interface Presentation {
+  type: 'company' | 'wedding'; // Тип презентации: компания или свадьба
+  title: string; // Название презентации
+  sections: PresentationSection[]; // Секции презентации
 }

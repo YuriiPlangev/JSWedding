@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { weddingService, taskService, documentService, clientService } from '../services/weddingService';
-import type { Wedding, Task, Document, User } from '../types';
+import { weddingService, taskService, documentService, clientService, presentationService } from '../services/weddingService';
+import type { Wedding, Task, Document, User, Presentation } from '../types';
 // import ProjectsCalendar from '../components/ProjectsCalendar';
 
 type ViewMode = 'overview' | 'weddings' | 'clients' | 'wedding-details';
@@ -27,9 +27,11 @@ const OrganizerDashboard = () => {
   const [showWeddingModal, setShowWeddingModal] = useState(false);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showDocumentModal, setShowDocumentModal] = useState(false);
+  const [showPresentationModal, setShowPresentationModal] = useState(false);
   const [editingWedding, setEditingWedding] = useState<Wedding | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editingDocument, setEditingDocument] = useState<Document | null>(null);
+  const [uploadingPresentation, setUploadingPresentation] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!user?.id) return;
@@ -241,6 +243,83 @@ const OrganizerDashboard = () => {
     } catch (err) {
       console.error('Error deleting document:', err);
       setError('Ошибка при удалении документа');
+    }
+  };
+
+  // Обработчики для презентации
+  const handleDeletePresentation = async () => {
+    if (!selectedWedding) return;
+
+    if (!confirm('Вы уверены, что хотите удалить презентацию свадьбы? После удаления будет показана презентация компании по умолчанию.')) {
+      return;
+    }
+
+    try {
+      const success = await presentationService.deletePresentation(selectedWedding.id);
+      if (success) {
+        await loadWeddingDetails(selectedWedding.id);
+      } else {
+        setError('Не удалось удалить презентацию');
+      }
+    } catch (err) {
+      console.error('Error deleting presentation:', err);
+      setError('Ошибка при удалении презентации');
+    }
+  };
+
+  const handleUploadPresentation = async (files: FileList | null) => {
+    if (!selectedWedding || !files || files.length === 0) return;
+
+    setUploadingPresentation(true);
+    try {
+      const defaultPresentation = presentationService.getDefaultCompanyPresentation();
+      const sections: Presentation['sections'] = [];
+
+      // Загружаем изображения для каждой секции
+      for (let i = 0; i < Math.min(files.length, defaultPresentation.sections.length); i++) {
+        const file = files[i];
+        const imageUrl = await presentationService.uploadPresentationImage(
+          selectedWedding.id,
+          file,
+          i
+        );
+
+        if (imageUrl) {
+          sections.push({
+            id: i,
+            name: defaultPresentation.sections[i].name,
+            image_url: imageUrl,
+          });
+        }
+      }
+
+      // Если загружено меньше файлов, чем секций, заполняем остальные пустыми
+      for (let i = files.length; i < defaultPresentation.sections.length; i++) {
+        sections.push({
+          id: i,
+          name: defaultPresentation.sections[i].name,
+          image_url: '',
+        });
+      }
+
+      const presentation: Presentation = {
+        type: 'wedding',
+        title: `Презентация ${selectedWedding.couple_name_1_ru} & ${selectedWedding.couple_name_2_ru}`,
+        sections,
+      };
+
+      const success = await presentationService.updatePresentation(selectedWedding.id, presentation);
+      if (success) {
+        await loadWeddingDetails(selectedWedding.id);
+        setShowPresentationModal(false);
+      } else {
+        setError('Не удалось загрузить презентацию');
+      }
+    } catch (err) {
+      console.error('Error uploading presentation:', err);
+      setError('Ошибка при загрузке презентации');
+    } finally {
+      setUploadingPresentation(false);
     }
   };
 
@@ -648,7 +727,7 @@ const OrganizerDashboard = () => {
             </div>
 
             {/* Documents */}
-            <div className="bg-white border border-[#00000033] rounded-lg p-6">
+            <div className="bg-white border border-[#00000033] rounded-lg p-6 mb-6">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-[24px] max-[1599px]:text-[20px] font-forum font-bold text-black">Документы</h3>
                 <button
@@ -728,6 +807,43 @@ const OrganizerDashboard = () => {
                 <p className="text-[16px] font-forum font-light text-[#00000080]">Документов пока нет</p>
               )}
             </div>
+
+            {/* Presentation */}
+            <div className="bg-white border border-[#00000033] rounded-lg p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-[24px] max-[1599px]:text-[20px] font-forum font-bold text-black">Презентация</h3>
+                <div className="flex gap-2">
+                  {selectedWedding.presentation && selectedWedding.presentation.type === 'wedding' && (
+                    <button
+                      onClick={handleDeletePresentation}
+                      className="px-4 md:px-6 py-2 md:py-3 bg-white border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum"
+                    >
+                      Удалить презентацию
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setShowPresentationModal(true)}
+                    className="px-4 md:px-6 py-2 md:py-3 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum"
+                  >
+                    {selectedWedding.presentation && selectedWedding.presentation.type === 'wedding' 
+                      ? 'Изменить презентацию' 
+                      : 'Загрузить презентацию'}
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">
+                  {selectedWedding.presentation && selectedWedding.presentation.type === 'wedding' 
+                    ? `Тип: Презентация свадьбы - "${selectedWedding.presentation.title}"`
+                    : 'Тип: Презентация компании (по умолчанию)'}
+                </p>
+                {selectedWedding.presentation && selectedWedding.presentation.sections && (
+                  <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">
+                    Секций: {selectedWedding.presentation.sections.length}
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </main>
@@ -767,6 +883,16 @@ const OrganizerDashboard = () => {
             setEditingDocument(null);
           }}
           onSave={handleSaveDocument}
+        />
+      )}
+
+      {/* Presentation Modal */}
+      {showPresentationModal && selectedWedding && (
+        <PresentationModal
+          wedding={selectedWedding}
+          onClose={() => setShowPresentationModal(false)}
+          onUpload={handleUploadPresentation}
+          uploading={uploadingPresentation}
         />
       )}
     </div>
@@ -1348,6 +1474,125 @@ const DocumentModal = ({ document, weddingId, onClose, onSave }: DocumentModalPr
                 className="px-4 md:px-6 py-2 md:py-3 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-[16px] max-[1599px]:text-[14px] font-forum"
               >
                 {uploading ? 'Загрузка...' : document ? 'Сохранить' : 'Создать'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Модальное окно для загрузки презентации
+interface PresentationModalProps {
+  wedding: SelectedWedding;
+  onClose: () => void;
+  onUpload: (files: FileList | null) => void;
+  uploading: boolean;
+}
+
+const PresentationModal = ({ wedding, onClose, onUpload, uploading }: PresentationModalProps) => {
+  const [files, setFiles] = useState<FileList | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = e.target.files;
+    if (selectedFiles && selectedFiles.length > 0) {
+      // Проверяем, что выбрано не более 4 файлов
+      if (selectedFiles.length > 4) {
+        setError('Можно загрузить максимум 4 изображения');
+        return;
+      }
+      // Проверяем типы файлов
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+      for (let i = 0; i < selectedFiles.length; i++) {
+        if (!validTypes.includes(selectedFiles[i].type)) {
+          setError('Поддерживаются только изображения (JPEG, PNG, WebP)');
+          return;
+        }
+      }
+      setFiles(selectedFiles);
+      setError(null);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!files || files.length === 0) {
+      setError('Пожалуйста, выберите изображения');
+      return;
+    }
+    onUpload(files);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-[#FBF9F5] border border-[#00000033] rounded-lg max-w-lg w-full">
+        <div className="p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-[32px] max-[1599px]:text-[24px] font-forum font-bold text-black">
+              Загрузить презентацию
+            </h2>
+            <button 
+              onClick={onClose} 
+              disabled={uploading}
+              className="text-[#00000080] hover:text-black transition-colors cursor-pointer text-2xl font-light disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              ✕
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080] mb-4">
+                Выберите до 4 изображений для презентации. Каждое изображение будет соответствовать одной секции презентации.
+              </p>
+              <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
+                Изображения (JPEG, PNG, WebP) *
+              </label>
+              <input
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/webp"
+                multiple
+                onChange={handleFileChange}
+                disabled={uploading}
+                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+              />
+              {files && files.length > 0 && (
+                <div className="mt-2">
+                  <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-black mb-2">
+                    Выбрано файлов: {files.length}
+                  </p>
+                  <ul className="list-disc list-inside text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">
+                    {Array.from(files).map((file, index) => (
+                      <li key={index}>{file.name} ({(file.size / 1024).toFixed(2)} KB)</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                <p className="text-[14px] font-forum text-red-800">{error}</p>
+              </div>
+            )}
+
+            <div className="flex justify-end space-x-3 pt-4">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={uploading}
+                className="px-4 py-2 bg-white border border-[#00000033] text-black rounded-lg hover:bg-gray-50 transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Отмена
+              </button>
+              <button
+                type="submit"
+                disabled={uploading || !files || files.length === 0}
+                className="px-4 py-2 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {uploading ? 'Загрузка...' : 'Загрузить'}
               </button>
             </div>
           </form>

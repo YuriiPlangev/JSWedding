@@ -59,6 +59,10 @@ export interface Translations {
     december: string;
   };
   year: string;
+  presentation: {
+    title: string;
+    sections: string;
+  };
 }
 
 const translations: Record<Language, Translations> = {
@@ -117,6 +121,10 @@ const translations: Record<Language, Translations> = {
       december: 'december',
     },
     year: 'year',
+    presentation: {
+      title: 'Company Presentation',
+      sections: 'presentation sections',
+    },
   },
   ru: {
     welcome: {
@@ -173,6 +181,10 @@ const translations: Record<Language, Translations> = {
       december: 'декабря',
     },
     year: 'год',
+    presentation: {
+      title: 'Презентация компании',
+      sections: 'разделы презентации',
+    },
   },
   ua: {
     welcome: {
@@ -229,6 +241,10 @@ const translations: Record<Language, Translations> = {
       december: 'грудня',
     },
     year: 'рік',
+    presentation: {
+      title: 'Презентація компанії',
+      sections: 'розділи презентації',
+    },
   },
 };
 
