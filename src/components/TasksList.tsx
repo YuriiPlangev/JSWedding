@@ -6,6 +6,56 @@ interface TasksListProps {
   currentLanguage?: 'en' | 'ru' | 'ua';
 }
 
+// Функция для парсинга текста с ссылками в формате [текст](ссылка)
+const parseTextWithLinks = (text: string) => {
+  const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+  const parts: Array<{ type: 'text' | 'link'; content: string; href?: string }> = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = linkRegex.exec(text)) !== null) {
+    // Добавляем текст до ссылки
+    if (match.index > lastIndex) {
+      parts.push({
+        type: 'text',
+        content: text.substring(lastIndex, match.index),
+      });
+    }
+
+    // Добавляем ссылку
+    const linkText = match[1];
+    let linkUrl = match[2];
+    
+    // Если ссылка не начинается с http/https, добавляем https://
+    if (!linkUrl.startsWith('http://') && !linkUrl.startsWith('https://')) {
+      linkUrl = `https://${linkUrl}`;
+    }
+
+    parts.push({
+      type: 'link',
+      content: linkText,
+      href: linkUrl,
+    });
+
+    lastIndex = linkRegex.lastIndex;
+  }
+
+  // Добавляем оставшийся текст после последней ссылки
+  if (lastIndex < text.length) {
+    parts.push({
+      type: 'text',
+      content: text.substring(lastIndex),
+    });
+  }
+
+  // Если не было найдено ссылок, возвращаем весь текст как есть
+  if (parts.length === 0) {
+    return [{ type: 'text' as const, content: text }];
+  }
+
+  return parts;
+};
+
 const TasksList = ({ tasks, onTaskToggle }: TasksListProps) => {
   const handleCheckboxChange = (taskId: string, checked: boolean) => {
     if (onTaskToggle) {
@@ -36,17 +86,48 @@ const TasksList = ({ tasks, onTaskToggle }: TasksListProps) => {
             <p 
               className='text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-light'
             >
-              {task.title}
-              {task.link && task.link_text && (
-                <>
-                  :{' '}
-                  <span 
-                    className='text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-light underline text-[#4D3628] cursor-pointer hover:opacity-70 transition-opacity'
-                  >
-                    <a href={task.link.startsWith('http') ? task.link : `https://${task.link}`} target="_blank" rel="noopener noreferrer">
-                      {task.link_text}
+              {/* Парсим текст задания на наличие ссылок в формате [текст](ссылка) */}
+              {parseTextWithLinks(task.title).map((part, index) => {
+                if (part.type === 'link') {
+                  return (
+                    <a
+                      key={index}
+                      href={part.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className='underline text-black font-bold cursor-pointer hover:opacity-70 transition-opacity'
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (part.href) {
+                          window.open(part.href, '_blank', 'noopener,noreferrer');
+                        }
+                      }}
+                    >
+                      {part.content}
                     </a>
-                  </span>
+                  );
+                }
+                return <span key={index}>{part.content}</span>;
+              })}
+              {/* Поддержка старого формата через поля link и link_text для обратной совместимости */}
+              {!task.title.includes('[') && !task.title.includes(']') && task.link && task.link_text && (
+                <>
+                  {' '}
+                  <a
+                    href={task.link.startsWith('http') ? task.link : `https://${task.link}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className='underline text-black font-bold cursor-pointer hover:opacity-70 transition-opacity'
+                    onClick={(e) => {
+                      e.preventDefault();
+                      const href = task.link?.startsWith('http') ? task.link : `https://${task.link}`;
+                      if (href) {
+                        window.open(href, '_blank', 'noopener,noreferrer');
+                      }
+                    }}
+                  >
+                    {task.link_text}
+                  </a>
                 </>
               )}
             </p>

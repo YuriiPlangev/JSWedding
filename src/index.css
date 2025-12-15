@@ -92,7 +92,7 @@ body {
   scrollbar-width: none;
   /* Скрываем scrollbar для старых версий Firefox */
   overflow: -moz-scrollbars-none;
-  background: #fbf9f5;
+  background: #eae6db;
   line-height: normal;
 }
 
@@ -392,7 +392,7 @@ html::-webkit-scrollbar {
   width: 24px;
   height: 24px;
   border: 1px solid #00000080;
-  background-color: transparent;
+  background-color: #eae6db;
   cursor: pointer;
   position: relative;
   transition: all 0.2s ease;
@@ -407,7 +407,7 @@ html::-webkit-scrollbar {
   }
 
   .custom-checkbox input[type="checkbox"]:checked + .checkbox-label {
-    background-color: white;
+    background-color: #eae6db;
     border-color: black;
   }
 
@@ -427,7 +427,7 @@ html::-webkit-scrollbar {
   }
 
   .custom-checkbox input[type="checkbox"]:checked + .checkbox-label {
-    background-color: white;
+    background-color: #eae6db;
     border-color: black;
   }
 
@@ -447,7 +447,7 @@ html::-webkit-scrollbar {
   }
 
   .custom-checkbox input[type="checkbox"]:checked + .checkbox-label {
-    background-color: white;
+    background-color: #eae6db;
     border-color: black;
   }
 
@@ -460,7 +460,7 @@ html::-webkit-scrollbar {
 }
 
 .custom-checkbox input[type="checkbox"]:checked + .checkbox-label {
-  background-color: white;
+  background-color: #eae6db;
   border-color: black;
 }
 

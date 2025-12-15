@@ -39,6 +39,24 @@ const ClientDashboard = () => {
   const dataLoadedRef = useRef<string | null>(null); // Отслеживаем, для какого user уже загружены данные
   const isLoadingRef = useRef(false); // Предотвращаем параллельные загрузки
 
+  // Сохраняем имена пары для предотвращения "прыжка" при загрузке
+  const getSavedCoupleNames = (): { name1: string; name2: string } | null => {
+    try {
+      const saved = localStorage.getItem('couple_names');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.name1 && parsed.name2) {
+          return parsed;
+        }
+      }
+    } catch (error) {
+      console.error('Error reading saved couple names:', error);
+    }
+    return null;
+  };
+
+  const [savedCoupleNames, setSavedCoupleNames] = useState<{ name1: string; name2: string } | null>(getSavedCoupleNames());
+
   // Защита от сброса скролла при возврате на страницу
   useEffect(() => {
     const SCROLL_KEY = 'clientDashboard_scrollPosition';
@@ -204,6 +222,16 @@ const ClientDashboard = () => {
 
       setWedding(weddingData);
 
+      // Сохраняем имена пары в localStorage для предотвращения "прыжка" при перезагрузке
+      if (weddingData.couple_name_1_en && weddingData.couple_name_2_en) {
+        const coupleNames = {
+          name1: weddingData.couple_name_1_en,
+          name2: weddingData.couple_name_2_en,
+        };
+        localStorage.setItem('couple_names', JSON.stringify(coupleNames));
+        setSavedCoupleNames(coupleNames);
+      }
+
       // Загружаем задания (используем кеш, если не принудительное обновление)
       const tasksData = await taskService.getWeddingTasks(weddingData.id, !forceRefresh);
       setTasks(tasksData);
@@ -334,12 +362,12 @@ const ClientDashboard = () => {
           className="relative h-screen w-full flex items-center justify-center"
         >
           <div className="text-center -mt-16">
-            {/* Имена пары */}
-            {wedding && (
+            {/* Имена пары - показываем сохраненные имена сразу, чтобы избежать "прыжка" */}
+            {(wedding || savedCoupleNames) && (
               <h1 
                 className="text-[36px] sm:text-[54px] md:text-[72px] lg:text-[58px] max-[1599px]:lg:text-[58px] min-[1600px]:lg:text-[90px] xl:text-[90px] max-[1599px]:xl:text-[76px] min-[1600px]:xl:text-[117px] font-sloop text-black px-4 leading-[1.1]"
               >
-                {wedding.couple_name_1_en} <span className='font-sloop'> & </span>  {wedding.couple_name_2_en} 
+                {(wedding?.couple_name_1_en || savedCoupleNames?.name1 || '')} <span className='font-sloop'> & </span>  {(wedding?.couple_name_2_en || savedCoupleNames?.name2 || '')} 
               </h1>
             )}
             {/* Приветственный текст */}
@@ -360,7 +388,7 @@ const ClientDashboard = () => {
 
       {/* Основной контент - вторая секция */}
       {wedding && !loading && (
-      <div className="relative min-h-screen flex flex-col">
+      <div className="relative h-screen flex flex-col overflow-hidden">
         {/* Header внутри контента - появляется вместе с ним */}
         <Header
           onLogout={logout}
@@ -376,7 +404,7 @@ const ClientDashboard = () => {
             }
           }}
         />
-        <main className="flex-1 flex flex-col font-forum">
+        <main className="flex-1 flex flex-col font-forum min-h-0 mb-4">
           {/* Приветствие */}
           <div className="border-b border-[#00000033] py-6 max-[1599px]:py-3 md:max-[1599px]:py-4 lg:max-[1599px]:py-3 min-[1300px]:max-[1599px]:py-4 px-4 md:px-8 lg:px-12 xl:px-[60px]">
             <h2 
@@ -516,7 +544,7 @@ const ClientDashboard = () => {
                 </div>
               </div>
 
-              <div className="flex flex-col lg:flex-row border-b border-[#00000033] flex-1 overflow-hidden">
+              <div className="flex flex-col lg:flex-row border-b border-[#00000033] flex-1 min-h-0">
                 {/* Задания */}
                 <div className='border-r-0 lg:border-r border-[#00000033] lg:min-w-3/7 pl-4 md:pl-8 lg:pl-12 xl:pl-[60px] self-stretch overflow-hidden flex flex-col'>
                   <div className='py-2 lg:max-[1599px]:py-2 min-[1300px]:max-[1599px]:py-3 min-[1600px]:py-4 pr-4 max-[1599px]:pr-4 md:max-[1599px]:pr-6 lg:max-[1599px]:pr-8 min-[1300px]:max-[1599px]:pr-10'>
@@ -550,8 +578,8 @@ const ClientDashboard = () => {
                 </div>
 
                 {/* Документы */}
-                <div className='w-full h-full flex flex-col overflow-hidden'>
-                  <div className='pt-2 lg:max-[1599px]:pt-2 min-[1300px]:max-[1599px]:pt-3 min-[1600px]:pt-4 px-4 md:px-8 lg:px-12 xl:px-[60px]' >
+                <div className='w-full flex flex-col min-h-0'>
+                  <div className='pt-2 lg:max-[1599px]:pt-2 min-[1300px]:max-[1599px]:pt-3 min-[1600px]:pt-4 px-4 md:px-8 lg:px-12 xl:px-[60px] shrink-0'>
                     {(() => {
                       const titleText = getTranslation(currentLanguage).dashboard.documents;
                       return (
@@ -563,7 +591,7 @@ const ClientDashboard = () => {
                       );
                     })()}
                   </div>
-                  <div className='flex-1 overflow-y-auto'>
+                  <div className='flex-1 min-h-0 overflow-hidden'>
                     <DocumentsList documents={documents} currentLanguage={currentLanguage} />
                   </div>
                 </div>

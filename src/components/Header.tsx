@@ -111,9 +111,9 @@ const Header = ({ onLogout, currentLanguage, onLanguageChange, chatLink, wedding
   };
 
   return (
-    <header className="w-full bg-[#FBF9F5] border-b border-[#00000033] relative z-50" >
+    <header className="w-full bg-[#eae6db] border-b border-[#00000033] relative z-50" >
       <div className="px-4 md:px-8 lg:px-12 xl:px-[60px]">
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-stretch">
           {/* Left side - Logo and text */}
           <div className="flex items-center gap-3 md:gap-4">
             <img 
@@ -133,7 +133,7 @@ const Header = ({ onLogout, currentLanguage, onLanguageChange, chatLink, wedding
                 <div className="relative">
                   <button 
                     onClick={handleToggleNotes}
-                    className="flex items-center gap-2 px-4 md:px-6 max-[1599px]:md:px-5 min-[1600px]:md:px-6 lg:px-5 max-[1599px]:lg:px-5 min-[1600px]:lg:px-7.5 py-4 md:py-6 max-[1599px]:md:py-5 min-[1600px]:md:py-6 lg:py-5 max-[1599px]:lg:py-5 min-[1600px]:lg:py-7.5 cursor-pointer border-l border-[#00000033]"
+                    className="flex items-center gap-2 px-4 md:px-6 max-[1599px]:md:px-5 min-[1600px]:md:px-6 lg:px-5 max-[1599px]:lg:px-5 min-[1600px]:lg:px-7.5 py-4 md:py-6 max-[1599px]:md:py-5 min-[1600px]:md:py-6 lg:py-5 max-[1599px]:lg:py-5 min-[1600px]:lg:py-7.5 cursor-pointer border-l border-[#00000033] h-full"
                   >
                     <img src={notesIcon} alt="notes" className="h-5 md:h-6 max-[1599px]:md:h-5 min-[1600px]:md:h-6 lg:h-5 max-[1599px]:lg:h-5 min-[1600px]:lg:h-6 w-auto" />
                     <span 
@@ -146,7 +146,7 @@ const Header = ({ onLogout, currentLanguage, onLanguageChange, chatLink, wedding
                   
                   {/* Вариант 2: Раскрывающаяся область под кнопкой */}
                   {isNotesModalOpen && (
-                    <div className="absolute left-0 top-full mt-0 w-[400px] max-w-[90vw] bg-[#FBF9F5] border border-[#00000033] border-t-0 shadow-lg z-50">
+                    <div className="absolute left-0 top-full mt-0 w-[400px] max-w-[90vw] bg-[#eae6db] border border-[#00000033] border-t-0 shadow-lg z-50">
                       <div className="p-4">
                         <textarea
                           value={notes}
@@ -186,7 +186,7 @@ const Header = ({ onLogout, currentLanguage, onLanguageChange, chatLink, wedding
                     href={chatLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-4 md:px-6 max-[1599px]:md:px-5 min-[1600px]:md:px-6 lg:px-5 max-[1599px]:lg:px-5 min-[1600px]:lg:px-7.5 py-4 md:py-6 max-[1599px]:md:py-5 min-[1600px]:md:py-6 lg:py-5 max-[1599px]:lg:py-5 min-[1600px]:lg:py-7.5 cursor-pointer border-x border-[#00000033]"
+                    className="flex items-center gap-2 px-4 md:px-6 max-[1599px]:md:px-5 min-[1600px]:md:px-6 lg:px-5 max-[1599px]:lg:px-5 min-[1600px]:lg:px-7.5 py-4 md:py-6 max-[1599px]:md:py-5 min-[1600px]:md:py-6 lg:py-5 max-[1599px]:lg:py-5 min-[1600px]:lg:py-7.5 cursor-pointer border-x border-[#00000033] h-full"
                   >
                     <img src={contactIcon} alt="contact" className="h-5 md:h-6 max-[1599px]:md:h-5 min-[1600px]:md:h-6 lg:h-5 max-[1599px]:lg:h-5 min-[1600px]:lg:h-6 w-auto" />
                     <span 
@@ -199,7 +199,7 @@ const Header = ({ onLogout, currentLanguage, onLanguageChange, chatLink, wedding
                 );
               }
               return (
-                <button className="flex items-center gap-2 px-4 md:px-6 max-[1599px]:md:px-5 min-[1600px]:md:px-6 lg:px-5 max-[1599px]:lg:px-5 min-[1600px]:lg:px-7.5 py-4 md:py-6 max-[1599px]:md:py-5 min-[1600px]:md:py-6 lg:py-5 max-[1599px]:lg:py-5 min-[1600px]:lg:py-7.5 cursor-pointer border-x border-[#00000033] ">
+                <button className="flex items-center gap-2 px-4 md:px-6 max-[1599px]:md:px-5 min-[1600px]:md:px-6 lg:px-5 max-[1599px]:lg:px-5 min-[1600px]:lg:px-7.5 py-4 md:py-6 max-[1599px]:md:py-5 min-[1600px]:md:py-6 lg:py-5 max-[1599px]:lg:py-5 min-[1600px]:lg:py-7.5 cursor-pointer border-x border-[#00000033] h-full">
                   <img src={contactIcon} alt="contact" className="h-5 md:h-6 max-[1599px]:md:h-5 min-[1600px]:md:h-6 lg:h-5 max-[1599px]:lg:h-5 min-[1600px]:lg:h-6 w-auto" />
                   <span 
                     className="hidden lg:inline font-forum text-[24px] max-[1599px]:text-[20px] lg:max-[1599px]:text-[18px] min-[1300px]:max-[1599px]:text-[22px] min-[1600px]:text-[24px] font-light text-[#00000080]"
@@ -228,14 +228,14 @@ const Header = ({ onLogout, currentLanguage, onLanguageChange, chatLink, wedding
                     className="fixed inset-0 z-60"
                     onClick={() => setIsLanguageMenuOpen(false)}
                   />
-                  <div className="absolute right-0 top-full mt-0 bg-white border border-[#00000033] z-70 overflow-hidden shadow-lg w-full">
+                  <div className="absolute right-0 top-full mt-0 bg-[#eae6db] border border-[#00000033] z-70 overflow-hidden shadow-lg w-full">
                     {currentLanguage !== 'en' && (
                       <button
                         onClick={() => {
                           onLanguageChange('en');
                           setIsLanguageMenuOpen(false);
                         }}
-                        className="w-full text-center px-4 md:px-6 max-[1599px]:md:px-5 min-[1600px]:md:px-5 lg:px-5 max-[1599px]:lg:px-5 min-[1600px]:lg:px-5 py-4 md:py-6 max-[1599px]:md:py-5 min-[1600px]:md:py-5 lg:py-5 max-[1599px]:lg:py-5 min-[1600px]:lg:py-5 text-[24px] max-[1599px]:text-[24px] lg:max-[1599px]:text-[22px] min-[1300px]:max-[1599px]:text-[26px] min-[1600px]:text-[24px] hover:bg-gray-100 transition font-forum font-light uppercase cursor-pointer text-[#00000080]"
+                        className="w-full flex items-center justify-center gap-2 max-[1599px]:lg:gap-3 min-[1600px]:lg:gap-2.5 px-4 md:px-6 max-[1599px]:md:px-5 min-[1600px]:md:px-5 lg:px-5 max-[1599px]:lg:px-5 min-[1600px]:lg:px-5 py-4 md:py-6 max-[1599px]:md:py-5 min-[1600px]:md:py-5 lg:py-5 max-[1599px]:lg:py-5 min-[1600px]:lg:py-5 text-[20px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[18px] min-[1300px]:max-[1599px]:text-[20px] min-[1600px]:text-[20px] hover:bg-gray-100 transition font-forum font-light uppercase cursor-pointer text-[#00000080]"
                       >
                         EN
                       </button>
@@ -246,7 +246,7 @@ const Header = ({ onLogout, currentLanguage, onLanguageChange, chatLink, wedding
                           onLanguageChange('ru');
                           setIsLanguageMenuOpen(false);
                         }}
-                        className="w-full text-center px-4 md:px-6 max-[1599px]:md:px-5 min-[1600px]:md:px-5 lg:px-5 max-[1599px]:lg:px-5 min-[1600px]:lg:px-5 py-4 md:py-6 max-[1599px]:md:py-5 min-[1600px]:md:py-5 lg:py-5 max-[1599px]:lg:py-5 min-[1600px]:lg:py-5 text-[24px] max-[1599px]:text-[24px] lg:max-[1599px]:text-[22px] min-[1300px]:max-[1599px]:text-[26px] min-[1600px]:text-[24px] hover:bg-gray-100 transition font-forum font-light uppercase cursor-pointer text-[#00000080]"
+                        className="w-full flex items-center justify-center gap-2 max-[1599px]:lg:gap-3 min-[1600px]:lg:gap-2.5 px-4 md:px-6 max-[1599px]:md:px-5 min-[1600px]:md:px-5 lg:px-5 max-[1599px]:lg:px-5 min-[1600px]:lg:px-5 py-4 md:py-6 max-[1599px]:md:py-5 min-[1600px]:md:py-5 lg:py-5 max-[1599px]:lg:py-5 min-[1600px]:lg:py-5 text-[20px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[18px] min-[1300px]:max-[1599px]:text-[20px] min-[1600px]:text-[20px] hover:bg-gray-100 transition font-forum font-light uppercase cursor-pointer text-[#00000080]"
                       >
                         RU
                       </button>
@@ -332,7 +332,7 @@ const Header = ({ onLogout, currentLanguage, onLanguageChange, chatLink, wedding
           />
           <div className="fixed inset-0 z-[101] flex items-center justify-center p-4">
             <div 
-              className="modal-content bg-[#FBF9F5] w-full max-w-2xl max-h-[80vh] rounded-lg shadow-xl flex flex-col"
+              className="modal-content bg-[#eae6db] w-full max-w-2xl max-h-[80vh] rounded-lg shadow-xl flex flex-col"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-between items-center p-6 border-b border-[#00000033]">

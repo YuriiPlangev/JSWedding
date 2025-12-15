@@ -162,13 +162,28 @@ const OrganizerDashboard = () => {
     if (!selectedWedding) return;
 
     try {
+      // Подготавливаем данные для сохранения
+      const taskToSave: Omit<Task, 'id' | 'created_at' | 'updated_at'> = {
+        wedding_id: selectedWedding.id,
+        title: taskData.title.trim(),
+        status: taskData.status,
+        ...(taskData.due_date && taskData.due_date.trim() && { due_date: taskData.due_date }),
+        ...(taskData.link && taskData.link.trim() && { link: taskData.link.trim() }),
+        ...(taskData.link_text && taskData.link_text.trim() && { link_text: taskData.link_text.trim() }),
+      };
+
       if (editingTask) {
-        await taskService.updateTask(editingTask.id, taskData, selectedWedding.id);
+        const result = await taskService.updateTask(editingTask.id, taskToSave, selectedWedding.id);
+        if (!result) {
+          setError('Не удалось обновить задачу. Проверьте подключение к интернету и попробуйте снова.');
+          return;
+        }
       } else {
-        await taskService.createTask({
-          ...taskData,
-          wedding_id: selectedWedding.id,
-        });
+        const result = await taskService.createTask(taskToSave);
+        if (!result) {
+          setError('Не удалось создать задачу. Проверьте подключение к интернету и попробуйте снова.');
+          return;
+        }
       }
 
       setShowTaskModal(false);
@@ -176,7 +191,7 @@ const OrganizerDashboard = () => {
       await loadWeddingDetails(selectedWedding.id);
     } catch (err) {
       console.error('Error saving task:', err);
-      setError('Ошибка при сохранении задачи');
+      setError('Ошибка при сохранении задачи. Попробуйте еще раз.');
     }
   };
 
@@ -979,10 +994,23 @@ const TaskModal = ({ task, onClose, onSave }: TaskModalProps) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave({
-      ...formData,
+    
+    // Валидация: название задачи обязательно
+    if (!formData.title.trim()) {
+      return;
+    }
+    
+    // Подготавливаем данные, убирая пустые опциональные поля
+    const taskData: Omit<Task, 'id' | 'created_at' | 'updated_at'> = {
       wedding_id: '', // Будет добавлено в родительском компоненте
-    } as Omit<Task, 'id' | 'created_at' | 'updated_at'>);
+      title: formData.title.trim(),
+      status: formData.status,
+      ...(formData.due_date && formData.due_date.trim() && { due_date: formData.due_date }),
+      ...(formData.link && formData.link.trim() && { link: formData.link.trim() }),
+      ...(formData.link_text && formData.link_text.trim() && { link_text: formData.link_text.trim() }),
+    };
+    
+    onSave(taskData);
   };
 
   return (
@@ -1121,18 +1149,15 @@ const DocumentModal = ({ document, weddingId, onClose, onSave }: DocumentModalPr
       }
       setFile(selectedFile);
       setError(null);
-      // Очищаем ссылку при выборе файла
-      setFormData({ ...formData, link: '' });
+    } else {
+      // Если файл был удален, очищаем состояние
+      setFile(null);
     }
   };
 
   const handleLinkChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const link = e.target.value;
     setFormData({ ...formData, link });
-    // Очищаем файл при вводе ссылки
-    if (link) {
-      setFile(null);
-    }
     setError(null);
   };
 
@@ -1152,7 +1177,7 @@ const DocumentModal = ({ document, weddingId, onClose, onSave }: DocumentModalPr
       ...(formData.link && { link: formData.link.trim() }),
     };
 
-    // Если есть ссылка, используем её
+    // Если есть ссылка, используем её (без файла)
     if (formData.link && formData.link.trim()) {
       try {
         await onSave(docData);
@@ -1164,26 +1189,7 @@ const DocumentModal = ({ document, weddingId, onClose, onSave }: DocumentModalPr
       return;
     }
 
-    // Если нет файла, требуем его или ссылку
-    if (!file && !document) {
-      setError('Пожалуйста, выберите файл или укажите ссылку');
-      return;
-    }
-
-    // Если редактируем документ, обновляем данные (с файлом или без)
-    if (document) {
-      try {
-        await onSave(docData, file || undefined);
-        // Закрываем модальное окно только после успешного сохранения
-        // (закрытие происходит в handleSaveDocument)
-      } catch (err) {
-        setError('Ошибка при обновлении документа');
-        console.error('Error updating document:', err);
-      }
-      return;
-    }
-
-    // Если есть файл, используем его
+    // Если есть файл, загружаем его
     if (file) {
       setUploading(true);
       setUploadProgress(0);
@@ -1224,6 +1230,16 @@ const DocumentModal = ({ document, weddingId, onClose, onSave }: DocumentModalPr
         setUploading(false);
         setUploadProgress(0);
       }
+      return;
+    }
+
+    // Если нет файла и нет ссылки, создаем/обновляем документ только с названием
+    try {
+      await onSave(docData, undefined);
+      onClose();
+    } catch (err) {
+      setError('Ошибка при сохранении документа');
+      console.error('Error saving document:', err);
     }
   };
 
@@ -1256,7 +1272,7 @@ const DocumentModal = ({ document, weddingId, onClose, onSave }: DocumentModalPr
 
             <div>
               <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
-                Ссылка на документ (Google Docs/Sheets/Drive) или файл
+                Ссылка на документ (Google Docs/Sheets/Drive) или файл <span className="font-normal text-[#00000080]">(опционально)</span>
               </label>
               <input
                 type="url"
@@ -1264,14 +1280,13 @@ const DocumentModal = ({ document, weddingId, onClose, onSave }: DocumentModalPr
                 onChange={handleLinkChange}
                 placeholder="https://docs.google.com/..."
                 className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white mb-2"
-                disabled={!!file}
               />
               <p className="text-[14px] font-forum font-light text-[#00000080] mb-2">или</p>
               <input
                 type="file"
                 onChange={handleFileChange}
                 className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white cursor-pointer"
-                disabled={!!formData.link || uploading}
+                disabled={uploading}
               />
               {file && (
                 <div className="mt-2 p-2 bg-gray-50 border border-[#00000033] rounded-lg">

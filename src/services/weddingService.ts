@@ -364,10 +364,27 @@ export const documentService = {
       return data;
     }
 
-    // Если нет файла, возвращаем ошибку
-    if (!file) {
-      console.error('File or link is required to create document');
-      return null;
+    // Если нет файла и нет ссылки, создаем документ только с названием
+    if (!file && !document.link) {
+      const { data, error } = await supabase
+        .from('documents')
+        .insert({
+          ...document,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating document:', error);
+        return null;
+      }
+
+      // Инвалидируем кеш документов для этой свадьбы
+      if (data) {
+        invalidateCache(`documents_${document.wedding_id}`);
+      }
+
+      return data;
     }
 
     // Загружаем файл в Storage
