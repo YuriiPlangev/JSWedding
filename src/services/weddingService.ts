@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import type { Wedding, Task, Document, User, Presentation, PresentationSection } from '../types';
+import type { Wedding, Task, Document, User, Presentation } from '../types';
 import { getCache, setCache, invalidateCache } from '../utils/cache';
 
 // Сервис для работы со свадьбами
@@ -728,8 +728,8 @@ export const presentationService = {
     // Удаляем изображения из Storage, если это была презентация свадьбы
     if (wedding.presentation && wedding.presentation.type === 'wedding') {
       const deletePromises = wedding.presentation.sections
-        .filter(section => section.image_url)
-        .map(section => this.deletePresentationImage(section.image_url));
+        .filter((section) => section.image_url)
+        .map((section) => this.deletePresentationImage(section.image_url));
 
       await Promise.all(deletePromises);
     }

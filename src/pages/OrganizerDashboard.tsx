@@ -889,7 +889,6 @@ const OrganizerDashboard = () => {
       {/* Presentation Modal */}
       {showPresentationModal && selectedWedding && (
         <PresentationModal
-          wedding={selectedWedding}
           onClose={() => setShowPresentationModal(false)}
           onUpload={handleUploadPresentation}
           uploading={uploadingPresentation}
@@ -1485,13 +1484,12 @@ const DocumentModal = ({ document, weddingId, onClose, onSave }: DocumentModalPr
 
 // Модальное окно для загрузки презентации
 interface PresentationModalProps {
-  wedding: SelectedWedding;
   onClose: () => void;
   onUpload: (files: FileList | null) => void;
   uploading: boolean;
 }
 
-const PresentationModal = ({ wedding, onClose, onUpload, uploading }: PresentationModalProps) => {
+const PresentationModal = ({ onClose, onUpload, uploading }: PresentationModalProps) => {
   const [files, setFiles] = useState<FileList | null>(null);
   const [error, setError] = useState<string | null>(null);
 
