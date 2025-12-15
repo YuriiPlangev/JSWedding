@@ -47,8 +47,8 @@ const DocumentsList = ({ documents, currentLanguage = 'ru' }: DocumentsListProps
     .filter((doc) => !doc.pinned)
     // Сортируем незакрепленные: сначала документы со ссылками, потом без ссылок
     .sort((a, b) => {
-      const aHasLink = !!(a.link || a.file_url);
-      const bHasLink = !!(b.link || b.file_url);
+      const aHasLink = !!a.link;
+      const bHasLink = !!b.link;
       // Если у одного есть ссылка, а у другого нет - документ со ссылкой идет первым
       if (aHasLink && !bHasLink) return -1;
       if (!aHasLink && bHasLink) return 1;
@@ -61,15 +61,10 @@ const DocumentsList = ({ documents, currentLanguage = 'ru' }: DocumentsListProps
     // Всегда предотвращаем стандартное поведение ссылки, чтобы избежать скролла наверх
     e.preventDefault();
     
-    // Если есть ссылка (Google Docs и т.д.), открываем её в новой вкладке
+    // Если есть ссылка, открываем её в новой вкладке
     if (doc.link) {
       window.open(doc.link, '_blank', 'noopener,noreferrer');
       return;
-    }
-    
-    // Если есть file_url, открываем его в новой вкладке
-    if (doc.file_url) {
-      window.open(doc.file_url, '_blank', 'noopener,noreferrer');
     }
   };
 
@@ -78,50 +73,62 @@ const DocumentsList = ({ documents, currentLanguage = 'ru' }: DocumentsListProps
     e.preventDefault();
     e.stopPropagation();
 
-    // Если есть только ссылка (без файла), не скачиваем
-    if (doc.link && !doc.file_url && !doc.file_path) {
-      // Для документов только со ссылкой скачивание недоступно
-      return;
-    }
-
-    // Если нет файла для скачивания
-    if (!doc.file_url && !doc.file_path) {
-      console.warn('Document has no file to download:', doc);
+    // Если нет ссылки, скачивание недоступно
+    if (!doc.link) {
+      console.warn('Document has no link to download:', doc);
       return;
     }
 
     setDownloadingIds((prev) => new Set(prev).add(doc.id));
 
     try {
-      let blob: Blob | null = null;
-
-      // Если есть file_url (signed URL), скачиваем по нему
-      if (doc.file_url) {
-        const response = await fetch(doc.file_url);
-        if (!response.ok) {
-          throw new Error('Failed to download file');
-        }
-        blob = await response.blob();
-      } 
-      // Если есть file_path но нет file_url, скачиваем через API
-      else if (doc.file_path) {
-        blob = await documentService.downloadDocument(doc);
-        if (!blob) {
-          throw new Error('Failed to download document');
-        }
+      // Генерируем ссылку на скачивание из внешней ссылки
+      const downloadUrl = documentService.generateDownloadUrl(doc.link);
+      
+      if (!downloadUrl) {
+        throw new Error('Failed to generate download URL');
       }
 
-      if (blob) {
-        // Создаем временную ссылку для скачивания
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = doc.name || 'document';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
+      // Определяем расширение файла на основе типа документа
+      let fileExtension = '';
+      try {
+        const url = new URL(downloadUrl);
+        if (url.hostname.includes('docs.google.com')) {
+          if (url.pathname.includes('/document/')) {
+            fileExtension = '.pdf';
+          } else if (url.pathname.includes('/spreadsheets/')) {
+            fileExtension = '.xlsx';
+          } else if (url.pathname.includes('/presentation/')) {
+            fileExtension = '.pdf';
+          }
+        } else if (url.pathname) {
+          // Пытаемся извлечь расширение из URL
+          const match = url.pathname.match(/\.([a-zA-Z0-9]+)(\?|$)/);
+          if (match) {
+            fileExtension = `.${match[1]}`;
+          }
+        }
+      } catch {
+        // Если не удалось определить расширение, используем пустую строку
       }
+
+      // Создаем скрытый элемент <a> для скачивания
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `${doc.name || 'document'}${fileExtension}`;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      
+      // Кликаем по ссылке для начала скачивания
+      link.click();
+      
+      // Удаляем элемент после небольшой задержки
+      setTimeout(() => {
+        document.body.removeChild(link);
+      }, 100);
+
+      // Показываем индикацию скачивания минимум 1.5 секунды для лучшей обратной связи
+      await new Promise(resolve => setTimeout(resolve, 1500));
     } catch (error) {
       console.error('Error downloading document:', error);
       alert('Ошибка при скачивании документа. Попробуйте обновить страницу.');
@@ -145,35 +152,42 @@ const DocumentsList = ({ documents, currentLanguage = 'ru' }: DocumentsListProps
             </p>
             <ul>
               {pinnedDocuments.map((doc) => {
-                const hasLink = doc.link || doc.file_url;
+                const hasLink = !!doc.link;
                 const linkClassName = hasLink
                   ? 'text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-light underline underline-offset-4 hover:opacity-70 transition-opacity cursor-pointer'
                   : 'text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-light text-[#00000040] cursor-default';
+                
+                const isDownloading = downloadingIds.has(doc.id);
+                const downloadingClassName = isDownloading 
+                  ? 'text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-light underline underline-offset-4 opacity-60 transition-opacity cursor-pointer'
+                  : linkClassName;
                 
                 return (
                   <li key={doc.id} className='py-2 max-[1599px]:py-1.5 lg:max-[1599px]:py-1.5 min-[1300px]:max-[1599px]:py-1.5 min-[1600px]:py-2.5 flex items-center justify-between'>
                     {hasLink ? (
                       <a
-                        href={doc.link || doc.file_url || '#'}
-                        target={doc.link ? '_blank' : doc.file_url ? '_blank' : undefined}
-                        rel={doc.link || doc.file_url ? 'noopener noreferrer' : undefined}
+                        href={doc.link || '#'}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         onClick={(e) => handleLinkClick(doc, e)}
-                        className={linkClassName}
+                        className={downloadingClassName}
                       >
                         {doc.name}
                       </a>
                     ) : (
-                      <span className={linkClassName}>
+                      <span className={downloadingClassName}>
                         {doc.name}
                       </span>
                     )}
-                  {downloadingIds.has(doc.id) ? (
-                    <div className="w-4 h-4 md:w-5 md:h-5 lg:w-4 lg:h-4 xl:w-5 xl:h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                  {isDownloading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 md:w-5 md:h-5 lg:w-4 lg:h-4 xl:w-5 xl:h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                    </div>
                   ) : (
-                    (doc.file_url || doc.file_path) && (
+                    doc.link && (
                       <button
                         onClick={(e) => handleDownload(doc, e)}
-                        className="cursor-pointer hover:opacity-70 transition-opacity"
+                        className="cursor-pointer hover:opacity-70 transition-opacity pr-[10px]"
                         aria-label="Скачать документ"
                         type="button"
                       >
@@ -195,32 +209,39 @@ const DocumentsList = ({ documents, currentLanguage = 'ru' }: DocumentsListProps
           <div className='px-4 md:px-8 lg:px-12 xl:px-[60px] pb-6'>
             <ul className='py-4'>
             {unpinnedDocuments.map((doc) => {
-                const hasLink = doc.link || doc.file_url;
+                const hasLink = !!doc.link;
                 const linkClassName = hasLink
                   ? 'text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-light underline underline-offset-4 hover:opacity-70 transition-opacity cursor-pointer'
                   : 'text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-light text-[#00000040] cursor-default';
+                
+                const isDownloading = downloadingIds.has(doc.id);
+                const downloadingClassName = isDownloading 
+                  ? 'text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-light underline underline-offset-4 opacity-60 transition-opacity cursor-pointer'
+                  : linkClassName;
                 
                 return (
                   <li key={doc.id} className='py-2 max-[1599px]:py-1.5 lg:max-[1599px]:py-1.5 min-[1300px]:max-[1599px]:py-1.5 min-[1600px]:py-2.5 flex items-center justify-between'> 
                     {hasLink ? (
                       <a
-                        href={doc.link || doc.file_url || '#'}
-                        target={doc.link ? '_blank' : doc.file_url ? '_blank' : undefined}
-                        rel={doc.link || doc.file_url ? 'noopener noreferrer' : undefined}
+                        href={doc.link || '#'}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         onClick={(e) => handleLinkClick(doc, e)}
-                        className={linkClassName}
+                        className={downloadingClassName}
                       >
                         {doc.name}
                       </a>
                     ) : (
-                      <span className={linkClassName}>
+                      <span className={downloadingClassName}>
                         {doc.name}
                       </span>
                     )}
-                    {downloadingIds.has(doc.id) ? (
-                      <div className="w-4 h-4 md:w-5 md:h-5 lg:w-4 lg:h-4 xl:w-5 xl:h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                    {isDownloading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 md:w-5 md:h-5 lg:w-4 lg:h-4 xl:w-5 xl:h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                      </div>
                     ) : (
-                      (doc.file_url || doc.file_path) && (
+                      doc.link && (
                         <button
                           onClick={(e) => handleDownload(doc, e)}
                           className="cursor-pointer hover:opacity-70 transition-opacity"

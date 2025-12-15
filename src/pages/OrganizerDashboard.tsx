@@ -232,7 +232,7 @@ const OrganizerDashboard = () => {
     try {
       const success = await documentService.deleteDocument(
         document.id,
-        document.file_path,
+        undefined, // file_path больше не используется
         selectedWedding.id
       );
       if (success) {
@@ -1257,28 +1257,7 @@ const DocumentModal = ({ document, weddingId, onClose, onSave }: DocumentModalPr
     link: document?.link || '',
     pinned: document?.pinned || false,
   });
-  const [file, setFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
-      // Проверка размера файла (максимум 50MB)
-      const maxSize = 50 * 1024 * 1024; // 50MB в байтах
-      if (selectedFile.size > maxSize) {
-        setError('Размер файла не должен превышать 50MB');
-        setFile(null);
-        return;
-      }
-      setFile(selectedFile);
-      setError(null);
-    } else {
-      // Если файл был удален, очищаем состояние
-      setFile(null);
-    }
-  };
 
   const handleLinkChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const link = e.target.value;
@@ -1299,66 +1278,10 @@ const DocumentModal = ({ document, weddingId, onClose, onSave }: DocumentModalPr
       wedding_id: weddingId,
       name: formData.name.trim(),
       pinned: formData.pinned,
-      ...(formData.link && { link: formData.link.trim() }),
+      ...(formData.link && formData.link.trim() && { link: formData.link.trim() }),
     };
 
-    // Если есть ссылка, используем её (без файла)
-    if (formData.link && formData.link.trim()) {
-      try {
-        await onSave(docData);
-        onClose();
-      } catch (err) {
-        setError('Ошибка при сохранении документа');
-        console.error('Error saving document:', err);
-      }
-      return;
-    }
-
-    // Если есть файл, загружаем его
-    if (file) {
-      setUploading(true);
-      setUploadProgress(0);
-      let progressInterval: number | null = null;
-      
-      try {
-        // Симулируем прогресс загрузки
-        progressInterval = window.setInterval(() => {
-          setUploadProgress((prev) => {
-            if (prev >= 90) {
-              if (progressInterval !== null) {
-                clearInterval(progressInterval);
-              }
-              return 90;
-            }
-            return prev + 10;
-          });
-        }, 200);
-
-        await onSave(docData, file);
-        
-        if (progressInterval !== null) {
-          clearInterval(progressInterval);
-        }
-        setUploadProgress(100);
-        
-        // Небольшая задержка перед закрытием, чтобы показать 100%
-        setTimeout(() => {
-          onClose();
-        }, 300);
-      } catch (err) {
-        if (progressInterval !== null) {
-          clearInterval(progressInterval);
-        }
-        setError('Ошибка при загрузке документа. Проверьте подключение к интернету и попробуйте снова.');
-        console.error('Error uploading document:', err);
-      } finally {
-        setUploading(false);
-        setUploadProgress(0);
-      }
-      return;
-    }
-
-    // Если нет файла и нет ссылки, создаем/обновляем документ только с названием
+    // Создаем/обновляем документ (только со ссылкой или без ссылки)
     try {
       await onSave(docData, undefined);
       onClose();
@@ -1397,52 +1320,23 @@ const DocumentModal = ({ document, weddingId, onClose, onSave }: DocumentModalPr
 
             <div>
               <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
-                Ссылка на документ (Google Docs/Sheets/Drive) или файл <span className="font-normal text-[#00000080]">(опционально)</span>
+                Ссылка на документ (Google Docs/Sheets/Drive) <span className="font-normal text-[#00000080]">(опционально)</span>
               </label>
               <input
                 type="url"
                 value={formData.link}
                 onChange={handleLinkChange}
                 placeholder="https://docs.google.com/..."
-                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white mb-2"
+                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
               />
-              <p className="text-[14px] font-forum font-light text-[#00000080] mb-2">или</p>
-              <input
-                type="file"
-                onChange={handleFileChange}
-                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white cursor-pointer"
-                disabled={uploading}
-              />
-              {file && (
-                <div className="mt-2 p-2 bg-gray-50 border border-[#00000033] rounded-lg">
-                  <p className="text-[14px] font-forum font-light text-black">
-                    Выбран файл: <span className="font-bold">{file.name}</span>
-                  </p>
-                  <p className="text-[12px] font-forum font-light text-[#00000080]">
-                    Размер: {(file.size / 1024 / 1024).toFixed(2)} MB
-                  </p>
-                </div>
-              )}
+              <p className="text-[12px] font-forum font-light text-[#00000080] mt-1">
+                Укажите ссылку на документ в Google Docs, Google Sheets, Google Drive или другой сервис
+              </p>
             </div>
 
             {error && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
                 <p className="text-[14px] font-forum text-red-600">{error}</p>
-              </div>
-            )}
-
-            {uploading && (
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-[14px] font-forum font-light text-[#00000080]">Загрузка файла...</span>
-                  <span className="text-[14px] font-forum font-bold text-black">{uploadProgress}%</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-black h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${uploadProgress}%` }}
-                  />
-                </div>
               </div>
             )}
 
@@ -1469,10 +1363,9 @@ const DocumentModal = ({ document, weddingId, onClose, onSave }: DocumentModalPr
               </button>
               <button
                 type="submit"
-                disabled={uploading}
-                className="px-4 md:px-6 py-2 md:py-3 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-[16px] max-[1599px]:text-[14px] font-forum"
+                className="px-4 md:px-6 py-2 md:py-3 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum"
               >
-                {uploading ? 'Загрузка...' : document ? 'Сохранить' : 'Создать'}
+                {document ? 'Сохранить' : 'Создать'}
               </button>
             </div>
           </form>

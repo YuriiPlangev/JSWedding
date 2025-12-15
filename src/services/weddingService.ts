@@ -262,6 +262,58 @@ export const taskService = {
   },
 };
 
+// Функция для генерации ссылки на скачивание из внешней ссылки
+function generateDownloadUrl(link: string): string | null {
+  if (!link) return null;
+
+  try {
+    const url = new URL(link);
+
+    // Google Docs
+    // Формат: https://docs.google.com/document/d/{DOC_ID}/edit
+    if (url.hostname.includes('docs.google.com') && url.pathname.includes('/document/d/')) {
+      const docIdMatch = url.pathname.match(/\/document\/d\/([a-zA-Z0-9-_]+)/);
+      if (docIdMatch) {
+        return `https://docs.google.com/document/d/${docIdMatch[1]}/export?format=pdf`;
+      }
+    }
+
+    // Google Sheets
+    // Формат: https://docs.google.com/spreadsheets/d/{SHEET_ID}/edit
+    if (url.hostname.includes('docs.google.com') && url.pathname.includes('/spreadsheets/d/')) {
+      const sheetIdMatch = url.pathname.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+      if (sheetIdMatch) {
+        return `https://docs.google.com/spreadsheets/d/${sheetIdMatch[1]}/export?format=xlsx`;
+      }
+    }
+
+    // Google Slides
+    // Формат: https://docs.google.com/presentation/d/{SLIDE_ID}/edit
+    if (url.hostname.includes('docs.google.com') && url.pathname.includes('/presentation/d/')) {
+      const slideIdMatch = url.pathname.match(/\/presentation\/d\/([a-zA-Z0-9-_]+)/);
+      if (slideIdMatch) {
+        return `https://docs.google.com/presentation/d/${slideIdMatch[1]}/export/pdf`;
+      }
+    }
+
+    // Google Drive (если это прямая ссылка на файл)
+    // Формат: https://drive.google.com/file/d/{FILE_ID}/view
+    if (url.hostname.includes('drive.google.com') && url.pathname.includes('/file/d/')) {
+      const fileIdMatch = url.pathname.match(/\/file\/d\/([a-zA-Z0-9-_]+)/);
+      if (fileIdMatch) {
+        return `https://drive.google.com/uc?export=download&id=${fileIdMatch[1]}`;
+      }
+    }
+
+    // Для других ссылок возвращаем исходную ссылку
+    // Пользователь может использовать прямую ссылку на скачивание
+    return link;
+  } catch (e) {
+    // Если это не валидный URL, возвращаем исходную ссылку
+    return link;
+  }
+}
+
 // Сервис для работы с документами
 export const documentService = {
   // Получить все документы для свадьбы
@@ -287,29 +339,22 @@ export const documentService = {
       return [];
     }
 
-    // Генерируем URL для скачивания для каждого документа
-    // Только для документов с file_path (не для документов со ссылками)
-    const documentsWithUrls = await Promise.all(
-      (data || []).map(async (doc) => {
-        // Если есть file_path, создаем signed URL
-        if (doc.file_path) {
-          const { data: urlData } = await supabase.storage
-            .from('wedding-documents')
-            .createSignedUrl(doc.file_path, 3600); // URL действителен 1 час
-
-          return {
-            ...doc,
-            file_url: urlData?.signedUrl || null,
-          };
-        }
-
-        // Если нет file_path, значит документ использует link
+    // Генерируем URL для скачивания для каждого документа на основе ссылки
+    const documentsWithUrls = (data || []).map((doc) => {
+      // Если есть ссылка, генерируем URL для скачивания
+      if (doc.link) {
         return {
           ...doc,
-          file_url: null,
+          file_url: generateDownloadUrl(doc.link),
         };
-      })
-    );
+      }
+
+      // Если нет ссылки, значит документ без файла
+      return {
+        ...doc,
+        file_url: null,
+      };
+    });
 
     // Сохраняем в кеш на 10 минут (документы обновляются реже)
     setCache(cacheKey, documentsWithUrls, 10 * 60 * 1000);
@@ -317,111 +362,32 @@ export const documentService = {
     return documentsWithUrls;
   },
 
-  // Скачать документ
-  async downloadDocument(document: Document): Promise<Blob | null> {
-    if (!document.file_path) {
-      console.error('Document file_path is missing');
-      return null;
-    }
-
-    const { data, error } = await supabase.storage
-      .from('wedding-documents')
-      .download(document.file_path);
-
-    if (error) {
-      console.error('Error downloading document:', error);
-      return null;
-    }
-
-    return data;
-  },
+  // Генерировать ссылку на скачивание из внешней ссылки
+  generateDownloadUrl,
 
   // Создать документ (только для организатора)
   async createDocument(
     document: Omit<Document, 'id' | 'created_at' | 'updated_at' | 'file_url'>,
     file?: File
   ): Promise<Document | null> {
-    // Если есть ссылка, создаем документ со ссылкой
-    if (document.link && !file) {
-      const { data, error } = await supabase
-        .from('documents')
-        .insert({
-          ...document,
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error creating document:', error);
-        return null;
-      }
-
-      // Инвалидируем кеш документов для этой свадьбы
-      if (data) {
-        invalidateCache(`documents_${document.wedding_id}`);
-      }
-
-      return data;
-    }
-
-    // Если нет файла и нет ссылки, создаем документ только с названием
-    if (!file && !document.link) {
-      const { data, error } = await supabase
-        .from('documents')
-        .insert({
-          ...document,
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error creating document:', error);
-        return null;
-      }
-
-      // Инвалидируем кеш документов для этой свадьбы
-      if (data) {
-        invalidateCache(`documents_${document.wedding_id}`);
-      }
-
-      return data;
-    }
-
-    // Загружаем файл в Storage
-    // На этом этапе file должен быть определен (все случаи без файла уже обработаны выше)
-    if (!file) {
-      console.error('File is required but not provided');
+    // Если есть файл, но нет ссылки - это не поддерживается
+    // Теперь документы хранятся только через ссылки
+    if (file && !document.link) {
+      console.error('File upload is not supported. Please provide a link to the document.');
       return null;
     }
 
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${document.wedding_id}/${Date.now()}.${fileExt}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('wedding-documents')
-      .upload(fileName, file);
-
-    if (uploadError) {
-      console.error('Error uploading file:', uploadError);
-      return null;
-    }
-
-    // Создаем запись в базе данных
+    // Создаем документ со ссылкой или без ссылки (только название)
     const { data, error } = await supabase
       .from('documents')
       .insert({
         ...document,
-        file_path: fileName,
-        file_size: file.size,
-        mime_type: file.type,
       })
       .select()
       .single();
 
     if (error) {
       console.error('Error creating document:', error);
-      // Удаляем загруженный файл в случае ошибки
-      await supabase.storage.from('wedding-documents').remove([fileName]);
       return null;
     }
 
@@ -440,96 +406,37 @@ export const documentService = {
     weddingId: string,
     newFile?: File
   ): Promise<Document | null> {
-    // Если есть новый файл, сначала загружаем его
-    if (newFile) {
-      // Получаем старый документ для удаления старого файла
-      const { data: oldDoc } = await supabase
-        .from('documents')
-        .select('file_path')
-        .eq('id', documentId)
-        .single();
-
-      // Загружаем новый файл
-      const fileExt = newFile.name.split('.').pop();
-      const fileName = `${weddingId}/${Date.now()}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('wedding-documents')
-        .upload(fileName, newFile);
-
-      if (uploadError) {
-        console.error('Error uploading new file:', uploadError);
-        return null;
-      }
-
-      // Удаляем старый файл, если он был
-      if (oldDoc?.file_path) {
-        await supabase.storage.from('wedding-documents').remove([oldDoc.file_path]);
-      }
-
-      // Обновляем документ с новым файлом
-      const { data, error } = await supabase
-        .from('documents')
-        .update({
-          ...updates,
-          file_path: fileName,
-          file_size: newFile.size,
-          mime_type: newFile.type,
-        })
-        .eq('id', documentId)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error updating document:', error);
-        // Удаляем загруженный файл в случае ошибки
-        await supabase.storage.from('wedding-documents').remove([fileName]);
-        return null;
-      }
-
-      // Инвалидируем кеш документов для этой свадьбы
-      if (data) {
-        invalidateCache(`documents_${weddingId}`);
-      }
-
-      return data;
-    } else {
-      // Обновляем только метаданные без файла
-      const { data, error } = await supabase
-        .from('documents')
-        .update(updates)
-        .eq('id', documentId)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error updating document:', error);
-        return null;
-      }
-
-      // Инвалидируем кеш документов для этой свадьбы
-      if (data) {
-        invalidateCache(`documents_${weddingId}`);
-      }
-
-      return data;
+    // Если есть новый файл, но нет ссылки - это не поддерживается
+    if (newFile && !updates.link) {
+      console.error('File upload is not supported. Please provide a link to the document.');
+      return null;
     }
+
+    // Обновляем метаданные документа
+    const { data, error } = await supabase
+      .from('documents')
+      .update(updates)
+      .eq('id', documentId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating document:', error);
+      return null;
+    }
+
+    // Инвалидируем кеш документов для этой свадьбы
+    if (data) {
+      invalidateCache(`documents_${weddingId}`);
+    }
+
+    return data;
   },
 
   // Удалить документ (только для организатора)
   async deleteDocument(documentId: string, filePath: string | undefined, weddingId: string): Promise<boolean> {
-    // Удаляем файл из Storage (если он есть)
-    if (filePath) {
-      const { error: storageError } = await supabase.storage
-        .from('wedding-documents')
-        .remove([filePath]);
-
-      if (storageError) {
-        console.error('Error deleting file from storage:', storageError);
-      }
-    }
-
     // Удаляем запись из базы данных
+    // Файлы больше не хранятся в Storage, поэтому удаляем только запись
     const { error } = await supabase
       .from('documents')
       .delete()
