@@ -11,7 +11,6 @@ interface HeaderProps {
   onLogout: () => void;
   currentLanguage: 'en' | 'ru' | 'ua';
   onLanguageChange: (lang: 'en' | 'ru' | 'ua') => void;
-  bgColor?: string;
   chatLink?: string;
   weddingId?: string; // ID свадьбы для сохранения заметок
   initialNotes?: string; // Начальные заметки из БД

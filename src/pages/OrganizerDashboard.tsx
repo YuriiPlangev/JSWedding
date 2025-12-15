@@ -55,7 +55,9 @@ const OrganizerDashboard = () => {
       setClients(clientsData);
     } catch (err) {
       console.error('Error loading data:', err);
-      setError(t.organizer.loadError);
+      const currentLang = getInitialLanguage();
+      const translations = getTranslation(currentLang);
+      setError(translations.organizer.loadError);
     } finally {
       setLoading(false);
     }

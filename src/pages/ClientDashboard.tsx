@@ -89,7 +89,6 @@ const ClientDashboard = () => {
   useEffect(() => {
     const SCROLL_KEY = 'clientDashboard_scrollPosition';
     let isRestoring = false;
-    let scrollTimeout: number | null = null;
 
     // Сохраняем позицию скролла в sessionStorage
     const saveScrollPosition = () => {
@@ -143,8 +142,6 @@ const ClientDashboard = () => {
       // Если идет восстановление позиции, не сохраняем и не вмешиваемся
       if (isRestoring) return;
       
-      const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
-      
       // Сохраняем позицию скролла только если пользователь активно прокручивает
       // (не во время восстановления)
       saveScrollPosition();
@@ -182,7 +179,6 @@ const ClientDashboard = () => {
       window.removeEventListener('scroll', handleScroll);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('blur', handleBlur);
-      if (scrollTimeout) window.clearTimeout(scrollTimeout);
       clearInterval(saveInterval);
       saveScrollPosition(); // Сохраняем при размонтировании
     };
