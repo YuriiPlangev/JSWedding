@@ -3,6 +3,11 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 
+// Включаем стандартное восстановление скролла браузером
+if ('scrollRestoration' in history) {
+  history.scrollRestoration = 'auto';
+}
+
 const rootElement = document.getElementById('root')
 
 if (!rootElement) {

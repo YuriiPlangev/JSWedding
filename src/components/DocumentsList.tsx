@@ -47,15 +47,17 @@ const DocumentsList = ({ documents, currentLanguage = 'ru' }: DocumentsListProps
 
   // Обработчик открытия ссылки (для названия документа)
   const handleLinkClick = (doc: Document, e: React.MouseEvent) => {
-    // Если есть ссылка (Google Docs и т.д.), открываем её
+    // Всегда предотвращаем стандартное поведение ссылки, чтобы избежать скролла наверх
+    e.preventDefault();
+    
+    // Если есть ссылка (Google Docs и т.д.), открываем её в новой вкладке
     if (doc.link) {
-      // Не перехватываем событие, пусть ссылка открывается естественным образом
+      window.open(doc.link, '_blank', 'noopener,noreferrer');
       return;
     }
     
     // Если есть file_url, открываем его в новой вкладке
     if (doc.file_url) {
-      e.preventDefault();
       window.open(doc.file_url, '_blank', 'noopener,noreferrer');
     }
   };
@@ -131,17 +133,78 @@ const DocumentsList = ({ documents, currentLanguage = 'ru' }: DocumentsListProps
               {getTranslation(currentLanguage).dashboard.pinnedDocuments}
             </p>
             <ul>
-              {pinnedDocuments.map((doc) => (
-                <li key={doc.id} className='py-2 max-[1599px]:py-1.5 lg:max-[1599px]:py-1.5 min-[1300px]:max-[1599px]:py-1.5 min-[1600px]:py-2.5 flex items-center justify-between'>
-                  <a
-                    href={doc.link || doc.file_url || '#'}
-                    target={doc.link ? '_blank' : doc.file_url ? '_blank' : undefined}
-                    rel={doc.link || doc.file_url ? 'noopener noreferrer' : undefined}
-                    onClick={(e) => handleLinkClick(doc, e)}
-                    className='text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-light underline underline-offset-4 hover:opacity-70 transition-opacity cursor-pointer'
-                  >
-                    {doc.name}
-                  </a>
+              {pinnedDocuments.map((doc) => {
+                const hasLink = doc.link || doc.file_url;
+                const linkClassName = hasLink
+                  ? 'text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-light underline underline-offset-4 hover:opacity-70 transition-opacity cursor-pointer'
+                  : 'text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-light text-[#00000040] cursor-default';
+                
+                return (
+                  <li key={doc.id} className='py-2 max-[1599px]:py-1.5 lg:max-[1599px]:py-1.5 min-[1300px]:max-[1599px]:py-1.5 min-[1600px]:py-2.5 flex items-center justify-between'>
+                    {hasLink ? (
+                      <a
+                        href={doc.link || doc.file_url || '#'}
+                        target={doc.link ? '_blank' : doc.file_url ? '_blank' : undefined}
+                        rel={doc.link || doc.file_url ? 'noopener noreferrer' : undefined}
+                        onClick={(e) => handleLinkClick(doc, e)}
+                        className={linkClassName}
+                      >
+                        {doc.name}
+                      </a>
+                    ) : (
+                      <span className={linkClassName}>
+                        {doc.name}
+                      </span>
+                    )}
+                  {downloadingIds.has(doc.id) ? (
+                    <div className="w-4 h-4 md:w-5 md:h-5 lg:w-4 lg:h-4 xl:w-5 xl:h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    (doc.file_url || doc.file_path) && (
+                      <button
+                        onClick={(e) => handleDownload(doc, e)}
+                        className="cursor-pointer hover:opacity-70 transition-opacity"
+                        aria-label="Скачать документ"
+                        type="button"
+                      >
+                        <img src={downloadIcon} alt="download" className='w-4 h-4 md:w-5 md:h-5 lg:w-4 lg:h-4 xl:w-5 xl:h-5 opacity-60' />
+                      </button>
+                    )
+                  )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </div>
+      )}
+
+      {/* Незакрепленные документы */}
+      {unpinnedDocuments.length > 0 && (
+        <div ref={scrollableRef} className='px-4 md:px-8 lg:px-12 xl:px-[60px] max-h-[200px] overflow-y-auto documents-scrollable'>
+          <ul className='py-4 max-[1599px]:pb-3 lg:max-[1599px]:pb-3 min-[1300px]:max-[1599px]:pb-3'>
+            {unpinnedDocuments.map((doc) => {
+              const hasLink = doc.link || doc.file_url;
+              const linkClassName = hasLink
+                ? 'text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-light underline underline-offset-4 hover:opacity-70 transition-opacity cursor-pointer'
+                : 'text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-light text-[#00000040] cursor-default';
+              
+              return (
+                <li key={doc.id} className='py-2 max-[1599px]:py-1.5 lg:max-[1599px]:py-1.5 min-[1300px]:max-[1599px]:py-1.5 min-[1600px]:py-2.5 flex items-center justify-between'> 
+                  {hasLink ? (
+                    <a
+                      href={doc.link || doc.file_url || '#'}
+                      target={doc.link ? '_blank' : doc.file_url ? '_blank' : undefined}
+                      rel={doc.link || doc.file_url ? 'noopener noreferrer' : undefined}
+                      onClick={(e) => handleLinkClick(doc, e)}
+                      className={linkClassName}
+                    >
+                      {doc.name}
+                    </a>
+                  ) : (
+                    <span className={linkClassName}>
+                      {doc.name}
+                    </span>
+                  )}
                   {downloadingIds.has(doc.id) ? (
                     <div className="w-4 h-4 md:w-5 md:h-5 lg:w-4 lg:h-4 xl:w-5 xl:h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
                   ) : (
@@ -157,43 +220,8 @@ const DocumentsList = ({ documents, currentLanguage = 'ru' }: DocumentsListProps
                     )
                   )}
                 </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      )}
-
-      {/* Незакрепленные документы */}
-      {unpinnedDocuments.length > 0 && (
-        <div ref={scrollableRef} className='px-4 md:px-8 lg:px-12 xl:px-[60px] max-h-[200px] overflow-y-auto documents-scrollable'>
-          <ul className='pb-4 max-[1599px]:pb-3 lg:max-[1599px]:pb-3 min-[1300px]:max-[1599px]:pb-3'>
-            {unpinnedDocuments.map((doc) => (
-              <li key={doc.id} className='py-2 max-[1599px]:py-1.5 lg:max-[1599px]:py-1.5 min-[1300px]:max-[1599px]:py-1.5 min-[1600px]:py-2.5 flex items-center justify-between'> 
-                  <a
-                    href={doc.link || doc.file_url || '#'}
-                    target={doc.link ? '_blank' : doc.file_url ? '_blank' : undefined}
-                    rel={doc.link || doc.file_url ? 'noopener noreferrer' : undefined}
-                    onClick={(e) => handleLinkClick(doc, e)}
-                    className='text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-light underline underline-offset-4 hover:opacity-70 transition-opacity cursor-pointer'
-                  >
-                    {doc.name}
-                  </a>
-                  {downloadingIds.has(doc.id) ? (
-                    <div className="w-4 h-4 md:w-5 md:h-5 lg:w-4 lg:h-4 xl:w-5 xl:h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    (doc.file_url || doc.file_path) && (
-                      <button
-                        onClick={(e) => handleDownload(doc, e)}
-                        className="cursor-pointer hover:opacity-70 transition-opacity"
-                        aria-label="Скачать документ"
-                        type="button"
-                      >
-                        <img src={downloadIcon} alt="download" className='w-4 h-4 md:w-5 md:h-5 lg:w-4 lg:h-4 xl:w-5 xl:h-5 opacity-60' />
-                      </button>
-                    )
-                  )}
-              </li>
-            ))}
+              );
+            })}
           </ul>
         </div>
       )}

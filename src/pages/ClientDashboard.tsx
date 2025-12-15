@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { weddingService, taskService, documentService } from '../services/weddingService';
 import type { Wedding, Task, Document } from '../types';
@@ -36,6 +36,123 @@ const ClientDashboard = () => {
 
   const [isMobile, setIsMobile] = useState(false);
   const splashRef = useRef<HTMLDivElement>(null);
+  const dataLoadedRef = useRef<string | null>(null); // Отслеживаем, для какого user уже загружены данные
+  const isLoadingRef = useRef(false); // Предотвращаем параллельные загрузки
+
+  // Защита от сброса скролла при возврате на страницу
+  useEffect(() => {
+    const SCROLL_KEY = 'clientDashboard_scrollPosition';
+    let lastScrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+    let isRestoring = false;
+    let scrollTimeout: number | null = null;
+
+    // Сохраняем позицию скролла в sessionStorage
+    const saveScrollPosition = () => {
+      const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+      if (currentScroll > 0) {
+        sessionStorage.setItem(SCROLL_KEY, currentScroll.toString());
+        lastScrollPosition = currentScroll;
+      }
+    };
+
+    // Восстанавливаем позицию скролла
+    const restoreScrollPosition = () => {
+      const saved = sessionStorage.getItem(SCROLL_KEY);
+      if (saved) {
+        const savedPosition = parseInt(saved, 10);
+        if (savedPosition > 0) {
+          isRestoring = true;
+          // Используем несколько попыток для надежности
+          const attemptRestore = (attempts = 0) => {
+            if (attempts > 10) {
+              isRestoring = false;
+              return;
+            }
+            const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+            if (currentScroll !== savedPosition && savedPosition > 100) {
+              window.scrollTo(0, savedPosition);
+              requestAnimationFrame(() => attemptRestore(attempts + 1));
+            } else {
+              isRestoring = false;
+            }
+          };
+          requestAnimationFrame(() => attemptRestore());
+        }
+      }
+    };
+
+    // Отслеживаем изменения скролла и предотвращаем нежелательные сбросы
+    const handleScroll = () => {
+      if (isRestoring) return;
+      
+      const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+      
+      // Если скролл внезапно стал 0 без явного действия пользователя, восстанавливаем
+      if (currentScroll === 0 && lastScrollPosition > 100) {
+        const saved = sessionStorage.getItem(SCROLL_KEY);
+        if (saved) {
+          const savedPosition = parseInt(saved, 10);
+          if (savedPosition > 0) {
+            // Небольшая задержка, чтобы убедиться, что это не намеренный скролл
+            if (scrollTimeout) window.clearTimeout(scrollTimeout);
+            scrollTimeout = window.setTimeout(() => {
+              const newScroll = window.pageYOffset || document.documentElement.scrollTop;
+              if (newScroll === 0 && savedPosition > 100) {
+                window.scrollTo(0, savedPosition);
+              }
+            }, 100);
+          }
+        }
+      } else {
+        lastScrollPosition = currentScroll;
+        saveScrollPosition();
+      }
+    };
+
+    // Сохраняем позицию при потере видимости/фокуса
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        saveScrollPosition();
+      } else {
+        // Восстанавливаем при возврате видимости
+        setTimeout(() => {
+          restoreScrollPosition();
+        }, 50);
+      }
+    };
+
+    const handleBlur = () => {
+      saveScrollPosition();
+    };
+
+    const handleFocus = () => {
+      setTimeout(() => {
+        restoreScrollPosition();
+      }, 50);
+    };
+
+    // Восстанавливаем позицию при монтировании компонента
+    restoreScrollPosition();
+
+    // Подписываемся на события
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleBlur);
+    window.addEventListener('focus', handleFocus);
+
+    // Сохраняем позицию периодически
+    const saveInterval = setInterval(saveScrollPosition, 1000);
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleBlur);
+      window.removeEventListener('focus', handleFocus);
+      if (scrollTimeout) window.clearTimeout(scrollTimeout);
+      clearInterval(saveInterval);
+      saveScrollPosition(); // Сохраняем при размонтировании
+    };
+  }, []);
 
   // Проверка размера экрана для мобильных устройств
   useEffect(() => {
@@ -54,17 +171,25 @@ const ClientDashboard = () => {
     };
   }, []);
 
-  useEffect(() => {
-    if (user?.id) {
-      loadWeddingData();
-    }
-  }, [user]);
-
-
-  const loadWeddingData = async (forceRefresh: boolean = false) => {
+  const loadWeddingData = useCallback(async (forceRefresh: boolean = false) => {
     if (!user?.id) return;
+    
+    // Если данные уже загружены для этого user и не требуется принудительное обновление, пропускаем
+    if (!forceRefresh && dataLoadedRef.current === user.id && wedding) {
+      return;
+    }
+    
+    // Предотвращаем параллельные загрузки
+    if (isLoadingRef.current) {
+      return;
+    }
 
-    setLoading(true);
+    isLoadingRef.current = true;
+    
+    // Устанавливаем loading только если данных еще нет
+    if (!wedding) {
+      setLoading(true);
+    }
     setError(null);
 
     try {
@@ -86,13 +211,27 @@ const ClientDashboard = () => {
       // Загружаем документы (используем кеш, если не принудительное обновление)
       const documentsData = await documentService.getWeddingDocuments(weddingData.id, !forceRefresh);
       setDocuments(documentsData);
+      
+      // Отмечаем, что данные загружены для этого user
+      dataLoadedRef.current = user.id;
     } catch (err) {
       console.error('Error loading wedding data:', err);
       setError('Ошибка при загрузке данных. Попробуйте обновить страницу.');
     } finally {
       setLoading(false);
+      isLoadingRef.current = false;
     }
-  };
+  }, [user?.id, wedding]);
+
+  useEffect(() => {
+    // Загружаем данные только если:
+    // 1. Есть user.id
+    // 2. Данные еще не загружены для этого user
+    // 3. Не идет уже загрузка
+    if (user?.id && dataLoadedRef.current !== user.id && !isLoadingRef.current) {
+      loadWeddingData();
+    }
+  }, [user?.id, loadWeddingData]); // Используем user?.id вместо user, чтобы избежать лишних перезагрузок
 
 
   const formatDate = (dateString: string) => {
