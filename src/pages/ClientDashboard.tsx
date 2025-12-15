@@ -96,7 +96,6 @@ const ClientDashboard = () => {
       const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
       if (currentScroll > 0) {
         sessionStorage.setItem(SCROLL_KEY, currentScroll.toString());
-        lastScrollPosition = currentScroll;
       }
     };
 
@@ -148,7 +147,6 @@ const ClientDashboard = () => {
       
       // Сохраняем позицию скролла только если пользователь активно прокручивает
       // (не во время восстановления)
-      lastScrollPosition = currentScroll;
       saveScrollPosition();
     };
 
