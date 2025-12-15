@@ -388,6 +388,12 @@ export const documentService = {
     }
 
     // Загружаем файл в Storage
+    // На этом этапе file должен быть определен (все случаи без файла уже обработаны выше)
+    if (!file) {
+      console.error('File is required but not provided');
+      return null;
+    }
+
     const fileExt = file.name.split('.').pop();
     const fileName = `${document.wedding_id}/${Date.now()}.${fileExt}`;
 

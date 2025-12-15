@@ -6,7 +6,7 @@ import Header from '../components/Header';
 import TasksList from '../components/TasksList';
 import DocumentsList from '../components/DocumentsList';
 import MobileNotSupported from '../components/MobileNotSupported';
-// import Presentation from '../components/Presentation';
+import Presentation from '../components/Presentation';
 import { getTranslation } from '../utils/translations';
 import scrollDown from '../assets/scroll-down.svg';
 
@@ -604,7 +604,7 @@ const ClientDashboard = () => {
       )}
 
       {/* Презентация - на всю высоту экрана */}
-      {/* {wedding && <Presentation />} */}
+      {wedding && <Presentation />}
     </div>
   );
 };
