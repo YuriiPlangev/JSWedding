@@ -22,7 +22,6 @@ const Header = ({ onLogout, currentLanguage, onLanguageChange, chatLink, wedding
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
   const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
   const [notes, setNotes] = useState(initialNotes);
-  const [saving, setSaving] = useState(false);
   const saveTimeoutRef = useRef<number | null>(null);
 
   // Обновляем заметки при изменении initialNotes
@@ -45,7 +44,6 @@ const Header = ({ onLogout, currentLanguage, onLanguageChange, chatLink, wedding
 
     // Устанавливаем новый таймер для сохранения через 1 секунду после последнего изменения
     saveTimeoutRef.current = window.setTimeout(async () => {
-      setSaving(true);
       try {
         const success = await weddingService.updateNotes(weddingId, notes);
         if (success && onNotesChange) {
@@ -53,8 +51,6 @@ const Header = ({ onLogout, currentLanguage, onLanguageChange, chatLink, wedding
         }
       } catch (error) {
         console.error('Error saving notes:', error);
-      } finally {
-        setSaving(false);
       }
     }, 1000);
 

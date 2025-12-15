@@ -5,7 +5,6 @@ import { weddingService, taskService, documentService, clientService, presentati
 import type { Wedding, Task, Document, User, Presentation } from '../types';
 import { getTranslation } from '../utils/translations';
 import { getInitialLanguage } from '../utils/languageUtils';
-import ProjectsCalendar from '../components/ProjectsCalendar';
 import { WeddingModal, TaskModal, DocumentModal, PresentationModal } from '../components/modals';
 
 type ViewMode = 'overview' | 'weddings' | 'clients' | 'wedding-details';

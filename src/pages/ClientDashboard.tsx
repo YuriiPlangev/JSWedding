@@ -63,7 +63,6 @@ const ClientDashboard = () => {
 
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
       const splashHeight = splashRef.current.offsetHeight;
-      const windowHeight = window.innerHeight;
 
       // Заглушка должна скрываться, когда она полностью вышла из видимости
       // (когда scrollTop больше или равен высоте заглушки)
@@ -89,7 +88,6 @@ const ClientDashboard = () => {
   // Защита от сброса скролла при возврате на страницу
   useEffect(() => {
     const SCROLL_KEY = 'clientDashboard_scrollPosition';
-    let lastScrollPosition = window.pageYOffset || document.documentElement.scrollTop;
     let isRestoring = false;
     let scrollTimeout: number | null = null;
 
