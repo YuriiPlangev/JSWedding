@@ -3,7 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { weddingService, taskService, documentService, clientService, presentationService } from '../services/weddingService';
 import type { Wedding, Task, Document, User, Presentation } from '../types';
-// import ProjectsCalendar from '../components/ProjectsCalendar';
+import { getTranslation } from '../utils/translations';
+import { getInitialLanguage } from '../utils/languageUtils';
+import ProjectsCalendar from '../components/ProjectsCalendar';
+import { WeddingModal, TaskModal, DocumentModal, PresentationModal } from '../components/modals';
 
 type ViewMode = 'overview' | 'weddings' | 'clients' | 'wedding-details';
 
@@ -22,6 +25,10 @@ const OrganizerDashboard = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('overview');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Получаем язык из localStorage или используем русский по умолчанию
+  const currentLanguage = getInitialLanguage();
+  const t = getTranslation(currentLanguage);
 
   // Состояния для модальных окон
   const [showWeddingModal, setShowWeddingModal] = useState(false);
@@ -49,7 +56,7 @@ const OrganizerDashboard = () => {
       setClients(clientsData);
     } catch (err) {
       console.error('Error loading data:', err);
-      setError('Ошибка при загрузке данных. Попробуйте обновить страницу.');
+      setError(t.organizer.loadError);
     } finally {
       setLoading(false);
     }
@@ -107,7 +114,7 @@ const OrganizerDashboard = () => {
   };
 
   const handleDeleteWedding = async (weddingId: string) => {
-    if (!confirm('Вы уверены, что хотите удалить этот проект? Это действие нельзя отменить.')) {
+    if (!confirm(t.organizer.deleteProjectConfirm)) {
       return;
     }
 
@@ -120,11 +127,11 @@ const OrganizerDashboard = () => {
           setViewMode('weddings');
         }
       } else {
-        setError('Не удалось удалить проект');
+        setError(t.organizer.deleteError + ' ' + t.organizer.projects.toLowerCase());
       }
     } catch (err) {
       console.error('Error deleting wedding:', err);
-      setError('Ошибка при удалении проекта');
+      setError(t.organizer.deleteError + ' ' + t.organizer.projects.toLowerCase());
     }
   };
 
@@ -169,6 +176,9 @@ const OrganizerDashboard = () => {
         wedding_id: selectedWedding.id,
         title: taskData.title.trim(),
         status: taskData.status,
+        ...(taskData.title_en?.trim() && { title_en: taskData.title_en.trim() }),
+        ...(taskData.title_ru?.trim() && { title_ru: taskData.title_ru.trim() }),
+        ...(taskData.title_ua?.trim() && { title_ua: taskData.title_ua.trim() }),
         ...(taskData.due_date && taskData.due_date.trim() && { due_date: taskData.due_date }),
         ...(taskData.link && taskData.link.trim() && { link: taskData.link.trim() }),
         ...(taskData.link_text && taskData.link_text.trim() && { link_text: taskData.link_text.trim() }),
@@ -177,13 +187,13 @@ const OrganizerDashboard = () => {
       if (editingTask) {
         const result = await taskService.updateTask(editingTask.id, taskToSave, selectedWedding.id);
         if (!result) {
-          setError('Не удалось обновить задачу. Проверьте подключение к интернету и попробуйте снова.');
+          setError(t.organizer.updateError);
           return;
         }
       } else {
         const result = await taskService.createTask(taskToSave);
         if (!result) {
-          setError('Не удалось создать задачу. Проверьте подключение к интернету и попробуйте снова.');
+          setError(t.organizer.createError);
           return;
         }
       }
@@ -200,7 +210,7 @@ const OrganizerDashboard = () => {
   const handleDeleteTask = async (taskId: string) => {
     if (!selectedWedding) return;
 
-    if (!confirm('Вы уверены, что хотите удалить эту задачу?')) {
+    if (!confirm(t.organizer.deleteTaskConfirm)) {
       return;
     }
 
@@ -209,7 +219,7 @@ const OrganizerDashboard = () => {
       if (success) {
         await loadWeddingDetails(selectedWedding.id);
       } else {
-        setError('Не удалось удалить задачу');
+        setError(t.organizer.deleteError + ' ' + t.organizer.tasks.toLowerCase());
       }
     } catch (err) {
       console.error('Error deleting task:', err);
@@ -225,7 +235,7 @@ const OrganizerDashboard = () => {
   const handleDeleteDocument = async (document: Document) => {
     if (!selectedWedding) return;
 
-    if (!confirm('Вы уверены, что хотите удалить этот документ?')) {
+    if (!confirm(t.organizer.deleteDocumentConfirm)) {
       return;
     }
 
@@ -238,7 +248,7 @@ const OrganizerDashboard = () => {
       if (success) {
         await loadWeddingDetails(selectedWedding.id);
       } else {
-        setError('Не удалось удалить документ');
+        setError(t.organizer.deleteError + ' ' + t.organizer.documents.toLowerCase());
       }
     } catch (err) {
       console.error('Error deleting document:', err);
@@ -250,7 +260,7 @@ const OrganizerDashboard = () => {
   const handleDeletePresentation = async () => {
     if (!selectedWedding) return;
 
-    if (!confirm('Вы уверены, что хотите удалить презентацию свадьбы? После удаления будет показана презентация компании по умолчанию.')) {
+    if (!confirm(t.organizer.deletePresentationConfirm)) {
       return;
     }
 
@@ -259,7 +269,7 @@ const OrganizerDashboard = () => {
       if (success) {
         await loadWeddingDetails(selectedWedding.id);
       } else {
-        setError('Не удалось удалить презентацию');
+        setError(t.organizer.deleteError + ' ' + t.organizer.presentation.toLowerCase());
       }
     } catch (err) {
       console.error('Error deleting presentation:', err);
@@ -317,7 +327,7 @@ const OrganizerDashboard = () => {
       }
     } catch (err) {
       console.error('Error uploading presentation:', err);
-      setError('Ошибка при загрузке презентации');
+      setError(t.organizer.loadError);
     } finally {
       setUploadingPresentation(false);
     }
@@ -344,7 +354,7 @@ const OrganizerDashboard = () => {
       }
 
       if (!result) {
-        setError('Не удалось сохранить документ. Проверьте подключение к интернету и попробуйте снова.');
+        setError(t.organizer.saveError);
         return;
       }
 
@@ -504,7 +514,7 @@ const OrganizerDashboard = () => {
                   ))}
                 </div>
               ) : (
-                <p className="text-[16px] font-forum font-light text-[#00000080]">Нет свадеб</p>
+                <p className="text-[16px] font-forum font-light text-[#00000080]">{t.organizer.noProjects}</p>
               )}
             </div>
           </div>
@@ -513,12 +523,12 @@ const OrganizerDashboard = () => {
         {viewMode === 'weddings' && (
           <div>
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-[50px] max-[1599px]:text-[36px] lg:max-[1599px]:text-[32px] min-[1300px]:max-[1599px]:text-[38px] font-forum leading-tight text-black">Проекты</h2>
+              <h2 className="text-[50px] max-[1599px]:text-[36px] lg:max-[1599px]:text-[32px] min-[1300px]:max-[1599px]:text-[38px] font-forum leading-tight text-black">{t.organizer.projects}</h2>
               <button
                 onClick={handleCreateWedding}
                 className="px-4 md:px-6 py-2 md:py-3 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum"
               >
-                + Добавить проект
+                + {t.organizer.addProject}
               </button>
             </div>
 
@@ -535,14 +545,14 @@ const OrganizerDashboard = () => {
                           {wedding.couple_name_1_ru} & {wedding.couple_name_2_ru}
                         </h3>
                         <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">
-                          Дата: {new Date(wedding.wedding_date).toLocaleDateString('ru-RU')}
+                          {t.organizer.weddingDate}: {new Date(wedding.wedding_date).toLocaleDateString(currentLanguage === 'en' ? 'en-US' : currentLanguage === 'ua' ? 'uk-UA' : 'ru-RU')}
                         </p>
-                        <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">Место: {wedding.venue}</p>
-                        <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">Гостей: {wedding.guest_count}</p>
+                        <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">{t.organizer.place}: {wedding.venue}</p>
+                        <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">{t.organizer.guestCount}: {wedding.guest_count}</p>
                         {wedding.chat_link && (
                           <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-black mt-1">
                             <a href={wedding.chat_link} target="_blank" rel="noopener noreferrer" className="hover:underline cursor-pointer">
-                              Чат: {wedding.chat_link.length > 30 ? wedding.chat_link.substring(0, 30) + '...' : wedding.chat_link}
+                              {t.organizer.chat}: {wedding.chat_link.length > 30 ? wedding.chat_link.substring(0, 30) + '...' : wedding.chat_link}
                             </a>
                           </p>
                         )}
@@ -553,19 +563,19 @@ const OrganizerDashboard = () => {
                         onClick={() => loadWeddingDetails(wedding.id)}
                         className="flex-1 px-3 py-2 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[14px] font-forum"
                       >
-                        Подробнее
+                        {t.common.more}
                       </button>
                       <button
                         onClick={() => handleEditWedding(wedding)}
                         className="px-3 py-2 bg-white border border-[#00000033] text-black rounded-lg hover:bg-gray-50 transition-colors cursor-pointer text-[14px] font-forum"
                       >
-                        Редактировать
+                        {t.common.edit}
                       </button>
                       <button
                         onClick={() => handleDeleteWedding(wedding.id)}
                         className="px-3 py-2 bg-white border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors cursor-pointer text-[14px] font-forum"
                       >
-                        Удалить
+                        {t.common.delete}
                       </button>
                     </div>
                   </div>
@@ -573,12 +583,12 @@ const OrganizerDashboard = () => {
               </div>
               ) : (
               <div className="bg-white border border-[#00000033] rounded-lg p-12 text-center">
-                <p className="text-[16px] font-forum font-light text-[#00000080] mb-4">У вас пока нет проектов</p>
+                <p className="text-[16px] font-forum font-light text-[#00000080] mb-4">{t.organizer.noProjects}</p>
                 <button
                   onClick={handleCreateWedding}
                   className="px-4 md:px-6 py-2 md:py-3 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum"
                 >
-                  Создать первый проект
+                  {t.organizer.createFirstProject}
                 </button>
               </div>
             )}
@@ -593,7 +603,7 @@ const OrganizerDashboard = () => {
                   onClick={() => setViewMode('weddings')}
                   className="text-[16px] max-[1599px]:text-[14px] font-forum text-[#00000080] hover:text-black transition-colors mb-2 cursor-pointer"
                 >
-                  ← Назад к списку проектов
+                  {t.organizer.backToProjects}
                 </button>
                 <h2 className="text-[50px] max-[1599px]:text-[36px] lg:max-[1599px]:text-[32px] min-[1300px]:max-[1599px]:text-[38px] font-forum leading-tight text-black">
                   {selectedWedding.couple_name_1_ru} & {selectedWedding.couple_name_2_ru}
@@ -603,35 +613,40 @@ const OrganizerDashboard = () => {
                 onClick={() => handleEditWedding(selectedWedding)}
                 className="px-4 md:px-6 py-2 md:py-3 bg-white border border-[#00000033] text-black rounded-lg hover:bg-gray-50 transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum"
               >
-                Редактировать проект
+                {t.organizer.editProject}
               </button>
             </div>
 
             {/* Wedding Info */}
             <div className="bg-white border border-[#00000033] rounded-lg p-6 mb-6">
-              <h3 className="text-[24px] max-[1599px]:text-[20px] font-forum font-bold text-black mb-4">Информация о проекте</h3>
+              <h3 className="text-[24px] max-[1599px]:text-[20px] font-forum font-bold text-black mb-4">{t.organizer.projectInfo}</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">Дата свадьбы</p>
+                  <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">{t.organizer.weddingDate}</p>
                   <p className="text-[18px] max-[1599px]:text-[16px] font-forum font-bold text-black mt-1">
-                    {new Date(selectedWedding.wedding_date).toLocaleDateString('ru-RU')}
+                    {new Date(selectedWedding.wedding_date).toLocaleDateString(currentLanguage === 'en' ? 'en-US' : currentLanguage === 'ua' ? 'uk-UA' : 'ru-RU')}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">Страна</p>
-                  <p className="text-[18px] max-[1599px]:text-[16px] font-forum font-bold text-black mt-1">{selectedWedding.country}</p>
+                  <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">{t.organizer.country}</p>
+                  <p className="text-[18px] max-[1599px]:text-[16px] font-forum font-bold text-black mt-1">
+                    {currentLanguage === 'en' && selectedWedding.country_en ? selectedWedding.country_en :
+                     currentLanguage === 'ru' && selectedWedding.country_ru ? selectedWedding.country_ru :
+                     currentLanguage === 'ua' && selectedWedding.country_ua ? selectedWedding.country_ua :
+                     selectedWedding.country || selectedWedding.country_en || selectedWedding.country_ru || selectedWedding.country_ua || ''}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">Место</p>
+                  <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">{t.organizer.place}</p>
                   <p className="text-[18px] max-[1599px]:text-[16px] font-forum font-bold text-black mt-1">{selectedWedding.venue}</p>
                 </div>
                 <div>
-                  <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">Количество гостей</p>
+                  <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">{t.organizer.guestCount}</p>
                   <p className="text-[18px] max-[1599px]:text-[16px] font-forum font-bold text-black mt-1">{selectedWedding.guest_count}</p>
                 </div>
                 {selectedWedding.client && (
                   <div>
-                    <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">Клиент</p>
+                    <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">{t.organizer.client}</p>
                     <p className="text-[18px] max-[1599px]:text-[16px] font-forum font-bold text-black mt-1">{selectedWedding.client.name}</p>
                     <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080] mt-1">{selectedWedding.client.email}</p>
                   </div>
@@ -654,12 +669,12 @@ const OrganizerDashboard = () => {
             {/* Tasks */}
             <div className="bg-white border border-[#00000033] rounded-lg p-6 mb-6">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-[24px] max-[1599px]:text-[20px] font-forum font-bold text-black">Задачи</h3>
+                <h3 className="text-[24px] max-[1599px]:text-[20px] font-forum font-bold text-black">{t.organizer.tasks}</h3>
                 <button
                   onClick={handleCreateTask}
                   className="px-4 md:px-6 py-2 md:py-3 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum"
                 >
-                  + Добавить задачу
+                  + {t.organizer.addTask}
                 </button>
               </div>
               {selectedWedding.tasks && selectedWedding.tasks.length > 0 ? (
@@ -681,18 +696,23 @@ const OrganizerDashboard = () => {
                             }`}
                           >
                             {task.status === 'completed'
-                              ? 'Выполнено'
+                              ? t.organizer.taskStatus.completed
                               : task.status === 'in_progress'
-                              ? 'В работе'
-                              : 'Ожидает'}
+                              ? t.organizer.taskStatus.inProgress
+                              : t.organizer.taskStatus.pending}
                           </span>
                           {task.due_date && (
                             <span className="text-[12px] font-forum font-light text-[#00000080]">
-                              До: {new Date(task.due_date).toLocaleDateString('ru-RU')}
+                              {t.organizer.dueDate}: {new Date(task.due_date).toLocaleDateString(currentLanguage === 'en' ? 'en-US' : currentLanguage === 'ua' ? 'uk-UA' : 'ru-RU')}
                             </span>
                           )}
                         </div>
-                        <h4 className="text-[18px] max-[1599px]:text-[16px] font-forum font-bold text-black mt-2">{task.title}</h4>
+                        <h4 className="text-[18px] max-[1599px]:text-[16px] font-forum font-bold text-black mt-2">
+                          {currentLanguage === 'en' && task.title_en ? task.title_en :
+                           currentLanguage === 'ru' && task.title_ru ? task.title_ru :
+                           currentLanguage === 'ua' && task.title_ua ? task.title_ua :
+                           task.title || task.title_en || task.title_ru || task.title_ua || ''}
+                        </h4>
                         {task.link && task.link_text && (
                           <a
                             href={task.link.startsWith('http') ? task.link : `https://${task.link}`}
@@ -709,13 +729,13 @@ const OrganizerDashboard = () => {
                           onClick={() => handleEditTask(task)}
                           className="px-3 py-1 bg-white border border-[#00000033] text-black rounded hover:bg-gray-50 transition-colors cursor-pointer text-[14px] font-forum"
                         >
-                          Редактировать
+                          {t.common.edit}
                         </button>
                         <button
                           onClick={() => handleDeleteTask(task.id)}
                           className="px-3 py-1 bg-white border border-red-300 text-red-600 rounded hover:bg-red-50 transition-colors cursor-pointer text-[14px] font-forum"
                         >
-                          Удалить
+                          {t.common.delete}
                         </button>
                       </div>
                     </div>
@@ -729,12 +749,12 @@ const OrganizerDashboard = () => {
             {/* Documents */}
             <div className="bg-white border border-[#00000033] rounded-lg p-6 mb-6">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-[24px] max-[1599px]:text-[20px] font-forum font-bold text-black">Документы</h3>
+                <h3 className="text-[24px] max-[1599px]:text-[20px] font-forum font-bold text-black">{t.organizer.documents}</h3>
                 <button
                   onClick={handleCreateDocument}
                   className="px-4 md:px-6 py-2 md:py-3 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum"
                 >
-                  + Добавить документ
+                  + {t.organizer.addDocument}
                 </button>
               </div>
               {selectedWedding.documents && selectedWedding.documents.length > 0 ? (
@@ -746,10 +766,15 @@ const OrganizerDashboard = () => {
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <h4 className="text-[18px] max-[1599px]:text-[16px] font-forum font-bold text-black">{doc.name}</h4>
+                          <h4 className="text-[18px] max-[1599px]:text-[16px] font-forum font-bold text-black">
+                            {currentLanguage === 'en' && doc.name_en ? doc.name_en :
+                             currentLanguage === 'ru' && doc.name_ru ? doc.name_ru :
+                             currentLanguage === 'ua' && doc.name_ua ? doc.name_ua :
+                             doc.name || doc.name_en || doc.name_ru || doc.name_ua || ''}
+                          </h4>
                           {doc.pinned && (
                             <span className="px-2 py-1 text-[12px] font-forum bg-yellow-100 text-yellow-800 rounded">
-                              Закреплен
+                              {t.organizer.pinned}
                             </span>
                           )}
                         </div>
@@ -760,7 +785,7 @@ const OrganizerDashboard = () => {
                             rel="noopener noreferrer"
                             className="text-[14px] max-[1599px]:text-[13px] font-forum text-black hover:underline mt-1 inline-block cursor-pointer"
                           >
-                            Открыть ссылку →
+                            {t.organizer.openLink}
                           </a>
                         )}
                         {doc.file_url && (
@@ -770,19 +795,19 @@ const OrganizerDashboard = () => {
                             rel="noopener noreferrer"
                             className="text-[14px] max-[1599px]:text-[13px] font-forum text-black hover:underline mt-1 inline-block cursor-pointer"
                           >
-                            Скачать →
+                            {t.common.download} →
                           </a>
                         )}
                         {doc.file_size && (
                           <p className="text-[12px] font-forum font-light text-[#00000080] mt-1">
-                            Размер: {doc.file_size < 1024 * 1024 
+                            {t.organizer.size}: {doc.file_size < 1024 * 1024 
                               ? `${(doc.file_size / 1024).toFixed(2)} KB`
                               : `${(doc.file_size / 1024 / 1024).toFixed(2)} MB`}
                           </p>
                         )}
                         {doc.mime_type && (
                           <p className="text-[12px] font-forum font-light text-[#00000080]">
-                            Тип: {doc.mime_type}
+                            {t.organizer.type}: {doc.mime_type}
                           </p>
                         )}
                       </div>
@@ -791,20 +816,20 @@ const OrganizerDashboard = () => {
                           onClick={() => handleEditDocument(doc)}
                           className="px-3 py-1 bg-white border border-[#00000033] text-black rounded hover:bg-gray-50 transition-colors cursor-pointer text-[14px] font-forum"
                         >
-                          Редактировать
+                          {t.common.edit}
                         </button>
                         <button
                           onClick={() => handleDeleteDocument(doc)}
                           className="px-3 py-1 bg-white border border-red-300 text-red-600 rounded hover:bg-red-50 transition-colors cursor-pointer text-[14px] font-forum"
                         >
-                          Удалить
+                          {t.common.delete}
                         </button>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-[16px] font-forum font-light text-[#00000080]">Документов пока нет</p>
+                <p className="text-[16px] font-forum font-light text-[#00000080]">{t.organizer.noDocuments}</p>
               )}
             </div>
 
@@ -818,7 +843,7 @@ const OrganizerDashboard = () => {
                       onClick={handleDeletePresentation}
                       className="px-4 md:px-6 py-2 md:py-3 bg-white border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum"
                     >
-                      Удалить презентацию
+                      {t.organizer.deletePresentation}
                     </button>
                   )}
                   <button
@@ -834,12 +859,12 @@ const OrganizerDashboard = () => {
               <div className="space-y-2">
                 <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">
                   {selectedWedding.presentation && selectedWedding.presentation.type === 'wedding' 
-                    ? `Тип: Презентация свадьбы - "${selectedWedding.presentation.title}"`
-                    : 'Тип: Презентация компании (по умолчанию)'}
+                    ? `${t.organizer.type}: ${t.organizer.weddingPresentation} - "${selectedWedding.presentation.title}"`
+                    : `${t.organizer.type}: ${t.organizer.defaultCompanyPresentation}`}
                 </p>
                 {selectedWedding.presentation && selectedWedding.presentation.sections && (
                   <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">
-                    Секций: {selectedWedding.presentation.sections.length}
+                    {t.organizer.sections}: {selectedWedding.presentation.sections.length}
                   </p>
                 )}
               </div>
@@ -894,601 +919,6 @@ const OrganizerDashboard = () => {
           uploading={uploadingPresentation}
         />
       )}
-    </div>
-  );
-};
-
-// Wedding Modal Component
-interface WeddingModalProps {
-  wedding: Wedding | null;
-  clients: User[];
-  onClose: () => void;
-  onSave: (data: Omit<Wedding, 'id' | 'created_at' | 'updated_at'>) => void;
-}
-
-const WeddingModal = ({ wedding, clients, onClose, onSave }: WeddingModalProps) => {
-  const [formData, setFormData] = useState({
-    client_id: wedding?.client_id || '',
-    couple_name_1_en: wedding?.couple_name_1_en || '',
-    couple_name_1_ru: wedding?.couple_name_1_ru || '',
-    couple_name_2_en: wedding?.couple_name_2_en || '',
-    couple_name_2_ru: wedding?.couple_name_2_ru || '',
-    wedding_date: wedding?.wedding_date || '',
-    country: wedding?.country || '',
-    venue: wedding?.venue || '',
-    guest_count: wedding?.guest_count || 0,
-    chat_link: wedding?.chat_link || '',
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave(formData as Omit<Wedding, 'id' | 'created_at' | 'updated_at'>);
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#FBF9F5] border border-[#00000033] rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-[32px] max-[1599px]:text-[24px] font-forum font-bold text-black">
-              {wedding ? 'Редактировать проект' : 'Создать проект'}
-            </h2>
-            <button onClick={onClose} className="text-[#00000080] hover:text-black transition-colors cursor-pointer text-2xl font-light">
-              ✕
-            </button>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
-                Клиент *
-              </label>
-              <select
-                required
-                value={formData.client_id}
-                onChange={(e) => setFormData({ ...formData, client_id: e.target.value })}
-                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum cursor-pointer bg-white"
-                disabled={!!wedding}
-              >
-                <option value="">Выберите клиента</option>
-                {clients.map((client) => (
-                  <option key={client.id} value={client.id}>
-                    {client.name} ({client.email})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
-                  Имя партнера 1 (EN) *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.couple_name_1_en}
-                  onChange={(e) => setFormData({ ...formData, couple_name_1_en: e.target.value })}
-                  className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
-                />
-              </div>
-              <div>
-                <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
-                  Имя партнера 1 (RU) *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.couple_name_1_ru}
-                  onChange={(e) => setFormData({ ...formData, couple_name_1_ru: e.target.value })}
-                  className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
-                  Имя партнера 2 (EN) *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.couple_name_2_en}
-                  onChange={(e) => setFormData({ ...formData, couple_name_2_en: e.target.value })}
-                  className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
-                />
-              </div>
-              <div>
-                <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
-                  Имя партнера 2 (RU) *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.couple_name_2_ru}
-                  onChange={(e) => setFormData({ ...formData, couple_name_2_ru: e.target.value })}
-                  className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
-                Дата свадьбы *
-              </label>
-              <input
-                type="date"
-                required
-                value={formData.wedding_date}
-                onChange={(e) => setFormData({ ...formData, wedding_date: e.target.value })}
-                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white cursor-pointer"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
-                Страна *
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.country}
-                onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
-                Место празднования *
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.venue}
-                onChange={(e) => setFormData({ ...formData, venue: e.target.value })}
-                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
-                Количество гостей *
-              </label>
-              <input
-                type="number"
-                required
-                min="0"
-                value={formData.guest_count}
-                onChange={(e) => setFormData({ ...formData, guest_count: parseInt(e.target.value) })}
-                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
-                Ссылка на чат с организатором
-              </label>
-              <input
-                type="url"
-                value={formData.chat_link}
-                onChange={(e) => setFormData({ ...formData, chat_link: e.target.value })}
-                placeholder="https://t.me/..."
-                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
-              />
-            </div>
-
-            <div className="flex justify-end space-x-3 pt-4">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 md:px-6 py-2 md:py-3 border border-[#00000033] rounded-lg text-black hover:bg-white transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum bg-[#FBF9F5]"
-              >
-                Отмена
-              </button>
-              <button
-                type="submit"
-                className="px-4 md:px-6 py-2 md:py-3 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum"
-              >
-                {wedding ? 'Сохранить' : 'Создать'}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Task Modal Component
-interface TaskModalProps {
-  task: Task | null;
-  onClose: () => void;
-  onSave: (data: Omit<Task, 'id' | 'created_at' | 'updated_at'>) => void;
-}
-
-const TaskModal = ({ task, onClose, onSave }: TaskModalProps) => {
-  const [formData, setFormData] = useState({
-    title: task?.title || '',
-    link: task?.link || '',
-    link_text: task?.link_text || '',
-    due_date: task?.due_date || '',
-    status: (task?.status || 'pending') as 'pending' | 'in_progress' | 'completed',
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Валидация: название задачи обязательно
-    if (!formData.title.trim()) {
-      return;
-    }
-    
-    // Подготавливаем данные, убирая пустые опциональные поля
-    const taskData: Omit<Task, 'id' | 'created_at' | 'updated_at'> = {
-      wedding_id: '', // Будет добавлено в родительском компоненте
-      title: formData.title.trim(),
-      status: formData.status,
-      ...(formData.due_date && formData.due_date.trim() && { due_date: formData.due_date }),
-      ...(formData.link && formData.link.trim() && { link: formData.link.trim() }),
-      ...(formData.link_text && formData.link_text.trim() && { link_text: formData.link_text.trim() }),
-    };
-    
-    onSave(taskData);
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#FBF9F5] border border-[#00000033] rounded-lg max-w-lg w-full">
-        <div className="p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-[32px] max-[1599px]:text-[24px] font-forum font-bold text-black">
-              {task ? 'Редактировать задачу' : 'Создать задачу'}
-            </h2>
-            <button onClick={onClose} className="text-[#00000080] hover:text-black transition-colors cursor-pointer text-2xl font-light">
-              ✕
-            </button>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
-                Название задачи *
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
-                Статус
-              </label>
-              <select
-                value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value as 'pending' | 'in_progress' | 'completed' })}
-                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum cursor-pointer bg-white"
-              >
-                <option value="pending">Ожидает</option>
-                <option value="in_progress">В работе</option>
-                <option value="completed">Выполнено</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
-                Срок выполнения
-              </label>
-              <input
-                type="date"
-                value={formData.due_date}
-                onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white cursor-pointer"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
-                Ссылка (опционально)
-              </label>
-              <input
-                type="url"
-                value={formData.link}
-                onChange={(e) => setFormData({ ...formData, link: e.target.value })}
-                placeholder="https://example.com"
-                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
-                Текст ссылки (опционально)
-              </label>
-              <input
-                type="text"
-                value={formData.link_text}
-                onChange={(e) => setFormData({ ...formData, link_text: e.target.value })}
-                placeholder="Нажмите здесь"
-                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
-              />
-            </div>
-
-            <div className="flex justify-end space-x-3 pt-4">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 md:px-6 py-2 md:py-3 border border-[#00000033] rounded-lg text-black hover:bg-white transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum bg-[#FBF9F5]"
-              >
-                Отмена
-              </button>
-              <button
-                type="submit"
-                className="px-4 md:px-6 py-2 md:py-3 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum"
-              >
-                {task ? 'Сохранить' : 'Создать'}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Document Modal Component
-interface DocumentModalProps {
-  document: Document | null;
-  weddingId: string;
-  onClose: () => void;
-  onSave: (
-    data: Omit<Document, 'id' | 'created_at' | 'updated_at' | 'file_url'>,
-    file?: File
-  ) => void;
-}
-
-const DocumentModal = ({ document, weddingId, onClose, onSave }: DocumentModalProps) => {
-  const [formData, setFormData] = useState({
-    name: document?.name || '',
-    link: document?.link || '',
-    pinned: document?.pinned || false,
-  });
-  const [error, setError] = useState<string | null>(null);
-
-  const handleLinkChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const link = e.target.value;
-    setFormData({ ...formData, link });
-    setError(null);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-
-    if (!formData.name.trim()) {
-      setError('Пожалуйста, укажите название документа');
-      return;
-    }
-
-    const docData: Omit<Document, 'id' | 'created_at' | 'updated_at' | 'file_url'> = {
-      wedding_id: weddingId,
-      name: formData.name.trim(),
-      pinned: formData.pinned,
-      ...(formData.link && formData.link.trim() && { link: formData.link.trim() }),
-    };
-
-    // Создаем/обновляем документ (только со ссылкой или без ссылки)
-    try {
-      await onSave(docData, undefined);
-      onClose();
-    } catch (err) {
-      setError('Ошибка при сохранении документа');
-      console.error('Error saving document:', err);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#FBF9F5] border border-[#00000033] rounded-lg max-w-lg w-full">
-        <div className="p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-[32px] max-[1599px]:text-[24px] font-forum font-bold text-black">
-              {document ? 'Редактировать документ' : 'Создать документ'}
-            </h2>
-            <button onClick={onClose} className="text-[#00000080] hover:text-black transition-colors cursor-pointer text-2xl font-light">
-              ✕
-            </button>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
-                Название документа *
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
-                Ссылка на документ (Google Docs/Sheets/Drive) <span className="font-normal text-[#00000080]">(опционально)</span>
-              </label>
-              <input
-                type="url"
-                value={formData.link}
-                onChange={handleLinkChange}
-                placeholder="https://docs.google.com/..."
-                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
-              />
-              <p className="text-[12px] font-forum font-light text-[#00000080] mt-1">
-                Укажите ссылку на документ в Google Docs, Google Sheets, Google Drive или другой сервис
-              </p>
-            </div>
-
-            {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-[14px] font-forum text-red-600">{error}</p>
-              </div>
-            )}
-
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="pinned"
-                checked={formData.pinned}
-                onChange={(e) => setFormData({ ...formData, pinned: e.target.checked })}
-                className="h-4 w-4 text-black focus:ring-black border-[#00000033] rounded cursor-pointer"
-              />
-              <label htmlFor="pinned" className="ml-2 block text-[16px] max-[1599px]:text-[14px] font-forum text-black cursor-pointer">
-                Закрепить документ
-              </label>
-            </div>
-
-            <div className="flex justify-end space-x-3 pt-4">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 md:px-6 py-2 md:py-3 border border-[#00000033] rounded-lg text-black hover:bg-white transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum bg-[#FBF9F5]"
-              >
-                Отмена
-              </button>
-              <button
-                type="submit"
-                className="px-4 md:px-6 py-2 md:py-3 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum"
-              >
-                {document ? 'Сохранить' : 'Создать'}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Модальное окно для загрузки презентации
-interface PresentationModalProps {
-  onClose: () => void;
-  onUpload: (files: FileList | null) => void;
-  uploading: boolean;
-}
-
-const PresentationModal = ({ onClose, onUpload, uploading }: PresentationModalProps) => {
-  const [files, setFiles] = useState<FileList | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = e.target.files;
-    if (selectedFiles && selectedFiles.length > 0) {
-      // Проверяем, что выбрано не более 4 файлов
-      if (selectedFiles.length > 4) {
-        setError('Можно загрузить максимум 4 изображения');
-        return;
-      }
-      // Проверяем типы файлов
-      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-      for (let i = 0; i < selectedFiles.length; i++) {
-        if (!validTypes.includes(selectedFiles[i].type)) {
-          setError('Поддерживаются только изображения (JPEG, PNG, WebP)');
-          return;
-        }
-      }
-      setFiles(selectedFiles);
-      setError(null);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!files || files.length === 0) {
-      setError('Пожалуйста, выберите изображения');
-      return;
-    }
-    onUpload(files);
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#FBF9F5] border border-[#00000033] rounded-lg max-w-lg w-full">
-        <div className="p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-[32px] max-[1599px]:text-[24px] font-forum font-bold text-black">
-              Загрузить презентацию
-            </h2>
-            <button 
-              onClick={onClose} 
-              disabled={uploading}
-              className="text-[#00000080] hover:text-black transition-colors cursor-pointer text-2xl font-light disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              ✕
-            </button>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080] mb-4">
-                Выберите до 4 изображений для презентации. Каждое изображение будет соответствовать одной секции презентации.
-              </p>
-              <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
-                Изображения (JPEG, PNG, WebP) *
-              </label>
-              <input
-                type="file"
-                accept="image/jpeg,image/jpg,image/png,image/webp"
-                multiple
-                onChange={handleFileChange}
-                disabled={uploading}
-                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white disabled:opacity-50 disabled:cursor-not-allowed"
-              />
-              {files && files.length > 0 && (
-                <div className="mt-2">
-                  <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-black mb-2">
-                    Выбрано файлов: {files.length}
-                  </p>
-                  <ul className="list-disc list-inside text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">
-                    {Array.from(files).map((file, index) => (
-                      <li key={index}>{file.name} ({(file.size / 1024).toFixed(2)} KB)</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-
-            {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                <p className="text-[14px] font-forum text-red-800">{error}</p>
-              </div>
-            )}
-
-            <div className="flex justify-end space-x-3 pt-4">
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={uploading}
-                className="px-4 py-2 bg-white border border-[#00000033] text-black rounded-lg hover:bg-gray-50 transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Отмена
-              </button>
-              <button
-                type="submit"
-                disabled={uploading || !files || files.length === 0}
-                className="px-4 py-2 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {uploading ? 'Загрузка...' : 'Загрузить'}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
     </div>
   );
 };

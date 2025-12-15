@@ -56,11 +56,20 @@ const parseTextWithLinks = (text: string) => {
   return parts;
 };
 
-const TasksList = ({ tasks, onTaskToggle }: TasksListProps) => {
+const TasksList = ({ tasks, onTaskToggle, currentLanguage = 'ru' }: TasksListProps) => {
   const handleCheckboxChange = (taskId: string, checked: boolean) => {
     if (onTaskToggle) {
       onTaskToggle(taskId, checked);
     }
+  };
+
+  // Функция для получения названия задания на текущем языке
+  const getTaskTitle = (task: Task): string => {
+    if (currentLanguage === 'en' && task.title_en) return task.title_en;
+    if (currentLanguage === 'ru' && task.title_ru) return task.title_ru;
+    if (currentLanguage === 'ua' && task.title_ua) return task.title_ua;
+    // Fallback на основное поле title или первое доступное
+    return task.title || task.title_en || task.title_ru || task.title_ua || '';
   };
 
   if (tasks.length === 0) {
@@ -71,6 +80,7 @@ const TasksList = ({ tasks, onTaskToggle }: TasksListProps) => {
     <ul className='pr-4 max-[1599px]:pr-4 md:max-[1599px]:pr-6 lg:max-[1599px]:pr-8 min-[1300px]:max-[1599px]:pr-10'>
       {tasks.map((task) => {
         const isCompleted = task.status === 'completed';
+        const taskTitle = getTaskTitle(task);
 
         return (
           <li key={task.id} className='flex items-center gap-8 max-[1599px]:gap-4 lg:max-[1599px]:gap-4 min-[1300px]:max-[1599px]:gap-6 py-6 max-[1599px]:py-3 lg:max-[1599px]:py-3 min-[1300px]:max-[1599px]:py-4'>
@@ -87,7 +97,7 @@ const TasksList = ({ tasks, onTaskToggle }: TasksListProps) => {
               className='text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-light'
             >
               {/* Парсим текст задания на наличие ссылок в формате [текст](ссылка) */}
-              {parseTextWithLinks(task.title).map((part, index) => {
+              {parseTextWithLinks(taskTitle).map((part, index) => {
                 if (part.type === 'link') {
                   return (
                     <a

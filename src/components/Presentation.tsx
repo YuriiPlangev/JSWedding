@@ -97,7 +97,7 @@ const Presentation = ({ presentation, currentLanguage = 'ua' }: PresentationProp
   };
 
   return (
-    <div className="flex bg-[#eae6db] w-full relative" style={{ minHeight: '100vh', height: '100vh' }}>
+    <div className="flex bg-[#eae6db] w-full relative font-forum" style={{ minHeight: '100vh', height: '100vh' }}>
       {/* Кнопка открытия/закрытия меню на мобильных */}
       {isMobile && (
         <button
@@ -134,8 +134,8 @@ const Presentation = ({ presentation, currentLanguage = 'ua' }: PresentationProp
         )}
 
         <div className="border-b border-[#00000033] py-1 min-[1600px]:py-2 px-1.5 sm:px-2 md:px-3 min-[1600px]:px-4 md:min-[1600px]:px-8 lg:min-[1600px]:px-12 xl:min-[1600px]:px-[60px]">
-          <h1 className="text-[14px] sm:text-[16px] md:text-[18px] lg:text-[20px] min-[1600px]:text-[50px] font-forum mb-0.5 min-[1600px]:mb-1 wrap-break-word">{title}</h1>
-          <p className="text-[10px] sm:text-[11px] md:text-[12px] min-[1600px]:text-[16px] font-forum font-light text-[#00000080]">
+          <h1 className="text-[50px] max-[1599px]:text-[14px] sm:max-[1599px]:text-[16px] md:max-[1599px]:text-[18px] lg:max-[1599px]:text-[20px] font-forum mb-0.5 min-[1600px]:mb-1 wrap-break-word">{title}</h1>
+          <p className="text-[24px] max-[1599px]:text-[10px] sm:max-[1599px]:text-[11px] md:max-[1599px]:text-[12px] lg:max-[1599px]:text-[12px] font-forum font-light text-[#00000080]">
             {translations.presentation.sections}
           </p>
         </div>

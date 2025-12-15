@@ -294,6 +294,11 @@ html::-webkit-scrollbar {
   font-family: "AnastasiaScript Regular", cursive !important;
 }
 
+/* Убеждаемся, что font-forum применяется правильно */
+.font-forum {
+  font-family: "Forum", system-ui, serif !important;
+}
+
 /* Анимация изменения цвета текста с черного на белый */
 @keyframes text-to-white {
   0% {

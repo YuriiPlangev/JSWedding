@@ -13,6 +13,15 @@ const DocumentsList = ({ documents, currentLanguage = 'ru' }: DocumentsListProps
   const scrollableRef = useRef<HTMLDivElement>(null);
   const [downloadingIds, setDownloadingIds] = useState<Set<string>>(new Set());
 
+  // Функция для получения названия документа на текущем языке
+  const getDocumentName = (doc: Document): string => {
+    if (currentLanguage === 'en' && doc.name_en) return doc.name_en;
+    if (currentLanguage === 'ru' && doc.name_ru) return doc.name_ru;
+    if (currentLanguage === 'ua' && doc.name_ua) return doc.name_ua;
+    // Fallback на основное поле name или первое доступное
+    return doc.name || doc.name_en || doc.name_ru || doc.name_ua || '';
+  };
+
   useEffect(() => {
     // Дополнительная попытка скрыть стрелки через JavaScript для Chrome
     if (scrollableRef.current) {
@@ -131,7 +140,7 @@ const DocumentsList = ({ documents, currentLanguage = 'ru' }: DocumentsListProps
       await new Promise(resolve => setTimeout(resolve, 1500));
     } catch (error) {
       console.error('Error downloading document:', error);
-      alert('Ошибка при скачивании документа. Попробуйте обновить страницу.');
+      alert(getTranslation(currentLanguage).common.downloadError);
     } finally {
       setDownloadingIds((prev) => {
         const newSet = new Set(prev);
@@ -172,11 +181,11 @@ const DocumentsList = ({ documents, currentLanguage = 'ru' }: DocumentsListProps
                         onClick={(e) => handleLinkClick(doc, e)}
                         className={downloadingClassName}
                       >
-                        {doc.name}
+                        {getDocumentName(doc)}
                       </a>
                     ) : (
                       <span className={downloadingClassName}>
-                        {doc.name}
+                        {getDocumentName(doc)}
                       </span>
                     )}
                   {isDownloading ? (
@@ -188,7 +197,7 @@ const DocumentsList = ({ documents, currentLanguage = 'ru' }: DocumentsListProps
                       <button
                         onClick={(e) => handleDownload(doc, e)}
                         className="cursor-pointer hover:opacity-70 transition-opacity pr-[10px]"
-                        aria-label="Скачать документ"
+                        aria-label={getTranslation(currentLanguage).common.downloadDocument}
                         type="button"
                       >
                         <img src={downloadIcon} alt="download" className='w-4 h-4 md:w-5 md:h-5 lg:w-4 lg:h-4 xl:w-5 xl:h-5 opacity-60' />
@@ -229,11 +238,11 @@ const DocumentsList = ({ documents, currentLanguage = 'ru' }: DocumentsListProps
                         onClick={(e) => handleLinkClick(doc, e)}
                         className={downloadingClassName}
                       >
-                        {doc.name}
+                        {getDocumentName(doc)}
                       </a>
                     ) : (
                       <span className={downloadingClassName}>
-                        {doc.name}
+                        {getDocumentName(doc)}
                       </span>
                     )}
                     {isDownloading ? (
@@ -245,7 +254,7 @@ const DocumentsList = ({ documents, currentLanguage = 'ru' }: DocumentsListProps
                         <button
                           onClick={(e) => handleDownload(doc, e)}
                           className="cursor-pointer hover:opacity-70 transition-opacity"
-                          aria-label="Скачать документ"
+                          aria-label={getTranslation(currentLanguage).common.downloadDocument}
                           type="button"
                         >
                           <img src={downloadIcon} alt="download" className='w-4 h-4 md:w-5 md:h-5 lg:w-4 lg:h-4 xl:w-5 xl:h-5 opacity-60' />

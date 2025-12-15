@@ -7,8 +7,11 @@ import TasksList from '../components/TasksList';
 import DocumentsList from '../components/DocumentsList';
 import MobileNotSupported from '../components/MobileNotSupported';
 import Presentation from '../components/Presentation';
+import SplashScreen from '../components/SplashScreen';
+import WelcomeSection from '../components/WelcomeSection';
+import WeddingDetailsSection from '../components/WeddingDetailsSection';
 import { getTranslation } from '../utils/translations';
-import scrollDown from '../assets/scroll-down.svg';
+import { getInitialLanguage } from '../utils/languageUtils';
 
 const ClientDashboard = () => {
   const { user, logout } = useAuth();
@@ -18,14 +21,6 @@ const ClientDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // Загружаем язык из localStorage при инициализации
-  const getInitialLanguage = (): 'en' | 'ru' | 'ua' => {
-    const savedLanguage = localStorage.getItem('preferredLanguage');
-    if (savedLanguage === 'en' || savedLanguage === 'ru' || savedLanguage === 'ua') {
-      return savedLanguage;
-    }
-    return 'ru';
-  };
-
   const [currentLanguage, setCurrentLanguage] = useState<'en' | 'ru' | 'ua'>(getInitialLanguage());
   
   // Обработчик изменения языка с сохранением в localStorage
@@ -35,6 +30,8 @@ const ClientDashboard = () => {
   };
 
   const [isMobile, setIsMobile] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
+  const [splashRemoved, setSplashRemoved] = useState(false);
   const splashRef = useRef<HTMLDivElement>(null);
   const dataLoadedRef = useRef<string | null>(null); // Отслеживаем, для какого user уже загружены данные
   const isLoadingRef = useRef(false); // Предотвращаем параллельные загрузки
@@ -57,6 +54,38 @@ const ClientDashboard = () => {
 
   const [savedCoupleNames, setSavedCoupleNames] = useState<{ name1: string; name2: string } | null>(getSavedCoupleNames());
 
+  // Скрытие заглушки при прокрутке
+  useEffect(() => {
+    let hideTimeout: number | null = null;
+
+    const handleScroll = () => {
+      if (!splashRef.current || !showSplash || splashRemoved) return;
+
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const splashHeight = splashRef.current.offsetHeight;
+      const windowHeight = window.innerHeight;
+
+      // Заглушка должна скрываться, когда она полностью вышла из видимости
+      // (когда scrollTop больше или равен высоте заглушки)
+      // В этот момент в верхней части экрана будет виден хедер
+      if (scrollTop >= splashHeight) {
+        setShowSplash(false);
+        // После завершения анимации (800ms) полностью удаляем элемент из DOM
+        if (hideTimeout) clearTimeout(hideTimeout);
+        hideTimeout = window.setTimeout(() => {
+          setSplashRemoved(true);
+        }, 800);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (hideTimeout) clearTimeout(hideTimeout);
+    };
+  }, [showSplash, splashRemoved]);
+
   // Защита от сброса скролла при возврате на страницу
   useEffect(() => {
     const SCROLL_KEY = 'clientDashboard_scrollPosition';
@@ -78,8 +107,15 @@ const ClientDashboard = () => {
       const saved = sessionStorage.getItem(SCROLL_KEY);
       if (saved) {
         const savedPosition = parseInt(saved, 10);
-        if (savedPosition > 0) {
+        const splashHeight = splashRef.current?.offsetHeight || 0;
+        
+        // Если сохраненная позиция находится в области заглушки, не восстанавливаем её
+        // (пользователь должен увидеть заглушку при перезагрузке)
+        if (savedPosition > 0 && savedPosition > splashHeight) {
           isRestoring = true;
+          // Скрываем заглушку, если позиция была после неё
+          setShowSplash(false);
+          setSplashRemoved(true);
           // Используем несколько попыток для надежности
           const attemptRestore = (attempts = 0) => {
             if (attempts > 10) {
@@ -87,76 +123,61 @@ const ClientDashboard = () => {
               return;
             }
             const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
-            if (currentScroll !== savedPosition && savedPosition > 100) {
-              window.scrollTo(0, savedPosition);
+            if (Math.abs(currentScroll - savedPosition) > 10 && savedPosition > splashHeight) {
+              window.scrollTo({
+                top: savedPosition,
+                behavior: 'auto' // Используем auto вместо smooth, чтобы избежать конфликтов
+              });
               requestAnimationFrame(() => attemptRestore(attempts + 1));
             } else {
               isRestoring = false;
             }
           };
-          requestAnimationFrame(() => attemptRestore());
+          // Небольшая задержка перед восстановлением, чтобы заглушка успела скрыться
+          setTimeout(() => {
+            requestAnimationFrame(() => attemptRestore());
+          }, 100);
         }
       }
     };
 
     // Отслеживаем изменения скролла и предотвращаем нежелательные сбросы
     const handleScroll = () => {
+      // Если идет восстановление позиции, не сохраняем и не вмешиваемся
       if (isRestoring) return;
       
       const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
       
-      // Если скролл внезапно стал 0 без явного действия пользователя, восстанавливаем
-      if (currentScroll === 0 && lastScrollPosition > 100) {
-        const saved = sessionStorage.getItem(SCROLL_KEY);
-        if (saved) {
-          const savedPosition = parseInt(saved, 10);
-          if (savedPosition > 0) {
-            // Небольшая задержка, чтобы убедиться, что это не намеренный скролл
-            if (scrollTimeout) window.clearTimeout(scrollTimeout);
-            scrollTimeout = window.setTimeout(() => {
-              const newScroll = window.pageYOffset || document.documentElement.scrollTop;
-              if (newScroll === 0 && savedPosition > 100) {
-                window.scrollTo(0, savedPosition);
-              }
-            }, 100);
-          }
-        }
-      } else {
-        lastScrollPosition = currentScroll;
-        saveScrollPosition();
-      }
+      // Сохраняем позицию скролла только если пользователь активно прокручивает
+      // (не во время восстановления)
+      lastScrollPosition = currentScroll;
+      saveScrollPosition();
     };
 
     // Сохраняем позицию при потере видимости/фокуса
     const handleVisibilityChange = () => {
       if (document.hidden) {
         saveScrollPosition();
-      } else {
-        // Восстанавливаем при возврате видимости
-        setTimeout(() => {
-          restoreScrollPosition();
-        }, 50);
       }
+      // Не восстанавливаем при возврате видимости, чтобы избежать конфликтов
     };
 
     const handleBlur = () => {
       saveScrollPosition();
     };
 
-    const handleFocus = () => {
-      setTimeout(() => {
-        restoreScrollPosition();
-      }, 50);
-    };
-
-    // Восстанавливаем позицию при монтировании компонента
-    restoreScrollPosition();
+    // Восстанавливаем позицию только при монтировании компонента (первая загрузка)
+    // Используем useRef для отслеживания, чтобы восстановить только один раз
+    const hasRestoredRef = { current: false };
+    if (!hasRestoredRef.current) {
+      hasRestoredRef.current = true;
+      restoreScrollPosition();
+    }
 
     // Подписываемся на события
     window.addEventListener('scroll', handleScroll, { passive: true });
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('blur', handleBlur);
-    window.addEventListener('focus', handleFocus);
 
     // Сохраняем позицию периодически
     const saveInterval = setInterval(saveScrollPosition, 1000);
@@ -165,7 +186,6 @@ const ClientDashboard = () => {
       window.removeEventListener('scroll', handleScroll);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('blur', handleBlur);
-      window.removeEventListener('focus', handleFocus);
       if (scrollTimeout) window.clearTimeout(scrollTimeout);
       clearInterval(saveInterval);
       saveScrollPosition(); // Сохраняем при размонтировании
@@ -175,7 +195,8 @@ const ClientDashboard = () => {
   // Проверка размера экрана для мобильных устройств
   useEffect(() => {
     const checkScreenSize = () => {
-      setIsMobile(window.innerWidth < 1024); // lg breakpoint в Tailwind
+      // Показываем заглушку только на действительно мобильных устройствах (до 768px)
+      setIsMobile(window.innerWidth < 768);
     };
 
     // Проверяем при загрузке
@@ -262,32 +283,6 @@ const ClientDashboard = () => {
   }, [user?.id, loadWeddingData]); // Используем user?.id вместо user, чтобы избежать лишних перезагрузок
 
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const day = date.getDate();
-    const monthIndex = date.getMonth();
-    const year = date.getFullYear();
-    
-    const translations = getTranslation(currentLanguage);
-    const monthNames = [
-      translations.months.january,
-      translations.months.february,
-      translations.months.march,
-      translations.months.april,
-      translations.months.may,
-      translations.months.june,
-      translations.months.july,
-      translations.months.august,
-      translations.months.september,
-      translations.months.october,
-      translations.months.november,
-      translations.months.december,
-    ];
-    
-    const monthName = monthNames[monthIndex];
-    
-    return `${day} ${monthName} ${year}`;
-  };
 
   const handleTaskToggle = async (taskId: string, completed: boolean) => {
     if (!wedding) return;
@@ -330,18 +325,6 @@ const ClientDashboard = () => {
     }
   };
 
-  const calculateDaysUntilWedding = (weddingDate: string): number => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Устанавливаем начало дня для точного расчета
-    
-    const wedding = new Date(weddingDate);
-    wedding.setHours(0, 0, 0, 0);
-    
-    const diffTime = wedding.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    return diffDays > 0 ? diffDays : 0;
-  };
 
   // Показываем страницу для мобильных устройств, если экран меньше ноутбучного
   if (isMobile) {
@@ -357,33 +340,15 @@ const ClientDashboard = () => {
     <div className="relative">
       {/* Заглушка - первая секция */}
       {(loading || wedding) && (
-        <div 
-          ref={splashRef}
-          className="relative h-screen w-full flex items-center justify-center"
-        >
-          <div className="text-center -mt-16">
-            {/* Имена пары - показываем сохраненные имена сразу, чтобы избежать "прыжка" */}
-            {(wedding || savedCoupleNames) && (
-              <h1 
-                className="text-[36px] sm:text-[54px] md:text-[72px] lg:text-[58px] max-[1599px]:lg:text-[58px] min-[1600px]:lg:text-[90px] xl:text-[90px] max-[1599px]:xl:text-[76px] min-[1600px]:xl:text-[117px] font-sloop text-black px-4 leading-[1.1]"
-              >
-                {(wedding?.couple_name_1_en || savedCoupleNames?.name1 || '')} <span className='font-sloop'> & </span>  {(wedding?.couple_name_2_en || savedCoupleNames?.name2 || '')} 
-              </h1>
-            )}
-            {/* Приветственный текст */}
-            <p 
-              className="text-[18px] sm:text-[23px] md:text-[28px] lg:text-[23px] max-[1599px]:lg:text-[23px] min-[1600px]:lg:text-[36px] xl:text-[38px] max-[1599px]:xl:text-[30px] min-[1600px]:xl:text-[47px] text-black px-4 leading-[1.2] mt-6 md:mt-8 lg:mt-6 xl:mt-8 font-branch"
-            >
-              Welcome to your wedding organization space!
-            </p>
-          </div>
-          
-          {/* Scroll down indicator */}
-          <div className="absolute bottom-4 lg:bottom-4 max-[1599px]:lg:bottom-4 min-[1600px]:xl:bottom-8 left-1/2 transform -translate-x-1/2 z-30 flex flex-col items-center">
-            <img src={scrollDown} alt="scrollDown" className='brightness-0 w-8 h-8 md:w-10 md:h-10 lg:w-8 lg:h-8 xl:w-10 xl:h-10' />
-            <p className='mt-2 text-black font-gilroy text-sm md:text-base lg:text-sm xl:text-base'>Scroll down to continue</p>
-          </div>
-        </div>
+        <SplashScreen
+          wedding={wedding}
+          savedCoupleNames={savedCoupleNames}
+          showSplash={showSplash}
+          splashRemoved={splashRemoved}
+          onSplashRef={(ref) => {
+            splashRef.current = ref;
+          }}
+        />
       )}
 
       {/* Основной контент - вторая секция */}
@@ -406,35 +371,7 @@ const ClientDashboard = () => {
         />
         <main className="flex-1 flex flex-col font-forum min-h-0 mb-4">
           {/* Приветствие */}
-          <div className="border-b border-[#00000033] py-6 max-[1599px]:py-3 md:max-[1599px]:py-4 lg:max-[1599px]:py-3 min-[1300px]:max-[1599px]:py-4 px-4 md:px-8 lg:px-12 xl:px-[60px]">
-            <h2 
-              className="text-[32px] max-[1599px]:text-[24px] lg:max-[1599px]:text-[22px] min-[1300px]:max-[1599px]:text-[26px] font-forum leading-tight"
-            >
-              {(() => {
-                const name1 = currentLanguage === 'ru' 
-                  ? wedding?.couple_name_1_ru
-                  : wedding?.couple_name_1_en;
-                const name2 = currentLanguage === 'ru'
-                  ? wedding?.couple_name_2_ru
-                  : wedding?.couple_name_2_en;
-                return (
-                  <>
-                    {name1} <span className='font-forum'> & </span> {name2}, {getTranslation(currentLanguage).dashboard.welcome}
-                  </>
-                );
-              })()}
-            </h2>
-            {(() => {
-              const descText = getTranslation(currentLanguage).dashboard.viewControl;
-              return (
-                <p 
-                  className="text-[16px] max-[1599px]:text-[14px] lg:max-[1599px]:text-[13px] min-[1300px]:max-[1599px]:text-[14px] font-forum font-light text-[#00000080] leading-tight mt-1"
-                >
-                  {descText}
-                </p>
-              );
-            })()}
-          </div>
+          <WelcomeSection wedding={wedding} currentLanguage={currentLanguage} />
 
           {/* Ошибка */}
           {error && (
@@ -446,103 +383,7 @@ const ClientDashboard = () => {
           {wedding && (
             <>
               {/* Основная информация о свадьбе */}
-              <div className='border-b border-[#00000033] flex flex-col lg:flex-row pl-4 md:pl-8 lg:pl-12 xl:pl-[60px] shrink-0'>
-                <div className='border-r-0 lg:border-r border-[#00000033] border-b lg:border-b-0 py-2 lg:max-[1599px]:py-2 min-[1300px]:max-[1599px]:py-3 min-[1600px]:py-4 pr-4 max-[1599px]:pr-4 md:max-[1599px]:pr-6 lg:max-[1599px]:pr-8 min-[1300px]:max-[1599px]:pr-10'>
-                  {(() => {
-                    const titleText = getTranslation(currentLanguage).dashboard.weddingDetails;
-                    return (
-                      <h2 
-                        className='text-[50px] max-[1599px]:text-[36px] lg:max-[1599px]:text-[32px] min-[1300px]:max-[1599px]:text-[38px] font-forum leading-tight'
-                      >
-                        {titleText}
-                      </h2>
-                    );
-                  })()}
-                  {(() => {
-                    const descText = getTranslation(currentLanguage).dashboard.keyDetails;
-                    return (
-                      <p 
-                        className='text-[24px] -mt-1.5 max-[1599px]:text-[18px] lg:max-[1599px]:text-[16px] min-[1300px]:max-[1599px]:text-[18px] font-forum font-light text-[#00000080] leading-tight mt-[-1]'
-                      >
-                        {descText}
-                      </p>
-                    );
-                  })()}
-                </div>
-                <div className='flex items-center flex-1'>
-                  <ul className='flex flex-row flex-wrap lg:flex-nowrap gap-4 max-[1599px]:gap-3 lg:max-[1599px]:gap-3 min-[1300px]:max-[1599px]:gap-4 px-4 md:px-8 lg:px-8 xl:px-[60px] py-6 max-[1599px]:py-4 lg:max-[1599px]:py-3 min-[1300px]:max-[1599px]:py-4 justify-start lg:justify-between w-full'>
-                    <li className='flex flex-col justify-center'>
-                      {(() => {
-                        const labelText = getTranslation(currentLanguage).dashboard.weddingDate;
-                        return (
-                          <p 
-                            className='text-[16px] max-[1599px]:text-[14px] lg:max-[1599px]:text-[13px] min-[1300px]:max-[1599px]:text-[14px] text-[#00000080] font-forum font-light'
-                          >
-                            {labelText}
-                          </p>
-                        );
-                      })()}
-                      <p className='text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-bold'>{formatDate(wedding.wedding_date)}</p>
-                    </li>
-                    <li className='flex flex-col justify-center'>
-                      {(() => {
-                        const labelText = getTranslation(currentLanguage).dashboard.venue;
-                        return (
-                          <p 
-                            className='text-[16px] max-[1599px]:text-[14px] lg:max-[1599px]:text-[13px] min-[1300px]:max-[1599px]:text-[14px] text-[#00000080] font-forum font-light'
-                          >
-                            {labelText}
-                          </p>
-                        );
-                      })()}
-                      <p className='text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-bold'>{wedding.country}</p>
-                    </li>
-                    <li className='flex flex-col justify-center'>
-                      <div className='flex items-center gap-2'>
-                        {(() => {
-                          const labelText = getTranslation(currentLanguage).dashboard.celebrationPlace;
-                          return (
-                            <p 
-                              className='text-[16px] max-[1599px]:text-[14px] lg:max-[1599px]:text-[13px] min-[1300px]:max-[1599px]:text-[14px] text-[#00000080] font-forum font-light'
-                            >
-                              {labelText}
-                            </p>
-                          );
-                        })()}
-                      </div>
-                      <p className='text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-bold '>{wedding.venue}</p>
-                    </li>
-                    <li className='flex flex-col justify-center'>
-                      {(() => {
-                        const labelText = getTranslation(currentLanguage).dashboard.numberOfGuests;
-                        return (
-                          <p 
-                            className='text-[16px] max-[1599px]:text-[14px] lg:max-[1599px]:text-[13px] min-[1300px]:max-[1599px]:text-[14px] text-[#00000080] font-forum font-light'
-                          >
-                            {labelText}
-                          </p>
-                        );
-                      })()}
-                      <p className='text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-bold'>{wedding.guest_count}</p>
-                    </li>
-                    <li className='flex flex-col justify-center'>
-                      <p className='text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-light'>
-                        {wedding ? calculateDaysUntilWedding(wedding.wedding_date) : 0} {getTranslation(currentLanguage).dashboard.days}
-                      </p>
-                      {(() => {
-                        const labelText = getTranslation(currentLanguage).dashboard.daysTillCelebration;
-                        return (
-                          <p 
-                            className='text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[16px] min-[1300px]:max-[1599px]:text-[18px] font-forum font-light'
-                          >
-                            {labelText}
-                          </p>
-                        );
-                      })()}
-                    </li>
-                  </ul>
-                </div>
-              </div>
+              <WeddingDetailsSection wedding={wedding} currentLanguage={currentLanguage} />
 
               <div className="flex flex-col lg:flex-row border-b border-[#00000033] flex-1 min-h-0">
                 {/* Задания */}
@@ -570,9 +411,10 @@ const ClientDashboard = () => {
                     })()}
                   </div>
                   <div className='flex-1 overflow-y-auto'>
-                    <TasksList 
-                      tasks={tasks} 
+                    <TasksList
+                      tasks={tasks}
                       onTaskToggle={handleTaskToggle}
+                      currentLanguage={currentLanguage}
                     />
                   </div>
                 </div>

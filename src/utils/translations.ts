@@ -18,6 +18,8 @@ export interface Translations {
     passwordPlaceholder: string;
     startPreparation: string;
     error: string;
+    welcomeText: string;
+    descriptionText: string;
   };
   header: {
     contactUs: string;
@@ -63,6 +65,90 @@ export interface Translations {
     title: string;
     sections: string;
   };
+  common: {
+    download: string;
+    downloadDocument: string;
+    downloadError: string;
+    edit: string;
+    delete: string;
+    save: string;
+    cancel: string;
+    create: string;
+    close: string;
+    back: string;
+    details: string;
+    more: string;
+    yes: string;
+    no: string;
+  };
+  organizer: {
+    projects: string;
+    addProject: string;
+    createFirstProject: string;
+    noProjects: string;
+    editProject: string;
+    deleteProject: string;
+    deleteProjectConfirm: string;
+    projectInfo: string;
+    weddingDate: string;
+    country: string;
+    place: string;
+    guestCount: string;
+    client: string;
+    clientNotes: string;
+    tasks: string;
+    addTask: string;
+    editTask: string;
+    deleteTask: string;
+    deleteTaskConfirm: string;
+    taskStatus: {
+      completed: string;
+      inProgress: string;
+      pending: string;
+    };
+    dueDate: string;
+    documents: string;
+    addDocument: string;
+    editDocument: string;
+    deleteDocument: string;
+    deleteDocumentConfirm: string;
+    documentName: string;
+    documentLink: string;
+    linkText: string;
+    presentation: string;
+    deletePresentation: string;
+    deletePresentationConfirm: string;
+    backToProjects: string;
+    saveError: string;
+    deleteError: string;
+    createError: string;
+    updateError: string;
+    loadError: string;
+    chat: string;
+    pinned: string;
+    openLink: string;
+    size: string;
+    type: string;
+    noDocuments: string;
+    weddingPresentation: string;
+    defaultCompanyPresentation: string;
+    sections: string;
+    welcomeMessageEn: string;
+    welcomeMessageEnHint: string;
+    partner1NameEn: string;
+    partner1NameRu: string;
+    partner2NameEn: string;
+    partner2NameRu: string;
+    selectClient: string;
+    countryEn: string;
+    countryRu: string;
+    countryUa: string;
+    fullWelcomeTextEn: string;
+    fullWelcomeTextEnHint: string;
+    splashWelcomeTextEn: string;
+    splashWelcomeTextEnHint: string;
+    chatLink: string;
+  };
 }
 
 const translations: Record<Language, Translations> = {
@@ -80,6 +166,8 @@ const translations: Record<Language, Translations> = {
       passwordPlaceholder: 'Enter your password',
       startPreparation: 'Start the preparation',
       error: 'Invalid email or password',
+      welcomeText: 'We are happy to welcome you to your personal planning space.',
+      descriptionText: 'From this moment on, you\'re in trusted hands. Let\'s design a celebration that feels unmistakably yours.',
     },
     header: {
       contactUs: 'Contact us directly',
@@ -92,8 +180,8 @@ const translations: Record<Language, Translations> = {
     dashboard: {
       welcome: 'Welcome to your weeding organization space!',
       viewControl: 'View and control every stage of your celebration',
-      weddingDetails: 'Weeding details',
-      keyDetails: 'Key details about your special day',
+      weddingDetails: 'Event details',
+      keyDetails: 'key details about your celebration ',
       weddingDate: 'wedding date',
       venue: 'Location',
       celebrationPlace: 'Venue',
@@ -125,6 +213,90 @@ const translations: Record<Language, Translations> = {
       title: 'Company Presentation',
       sections: 'presentation sections',
     },
+    common: {
+      download: 'Download',
+      downloadDocument: 'Download document',
+      downloadError: 'Error downloading document. Please refresh the page.',
+      edit: 'Edit',
+      delete: 'Delete',
+      save: 'Save',
+      cancel: 'Cancel',
+      create: 'Create',
+      close: 'Close',
+      back: 'Back',
+      details: 'Details',
+      more: 'More',
+      yes: 'Yes',
+      no: 'No',
+    },
+    organizer: {
+      projects: 'Projects',
+      addProject: 'Add Project',
+      createFirstProject: 'Create First Project',
+      noProjects: 'You don\'t have any projects yet',
+      editProject: 'Edit Project',
+      deleteProject: 'Delete Project',
+      deleteProjectConfirm: 'Are you sure you want to delete this project? This action cannot be undone.',
+      projectInfo: 'Project Information',
+      weddingDate: 'Wedding Date',
+      country: 'Country',
+      place: 'Place',
+      guestCount: 'Number of Guests',
+      client: 'Client',
+      clientNotes: 'Client Notes',
+      tasks: 'Tasks',
+      addTask: 'Add Task',
+      editTask: 'Edit Task',
+      deleteTask: 'Delete Task',
+      deleteTaskConfirm: 'Are you sure you want to delete this task?',
+      taskStatus: {
+        completed: 'Completed',
+        inProgress: 'In Progress',
+        pending: 'Pending',
+      },
+      dueDate: 'Due',
+      documents: 'Documents',
+      addDocument: 'Add Document',
+      editDocument: 'Edit Document',
+      deleteDocument: 'Delete Document',
+      deleteDocumentConfirm: 'Are you sure you want to delete this document?',
+      documentName: 'Document Name',
+      documentLink: 'Document Link',
+      linkText: 'Link Text',
+      presentation: 'Presentation',
+      deletePresentation: 'Delete Presentation',
+      deletePresentationConfirm: 'Are you sure you want to delete the wedding presentation? After deletion, the default company presentation will be shown.',
+      backToProjects: '← Back to Projects',
+      saveError: 'Failed to save. Please check your internet connection and try again.',
+      deleteError: 'Failed to delete',
+      createError: 'Failed to create. Please check your internet connection and try again.',
+      updateError: 'Failed to update. Please check your internet connection and try again.',
+      loadError: 'Error loading data. Please refresh the page.',
+      chat: 'Chat',
+      pinned: 'Pinned',
+      openLink: 'Open link →',
+      size: 'Size',
+      type: 'Type',
+      noDocuments: 'No documents yet',
+      weddingPresentation: 'Wedding Presentation',
+      defaultCompanyPresentation: 'Company Presentation (default)',
+      sections: 'Sections',
+      welcomeMessageEn: 'Welcome Message (EN)',
+      welcomeMessageEnHint: 'If not filled, the default English message will be used',
+      partner1NameEn: 'Partner 1 Name (EN)',
+      partner1NameRu: 'Partner 1 Name (RU)',
+      partner2NameEn: 'Partner 2 Name (EN)',
+      partner2NameRu: 'Partner 2 Name (RU)',
+      selectClient: 'Select Client',
+      countryEn: 'Country (EN)',
+      countryRu: 'Country (RU)',
+      countryUa: 'Country (UA)',
+      fullWelcomeTextEn: 'Full Welcome Text in Main Content (EN)',
+      fullWelcomeTextEnHint: 'If not filled, format will be used: Name1 & Name2, Welcome to your wedding organization space!',
+      splashWelcomeTextEn: 'Full Welcome Text in Splash Screen (EN)',
+      splashWelcomeTextEnHint: 'If not filled, standard text will be used: Welcome to your wedding organization space!',
+      chatLink: 'Chat Link',
+    },
   },
   ru: {
     welcome: {
@@ -140,6 +312,8 @@ const translations: Record<Language, Translations> = {
       passwordPlaceholder: 'Введите ваш пароль',
       startPreparation: 'Начать подготовку',
       error: 'Неверный email или пароль',
+      welcomeText: 'Мы рады приветствовать вас в вашем личном пространстве планирования.',
+      descriptionText: 'С этого момента вы в надежных руках. Давайте создадим празднование, которое будет безошибочно вашим.',
     },
     header: {
       contactUs: 'Свяжитесь с нами',
@@ -152,8 +326,8 @@ const translations: Record<Language, Translations> = {
     dashboard: {
       welcome: 'добро пожаловать в ваше пространство для организации свадеб!',
       viewControl: 'Просматривайте и контролируйте каждый этап подготовки',
-      weddingDetails: 'Детали свадьбы',
-      keyDetails: 'Ключевые детали вашего особенного дня',
+      weddingDetails: 'Детали праздника',
+      keyDetails: 'ключевая информация вашего события',
       weddingDate: 'дата свадьбы',
       venue: 'страна',
       celebrationPlace: 'локация',
@@ -185,6 +359,90 @@ const translations: Record<Language, Translations> = {
       title: 'Презентация компании',
       sections: 'разделы презентации',
     },
+    common: {
+      download: 'Скачать',
+      downloadDocument: 'Скачать документ',
+      downloadError: 'Ошибка при скачивании документа. Попробуйте обновить страницу.',
+      edit: 'Редактировать',
+      delete: 'Удалить',
+      save: 'Сохранить',
+      cancel: 'Отмена',
+      create: 'Создать',
+      close: 'Закрыть',
+      back: 'Назад',
+      details: 'Подробнее',
+      more: 'Подробнее',
+      yes: 'Да',
+      no: 'Нет',
+    },
+    organizer: {
+      projects: 'Проекты',
+      addProject: 'Добавить проект',
+      createFirstProject: 'Создать первый проект',
+      noProjects: 'У вас пока нет проектов',
+      editProject: 'Редактировать проект',
+      deleteProject: 'Удалить проект',
+      deleteProjectConfirm: 'Вы уверены, что хотите удалить этот проект? Это действие нельзя отменить.',
+      projectInfo: 'Информация о проекте',
+      weddingDate: 'Дата свадьбы',
+      country: 'Страна',
+      place: 'Место',
+      guestCount: 'Количество гостей',
+      client: 'Клиент',
+      clientNotes: 'Заметки клиента',
+      tasks: 'Задачи',
+      addTask: 'Добавить задачу',
+      editTask: 'Редактировать задачу',
+      deleteTask: 'Удалить задачу',
+      deleteTaskConfirm: 'Вы уверены, что хотите удалить эту задачу?',
+      taskStatus: {
+        completed: 'Выполнено',
+        inProgress: 'В работе',
+        pending: 'Ожидает',
+      },
+      dueDate: 'До',
+      documents: 'Документы',
+      addDocument: 'Добавить документ',
+      editDocument: 'Редактировать документ',
+      deleteDocument: 'Удалить документ',
+      deleteDocumentConfirm: 'Вы уверены, что хотите удалить этот документ?',
+      documentName: 'Название документа',
+      documentLink: 'Ссылка на документ',
+      linkText: 'Текст ссылки',
+      presentation: 'Презентация',
+      deletePresentation: 'Удалить презентацию',
+      deletePresentationConfirm: 'Вы уверены, что хотите удалить презентацию свадьбы? После удаления будет показана презентация компании по умолчанию.',
+      backToProjects: '← Назад к списку проектов',
+      saveError: 'Не удалось сохранить. Проверьте подключение к интернету и попробуйте снова.',
+      deleteError: 'Не удалось удалить',
+      createError: 'Не удалось создать. Проверьте подключение к интернету и попробуйте снова.',
+      updateError: 'Не удалось обновить. Проверьте подключение к интернету и попробуйте снова.',
+      loadError: 'Ошибка при загрузке данных. Попробуйте обновить страницу.',
+      chat: 'Чат',
+      pinned: 'Закреплен',
+      openLink: 'Открыть ссылку →',
+      size: 'Размер',
+      type: 'Тип',
+      noDocuments: 'Документов пока нет',
+      weddingPresentation: 'Презентация свадьбы',
+      defaultCompanyPresentation: 'Презентация компании (по умолчанию)',
+      sections: 'Секций',
+      welcomeMessageEn: 'Приветственное сообщение (EN)',
+      welcomeMessageEnHint: 'Если не заполнено, будет использоваться стандартное сообщение на английском',
+      partner1NameEn: 'Имя партнера 1 (EN)',
+      partner1NameRu: 'Имя партнера 1 (RU)',
+      partner2NameEn: 'Имя партнера 2 (EN)',
+      partner2NameRu: 'Имя партнера 2 (RU)',
+      selectClient: 'Выберите клиента',
+      countryEn: 'Страна (EN)',
+      countryRu: 'Страна (RU)',
+      countryUa: 'Страна (UA)',
+      fullWelcomeTextEn: 'Полный текст приветствия в основном контенте (EN)',
+      fullWelcomeTextEnHint: 'Если не заполнено, будет использоваться формат: Имя1 & Имя2, Welcome to your wedding organization space!',
+      splashWelcomeTextEn: 'Полный текст приветствия в заглушке (EN)',
+      splashWelcomeTextEnHint: 'Если не заполнено, будет использоваться стандартный текст: Welcome to your wedding organization space!',
+      chatLink: 'Ссылка на чат',
+    },
   },
   ua: {
     welcome: {
@@ -200,6 +458,8 @@ const translations: Record<Language, Translations> = {
       passwordPlaceholder: 'Введіть ваш пароль',
       startPreparation: 'Почати підготовку',
       error: 'Невірний email або пароль',
+      welcomeText: 'Ми раді вітати вас у вашому особистому просторі планування.',
+      descriptionText: 'З цього моменту ви в надійних руках. Давайте створимо святкування, яке буде безпомилково вашим.',
     },
     header: {
       contactUs: 'Зв\'яжіться з нами',
@@ -212,8 +472,8 @@ const translations: Record<Language, Translations> = {
     dashboard: {
       welcome: 'Ласкаво просимо до простору організації вашої весілля!',
       viewControl: 'Переглядайте та контролюйте кожен етап вашого свята',
-      weddingDetails: 'Деталі весілля',
-      keyDetails: 'Ключові деталі вашого особливого дня',
+      weddingDetails: 'Деталі свята',
+      keyDetails: 'основна інформація про вашу подію',
       weddingDate: 'дата весілля',
       venue: 'Місце',
       celebrationPlace: 'Місце святкування',
@@ -222,7 +482,7 @@ const translations: Record<Language, Translations> = {
       days: 'днів',
       daysTillCelebration: 'до вашого свята',
       tasks: 'Завдання',
-      tasksDescription: 'Чеклист планування весілля, який вам потрібно виконати',
+      tasksDescription: 'список завдань, які вам потрібно виконати найближчим часом ',
       documents: 'Документи',
       pinnedDocuments: 'закріплені документи',
     },
@@ -244,6 +504,90 @@ const translations: Record<Language, Translations> = {
     presentation: {
       title: 'Презентація компанії',
       sections: 'розділи презентації',
+    },
+    common: {
+      download: 'Завантажити',
+      downloadDocument: 'Завантажити документ',
+      downloadError: 'Помилка при завантаженні документа. Спробуйте оновити сторінку.',
+      edit: 'Редагувати',
+      delete: 'Видалити',
+      save: 'Зберегти',
+      cancel: 'Скасувати',
+      create: 'Створити',
+      close: 'Закрити',
+      back: 'Назад',
+      details: 'Деталі',
+      more: 'Детальніше',
+      yes: 'Так',
+      no: 'Ні',
+    },
+    organizer: {
+      projects: 'Проєкти',
+      addProject: 'Додати проєкт',
+      createFirstProject: 'Створити перший проєкт',
+      noProjects: 'У вас поки немає проєктів',
+      editProject: 'Редагувати проєкт',
+      deleteProject: 'Видалити проєкт',
+      deleteProjectConfirm: 'Ви впевнені, що хочете видалити цей проєкт? Цю дію неможливо скасувати.',
+      projectInfo: 'Інформація про проєкт',
+      weddingDate: 'Дата весілля',
+      country: 'Країна',
+      place: 'Місце',
+      guestCount: 'Кількість гостей',
+      client: 'Клієнт',
+      clientNotes: 'Нотатки клієнта',
+      tasks: 'Завдання',
+      addTask: 'Додати завдання',
+      editTask: 'Редагувати завдання',
+      deleteTask: 'Видалити завдання',
+      deleteTaskConfirm: 'Ви впевнені, що хочете видалити це завдання?',
+      taskStatus: {
+        completed: 'Виконано',
+        inProgress: 'В роботі',
+        pending: 'Очікує',
+      },
+      dueDate: 'До',
+      documents: 'Документи',
+      addDocument: 'Додати документ',
+      editDocument: 'Редагувати документ',
+      deleteDocument: 'Видалити документ',
+      deleteDocumentConfirm: 'Ви впевнені, що хочете видалити цей документ?',
+      documentName: 'Назва документа',
+      documentLink: 'Посилання на документ',
+      linkText: 'Текст посилання',
+      presentation: 'Презентація',
+      deletePresentation: 'Видалити презентацію',
+      deletePresentationConfirm: 'Ви впевнені, що хочете видалити презентацію весілля? Після видалення буде показано презентацію компанії за замовчуванням.',
+      backToProjects: '← Назад до списку проєктів',
+      saveError: 'Не вдалося зберегти. Перевірте підключення до інтернету та спробуйте ще раз.',
+      deleteError: 'Не вдалося видалити',
+      createError: 'Не вдалося створити. Перевірте підключення до інтернету та спробуйте ще раз.',
+      updateError: 'Не вдалося оновити. Перевірте підключення до інтернету та спробуйте ще раз.',
+      loadError: 'Помилка при завантаженні даних. Спробуйте оновити сторінку.',
+      chat: 'Чат',
+      pinned: 'Закріплено',
+      openLink: 'Відкрити посилання →',
+      size: 'Розмір',
+      type: 'Тип',
+      noDocuments: 'Документів поки немає',
+      weddingPresentation: 'Презентація весілля',
+      defaultCompanyPresentation: 'Презентація компанії (за замовчуванням)',
+      sections: 'Секцій',
+      welcomeMessageEn: 'Привітальне повідомлення (EN)',
+      welcomeMessageEnHint: 'Якщо не заповнено, буде використано стандартне повідомлення англійською',
+      partner1NameEn: 'Ім\'я партнера 1 (EN)',
+      partner1NameRu: 'Ім\'я партнера 1 (RU)',
+      partner2NameEn: 'Ім\'я партнера 2 (EN)',
+      partner2NameRu: 'Ім\'я партнера 2 (RU)',
+      selectClient: 'Виберіть клієнта',
+      countryEn: 'Країна (EN)',
+      countryRu: 'Країна (RU)',
+      countryUa: 'Країна (UA)',
+      fullWelcomeTextEn: 'Повний текст привітання в основному контенті (EN)',
+      fullWelcomeTextEnHint: 'Якщо не заповнено, буде використано формат: Ім\'я1 & Ім\'я2, Welcome to your wedding organization space!',
+      splashWelcomeTextEn: 'Повний текст привітання в заглушці (EN)',
+      splashWelcomeTextEnHint: 'Якщо не заповнено, буде використано стандартний текст: Welcome to your wedding organization space!',
+      chatLink: 'Посилання на чат',
     },
   },
 };

@@ -110,6 +110,28 @@ const Header = ({ onLogout, currentLanguage, onLanguageChange, chatLink, wedding
     setIsNotesModalOpen(!isNotesModalOpen);
   };
 
+  // Закрытие модального окна заметок
+  const handleCloseNotes = () => {
+    setIsNotesModalOpen(false);
+  };
+
+  // Обработчик ESC для закрытия модального окна заметок
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isNotesModalOpen) {
+        handleCloseNotes();
+      }
+    };
+
+    if (isNotesModalOpen) {
+      document.addEventListener('keydown', handleEscape);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isNotesModalOpen]);
+
   return (
     <header className="w-full bg-[#eae6db] border-b border-[#00000033] relative z-50" >
       <div className="px-4 md:px-8 lg:px-12 xl:px-[60px]">
@@ -146,31 +168,35 @@ const Header = ({ onLogout, currentLanguage, onLanguageChange, chatLink, wedding
                   
                   {/* Вариант 2: Раскрывающаяся область под кнопкой */}
                   {isNotesModalOpen && (
-                    <div className="absolute left-0 top-full mt-0 w-[400px] max-w-[90vw] bg-[#eae6db] border border-[#00000033] border-t-0 shadow-lg z-50">
-                      <div className="p-4">
-                        <textarea
-                          value={notes}
-                          onChange={handleNotesChange}
-                          placeholder={getTranslation(currentLanguage).header.notesPlaceholder}
-                          className="w-full min-h-[200px] p-4 border border-[#00000033] rounded bg-white text-black font-gilroy text-[14px] md:text-[16px] resize-none focus:outline-none focus:ring-2 focus:ring-black focus:ring-opacity-20"
-                          style={{ fontFamily: 'inherit' }}
-                        />
-                        <div className="mt-3 flex justify-between items-center">
-                          {saving && (
-                            <span className="text-[12px] font-gilroy text-[#00000080]">Сохранение...</span>
-                          )}
-                          {!saving && weddingId && (
-                            <span className="text-[12px] font-gilroy text-[#00000080]">Сохранено</span>
-                          )}
-                          <button
-                            onClick={handleToggleNotes}
-                            className="px-4 py-2 text-black font-gilroy text-[14px] md:text-[16px] hover:bg-black hover:text-white transition-colors cursor-pointer"
-                          >
-                            {getTranslation(currentLanguage).header.close}
-                          </button>
+                    <>
+                      {/* Overlay для закрытия по клику вне модального окна */}
+                      <div
+                        className="fixed inset-0 z-40"
+                        onClick={handleCloseNotes}
+                      />
+                      <div 
+                        className="absolute left-0 top-full mt-0 w-[400px] max-w-[90vw] bg-[#eae6db] border border-[#00000033] border-t-0 shadow-lg z-50"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="p-4">
+                          <textarea
+                            value={notes}
+                            onChange={handleNotesChange}
+                            placeholder={getTranslation(currentLanguage).header.notesPlaceholder}
+                            className="w-full min-h-[200px] p-4 border border-[#00000033] rounded bg-white text-black font-gilroy text-[14px] md:text-[16px] resize-none focus:outline-none focus:ring-2 focus:ring-black focus:ring-opacity-20"
+                            style={{ fontFamily: 'inherit' }}
+                          />
+                          <div className="mt-3 flex justify-end items-center">
+                            <button
+                              onClick={handleCloseNotes}
+                              className="px-4 py-2 text-black font-gilroy text-[14px] md:text-[16px] hover:bg-black hover:text-white transition-colors cursor-pointer"
+                            >
+                              {getTranslation(currentLanguage).header.close}
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    </>
                   )}
                 </div>
               );
@@ -217,6 +243,7 @@ const Header = ({ onLogout, currentLanguage, onLanguageChange, chatLink, wedding
               <button
                 onClick={() => setIsLanguageMenuOpen(!isLanguageMenuOpen)}
                 className="flex items-center gap-2 max-[1599px]:lg:gap-3 min-[1600px]:lg:gap-2.5 px-4 md:px-6 max-[1599px]:md:px-5 min-[1600px]:md:px-5 lg:px-5 max-[1599px]:lg:px-5 min-[1600px]:lg:px-5 py-4 md:py-6 max-[1599px]:md:py-5 min-[1600px]:md:py-5 lg:py-5 max-[1599px]:lg:py-5 min-[1600px]:lg:py-5 cursor-pointer border-r border-[#00000033] font-forum text-[28px] max-[1599px]:text-[24px] lg:max-[1599px]:text-[22px] min-[1300px]:max-[1599px]:text-[26px] min-[1600px]:text-[24px] font-light h-full w-full"
+                style={{ pointerEvents: 'auto' }}
               >
                 <span className="text-[20px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[18px] min-[1300px]:max-[1599px]:text-[20px] min-[1600px]:text-[20px] uppercase text-[#00000080]">{currentLanguage}</span>
                 <img src={languageIcon} alt="language" className="h-3 w-4 max-[1599px]:h-2.5 max-[1599px]:w-3.5 min-[1600px]:h-2.5 min-[1600px]:w-3.5" />
@@ -235,7 +262,7 @@ const Header = ({ onLogout, currentLanguage, onLanguageChange, chatLink, wedding
                           onLanguageChange('en');
                           setIsLanguageMenuOpen(false);
                         }}
-                        className="w-full flex items-center justify-center gap-2 max-[1599px]:lg:gap-3 min-[1600px]:lg:gap-2.5 px-4 md:px-6 max-[1599px]:md:px-5 min-[1600px]:md:px-5 lg:px-5 max-[1599px]:lg:px-5 min-[1600px]:lg:px-5 py-4 md:py-6 max-[1599px]:md:py-5 min-[1600px]:md:py-5 lg:py-5 max-[1599px]:lg:py-5 min-[1600px]:lg:py-5 text-[20px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[18px] min-[1300px]:max-[1599px]:text-[20px] min-[1600px]:text-[20px] hover:bg-gray-100 transition font-forum font-light uppercase cursor-pointer text-[#00000080]"
+                        className="w-full flex items-center justify-center gap-2 max-[1599px]:lg:gap-3 min-[1600px]:lg:gap-2.5 px-4 md:px-6 max-[1599px]:md:px-5 min-[1600px]:md:px-5 lg:px-5 max-[1599px]:lg:px-5 min-[1600px]:lg:px-5 py-4 md:py-6 max-[1599px]:md:py-5 min-[1600px]:md:py-5 lg:py-5 max-[1599px]:lg:py-5 min-[1600px]:lg:py-5 text-[20px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[18px] min-[1300px]:max-[1599px]:text-[20px] min-[1600px]:text-[20px] font-forum font-light uppercase cursor-pointer text-[#00000080]"
                       >
                         EN
                       </button>
@@ -246,9 +273,20 @@ const Header = ({ onLogout, currentLanguage, onLanguageChange, chatLink, wedding
                           onLanguageChange('ru');
                           setIsLanguageMenuOpen(false);
                         }}
-                        className="w-full flex items-center justify-center gap-2 max-[1599px]:lg:gap-3 min-[1600px]:lg:gap-2.5 px-4 md:px-6 max-[1599px]:md:px-5 min-[1600px]:md:px-5 lg:px-5 max-[1599px]:lg:px-5 min-[1600px]:lg:px-5 py-4 md:py-6 max-[1599px]:md:py-5 min-[1600px]:md:py-5 lg:py-5 max-[1599px]:lg:py-5 min-[1600px]:lg:py-5 text-[20px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[18px] min-[1300px]:max-[1599px]:text-[20px] min-[1600px]:text-[20px] hover:bg-gray-100 transition font-forum font-light uppercase cursor-pointer text-[#00000080]"
+                        className="w-full flex items-center justify-center gap-2 max-[1599px]:lg:gap-3 min-[1600px]:lg:gap-2.5 px-4 md:px-6 max-[1599px]:md:px-5 min-[1600px]:md:px-5 lg:px-5 max-[1599px]:lg:px-5 min-[1600px]:lg:px-5 py-4 md:py-6 max-[1599px]:md:py-5 min-[1600px]:md:py-5 lg:py-5 max-[1599px]:lg:py-5 min-[1600px]:lg:py-5 text-[20px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[18px] min-[1300px]:max-[1599px]:text-[20px] min-[1600px]:text-[20px] font-forum font-light uppercase cursor-pointer text-[#00000080]"
                       >
                         RU
+                      </button>
+                    )}
+                    {currentLanguage !== 'ua' && (
+                      <button
+                        onClick={() => {
+                          onLanguageChange('ua');
+                          setIsLanguageMenuOpen(false);
+                        }}
+                        className="w-full flex items-center justify-center gap-2 max-[1599px]:lg:gap-3 min-[1600px]:lg:gap-2.5 px-4 md:px-6 max-[1599px]:md:px-5 min-[1600px]:md:px-5 lg:px-5 max-[1599px]:lg:px-5 min-[1600px]:lg:px-5 py-4 md:py-6 max-[1599px]:md:py-5 min-[1600px]:md:py-5 lg:py-5 max-[1599px]:lg:py-5 min-[1600px]:lg:py-5 text-[20px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[18px] min-[1300px]:max-[1599px]:text-[20px] min-[1600px]:text-[20px] font-forum font-light uppercase cursor-pointer text-[#00000080]"
+                      >
+                        UA
                       </button>
                     )}
                   </div>
