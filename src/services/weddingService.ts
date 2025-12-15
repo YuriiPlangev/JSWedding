@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import type { Wedding, Task, Document, User, Presentation } from '../types';
+import type { Wedding, Task, Document, User, Presentation, PresentationSection } from '../types';
 import { getCache, setCache, invalidateCache } from '../utils/cache';
 
 // Сервис для работы со свадьбами
@@ -434,9 +434,10 @@ export const documentService = {
   },
 
   // Удалить документ (только для организатора)
-  async deleteDocument(documentId: string, filePath: string | undefined, weddingId: string): Promise<boolean> {
+  async deleteDocument(documentId: string, _filePath: string | undefined, weddingId: string): Promise<boolean> {
     // Удаляем запись из базы данных
     // Файлы больше не хранятся в Storage, поэтому удаляем только запись
+    // filePath оставлен для обратной совместимости, но не используется
     const { error } = await supabase
       .from('documents')
       .delete()
@@ -635,8 +636,8 @@ export const presentationService = {
     // Удаляем изображения из Storage, если это была презентация свадьбы
     if (wedding.presentation && wedding.presentation.type === 'wedding') {
       const deletePromises = wedding.presentation.sections
-        .filter((section) => section.image_url)
-        .map((section) => this.deletePresentationImage(section.image_url));
+        .filter((section: PresentationSection) => section.image_url)
+        .map((section: PresentationSection) => this.deletePresentationImage(section.image_url));
 
       await Promise.all(deletePromises);
     }
