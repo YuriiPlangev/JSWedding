@@ -196,7 +196,7 @@ const DocumentsList = ({ documents, currentLanguage = 'ru' }: DocumentsListProps
                     doc.link && (
                       <button
                         onClick={(e) => handleDownload(doc, e)}
-                        className="cursor-pointer hover:opacity-70 transition-opacity pr-[10px]"
+                        className="cursor-pointer hover:opacity-70 transition-opacity "
                         aria-label={getTranslation(currentLanguage).common.downloadDocument}
                         type="button"
                       >

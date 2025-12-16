@@ -55,3 +55,4 @@ UPDATE tasks
 SET link_text_ua = link_text 
 WHERE link_text_ua IS NULL AND link_text IS NOT NULL;
 
+
