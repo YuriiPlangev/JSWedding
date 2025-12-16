@@ -83,18 +83,28 @@ const WeddingModal = ({ wedding, clients, onClose, onSave }: WeddingModalProps) 
     const couple_name_1_en = names[0] || '';
     const couple_name_2_en = names[1] || '';
 
-    const weddingData = {
-      ...formData,
+    // Создаем объект без служебных полей
+    const weddingData: Omit<Wedding, 'id' | 'created_at' | 'updated_at'> = {
+      client_id: formData.client_id,
+      organizer_id: wedding?.organizer_id || '', // Будет заменен в handleSaveWedding при создании
       couple_name_1_en,
       couple_name_2_en,
       couple_name_1_ru: wedding?.couple_name_1_ru || '',
       couple_name_2_ru: wedding?.couple_name_2_ru || '',
+      wedding_date: formData.wedding_date,
+      country: formData.country,
+      country_en: formData.country_en,
+      country_ru: formData.country_ru,
+      country_ua: formData.country_ua,
+      venue: formData.venue,
+      guest_count: formData.guest_count,
+      chat_link: formData.chat_link || undefined,
+      welcome_message_en: formData.welcome_message_en || undefined,
+      splash_welcome_text_en: formData.splash_welcome_text_en || undefined,
+      full_welcome_text_en: formData.full_welcome_text_en || undefined,
     };
     
-    delete (weddingData as any).coupleNamesEn;
-    delete (weddingData as any).full_welcome_text_was_set;
-    
-    onSave(weddingData as Omit<Wedding, 'id' | 'created_at' | 'updated_at'>);
+    onSave(weddingData);
   };
 
   return (
