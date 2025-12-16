@@ -8,8 +8,7 @@ interface DocumentModalProps {
   weddingId: string;
   onClose: () => void;
   onSave: (
-    data: Omit<Document, 'id' | 'created_at' | 'updated_at' | 'file_url'>,
-    file?: File
+    data: Omit<Document, 'id' | 'created_at' | 'updated_at' | 'file_url'>
   ) => void;
 }
 
@@ -39,7 +38,9 @@ const DocumentModal = ({ document, weddingId, onClose, onSave }: DocumentModalPr
 
     // Валидация: хотя бы одно название документа обязательно
     if (!formData.name_en?.trim() && !formData.name_ru?.trim() && !formData.name_ua?.trim() && !formData.name?.trim()) {
-      setError('Пожалуйста, укажите название документа хотя бы на одном языке');
+      const currentLang = getInitialLanguage();
+      const translations = getTranslation(currentLang);
+      setError(translations.organizer.saveError);
       return;
     }
 
@@ -58,10 +59,12 @@ const DocumentModal = ({ document, weddingId, onClose, onSave }: DocumentModalPr
 
     // Создаем/обновляем документ (только со ссылкой или без ссылки)
     try {
-      await onSave(docData, undefined);
+      await onSave(docData);
       onClose();
     } catch (err) {
-      setError('Ошибка при сохранении документа');
+      const currentLang = getInitialLanguage();
+      const translations = getTranslation(currentLang);
+      setError(translations.organizer.saveError);
       console.error('Error saving document:', err);
     }
   };

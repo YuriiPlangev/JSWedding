@@ -20,6 +20,9 @@ const TaskModal = ({ task, onClose, onSave }: TaskModalProps) => {
     title_ua: task?.title_ua || '',
     link: task?.link || '',
     link_text: task?.link_text || '',
+    link_text_en: task?.link_text_en || '',
+    link_text_ru: task?.link_text_ru || '',
+    link_text_ua: task?.link_text_ua || '',
     due_date: task?.due_date || '',
     status: (task?.status || 'pending') as 'pending' | 'in_progress' | 'completed',
   });
@@ -35,6 +38,9 @@ const TaskModal = ({ task, onClose, onSave }: TaskModalProps) => {
     // Используем первое заполненное поле как основное title для обратной совместимости
     const mainTitle = formData.title_en?.trim() || formData.title_ru?.trim() || formData.title_ua?.trim() || '';
     
+    // Используем первое заполненное поле как основное link_text для обратной совместимости
+    const mainLinkText = formData.link_text_en?.trim() || formData.link_text_ru?.trim() || formData.link_text_ua?.trim() || formData.link_text?.trim() || '';
+    
     // Подготавливаем данные, убирая пустые опциональные поля
     const taskData: Omit<Task, 'id' | 'created_at' | 'updated_at'> = {
       wedding_id: '', // Будет добавлено в родительском компоненте
@@ -45,7 +51,10 @@ const TaskModal = ({ task, onClose, onSave }: TaskModalProps) => {
       ...(formData.title_ua?.trim() && { title_ua: formData.title_ua.trim() }),
       ...(formData.due_date && formData.due_date.trim() && { due_date: formData.due_date }),
       ...(formData.link && formData.link.trim() && { link: formData.link.trim() }),
-      ...(formData.link_text && formData.link_text.trim() && { link_text: formData.link_text.trim() }),
+      ...(mainLinkText && { link_text: mainLinkText }),
+      ...(formData.link_text_en?.trim() && { link_text_en: formData.link_text_en.trim() }),
+      ...(formData.link_text_ru?.trim() && { link_text_ru: formData.link_text_ru.trim() }),
+      ...(formData.link_text_ua?.trim() && { link_text_ua: formData.link_text_ua.trim() }),
     };
     
     onSave(taskData);
@@ -145,13 +154,44 @@ const TaskModal = ({ task, onClose, onSave }: TaskModalProps) => {
               <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
                 {t.organizer.linkText} ({t.common.more})
               </label>
-              <input
-                type="text"
-                value={formData.link_text}
-                onChange={(e) => setFormData({ ...formData, link_text: e.target.value })}
-                placeholder={t.organizer.linkText}
-                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
-              />
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-[14px] max-[1599px]:text-[12px] font-forum font-normal text-black mb-1">
+                    {t.organizer.linkText} (EN)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.link_text_en}
+                    onChange={(e) => setFormData({ ...formData, link_text_en: e.target.value, link_text: e.target.value })}
+                    placeholder={t.organizer.linkText}
+                    className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[14px] max-[1599px]:text-[12px] font-forum font-normal text-black mb-1">
+                    {t.organizer.linkText} (RU)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.link_text_ru}
+                    onChange={(e) => setFormData({ ...formData, link_text_ru: e.target.value })}
+                    placeholder={t.organizer.linkText}
+                    className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[14px] max-[1599px]:text-[12px] font-forum font-normal text-black mb-1">
+                    {t.organizer.linkText} (UA)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.link_text_ua}
+                    onChange={(e) => setFormData({ ...formData, link_text_ua: e.target.value })}
+                    placeholder={t.organizer.linkText}
+                    className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="flex justify-end space-x-3 pt-4">

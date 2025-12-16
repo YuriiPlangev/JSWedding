@@ -55,7 +55,10 @@ export interface Task {
   title_ru?: string; // Название задания на русском
   title_ua?: string; // Название задания на украинском
   link?: string; // Ссылка задачи (может отсутствовать)
-  link_text?: string; // Текст ссылки для отображения (может отсутствовать)
+  link_text?: string; // Текст ссылки для отображения (для обратной совместимости)
+  link_text_en?: string; // Текст ссылки на английском
+  link_text_ru?: string; // Текст ссылки на русском
+  link_text_ua?: string; // Текст ссылки на украинском
   due_date?: string;
   status: 'pending' | 'in_progress' | 'completed';
   created_at: string;

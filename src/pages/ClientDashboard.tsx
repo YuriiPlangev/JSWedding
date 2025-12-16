@@ -331,7 +331,8 @@ const ClientDashboard = () => {
   return (
     <div className="relative">
       {/* Заглушка - первая секция */}
-      {(loading || wedding) && (
+      {/* Показываем заглушку сразу, если есть сохраненные имена или идет загрузка, или данные уже загружены */}
+      {(loading || wedding || savedCoupleNames) && (
         <SplashScreen
           wedding={wedding}
           savedCoupleNames={savedCoupleNames}

@@ -120,26 +120,37 @@ const TasksList = ({ tasks, onTaskToggle, currentLanguage = 'ru' }: TasksListPro
                 return <span key={index}>{part.content}</span>;
               })}
               {/* Поддержка старого формата через поля link и link_text для обратной совместимости */}
-              {!task.title.includes('[') && !task.title.includes(']') && task.link && task.link_text && (
-                <>
-                  {' '}
-                  <a
-                    href={task.link.startsWith('http') ? task.link : `https://${task.link}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className='underline text-black font-bold cursor-pointer hover:opacity-70 transition-opacity'
-                    onClick={(e) => {
-                      e.preventDefault();
-                      const href = task.link?.startsWith('http') ? task.link : `https://${task.link}`;
-                      if (href) {
-                        window.open(href, '_blank', 'noopener,noreferrer');
-                      }
-                    }}
-                  >
-                    {task.link_text}
-                  </a>
-                </>
-              )}
+              {!task.title.includes('[') && !task.title.includes(']') && task.link && (() => {
+                // Выбираем текст ссылки в зависимости от текущего языка
+                const linkText = currentLanguage === 'ua' && task.link_text_ua 
+                  ? task.link_text_ua 
+                  : currentLanguage === 'ru' && task.link_text_ru 
+                  ? task.link_text_ru 
+                  : currentLanguage === 'en' && task.link_text_en 
+                  ? task.link_text_en 
+                  : task.link_text;
+                
+                return linkText ? (
+                  <>
+                    {' '}
+                    <a
+                      href={task.link.startsWith('http') ? task.link : `https://${task.link}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className='underline text-black font-bold cursor-pointer hover:opacity-70 transition-opacity'
+                      onClick={(e) => {
+                        e.preventDefault();
+                        const href = task.link?.startsWith('http') ? task.link : `https://${task.link}`;
+                        if (href) {
+                          window.open(href, '_blank', 'noopener,noreferrer');
+                        }
+                      }}
+                    >
+                      {linkText}
+                    </a>
+                  </>
+                ) : null;
+              })()}
             </p>
           </li>
         );

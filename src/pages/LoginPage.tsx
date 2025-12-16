@@ -11,7 +11,6 @@ import closeEye from '../assets/closeEye.png';
 import { getFontStyle } from '../utils/fontUtils';
 import MobileNotSupported from '../components/MobileNotSupported';
 import { getTranslation } from '../utils/translations';
-import { getInitialLanguage } from '../utils/languageUtils';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -24,9 +23,6 @@ const LoginPage = () => {
   const { login, isAuthenticated, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   
-  // Получаем язык из localStorage или используем русский по умолчанию
-  const currentLanguage = getInitialLanguage();
-  const t = getTranslation(currentLanguage);
   const firstSectionRef = useRef<HTMLDivElement>(null);
   const secondSectionRef = useRef<HTMLDivElement>(null);
   const isScrollingRef = useRef(false);
@@ -65,12 +61,30 @@ const LoginPage = () => {
   }, [isAuthenticated, authLoading, user, navigate]);
 
   useEffect(() => {
-    // Запускаем анимацию после небольшой задержки для плавности
-    const timer = setTimeout(() => {
+    // Проверяем, загружено ли изображение (может быть уже загружено из preload)
+    const img = new Image();
+    img.src = bgImg;
+    
+    const handleLoad = () => {
       setBgLoaded(true);
-    }, 300);
-
-    return () => clearTimeout(timer);
+    };
+    
+    if (img.complete) {
+      // Изображение уже загружено (например, из preload)
+      setBgLoaded(true);
+    } else {
+      img.onload = handleLoad;
+      img.onerror = handleLoad; // Показываем даже при ошибке, чтобы не было бесконечной загрузки
+      // Fallback: если изображение не загрузилось за 1 секунду, показываем его все равно
+      const timer = setTimeout(() => {
+        setBgLoaded(true);
+      }, 1000);
+      return () => {
+        img.onload = null;
+        img.onerror = null;
+        clearTimeout(timer);
+      };
+    }
   }, []);
 
   // Функция плавного скролла с контролируемой длительностью
@@ -225,7 +239,7 @@ const LoginPage = () => {
   return (
     <div className='relative bg-white overflow-x-hidden'>
       {/* Первая секция - занимает весь экран */}
-      <div ref={firstSectionRef} className='relative h-screen'>
+      <div ref={firstSectionRef} className='relative h-screen' style={{ backgroundColor: '#E5E5E5' }}>
       {/* Контейнер с изображением и overlay - с анимацией расширяющегося круга */}
       <div
         className={`absolute inset-0 z-10 ${bgLoaded ? 'circle-reveal' : ''}`}
@@ -243,6 +257,7 @@ const LoginPage = () => {
             objectPosition: 'center 80%',
             filter: 'blur(1.5px)',
           }}
+          onLoad={() => setBgLoaded(true)}
         />
         
         {/* Радиальный градиент overlay - черный с 0% в центре, черный с 50% на 50% позиции */}
@@ -278,9 +293,10 @@ const LoginPage = () => {
         </svg>
         </div>
 
-        {/* Текст */}
+        {/* Текст - всегда на английском */}
         {(() => {
-          const welcomeText = t.login.welcomeText;
+          const englishTranslations = getTranslation('en');
+          const welcomeText = englishTranslations.login.welcomeText;
           return (
             <h1 
               className={`text-[24px] md:text-[40px] lg:text-[36px] max-[1599px]:lg:text-[28px] xl:text-[50px] max-[1599px]:xl:text-[32px] font-normal whitespace-nowrap mt-6 md:mt-10 lg:mt-6 max-[1599px]:lg:mt-5 xl:mt-10 max-[1599px]:xl:mt-6 min-[1600px]:xl:mt-10 pb-2.5 text-center px-4 ${bgLoaded ? 'text-white-animate' : 'text-black'}`}
@@ -291,7 +307,8 @@ const LoginPage = () => {
           );
         })()}
         {(() => {
-          const descText = t.login.descriptionText;
+          const englishTranslations = getTranslation('en');
+          const descText = englishTranslations.login.descriptionText;
           return (
             <p 
               className={`mt-4 lg:mt-2 max-[1599px]:lg:mt-2 xl:mt-4 max-[1599px]:xl:mt-3 min-[1600px]:xl:mt-4 font-gilroy text-[16px] md:text-[24px] lg:text-[20px] max-[1599px]:lg:text-[16px] xl:text-[32px] max-[1599px]:xl:text-[20px] font-light whitespace-nowrap text-center px-4 ${bgLoaded ? 'text-white-animate' : 'text-black'}`}

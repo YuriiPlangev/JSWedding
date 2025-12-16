@@ -367,16 +367,8 @@ export const documentService = {
 
   // Создать документ (только для организатора)
   async createDocument(
-    document: Omit<Document, 'id' | 'created_at' | 'updated_at' | 'file_url'>,
-    file?: File
+    document: Omit<Document, 'id' | 'created_at' | 'updated_at' | 'file_url'>
   ): Promise<Document | null> {
-    // Если есть файл, но нет ссылки - это не поддерживается
-    // Теперь документы хранятся только через ссылки
-    if (file && !document.link) {
-      console.error('File upload is not supported. Please provide a link to the document.');
-      return null;
-    }
-
     // Создаем документ со ссылкой или без ссылки (только название)
     const { data, error } = await supabase
       .from('documents')
@@ -403,15 +395,8 @@ export const documentService = {
   async updateDocument(
     documentId: string,
     updates: Partial<Omit<Document, 'id' | 'created_at' | 'updated_at' | 'file_url'>>,
-    weddingId: string,
-    newFile?: File
+    weddingId: string
   ): Promise<Document | null> {
-    // Если есть новый файл, но нет ссылки - это не поддерживается
-    if (newFile && !updates.link) {
-      console.error('File upload is not supported. Please provide a link to the document.');
-      return null;
-    }
-
     // Обновляем метаданные документа
     const { data, error } = await supabase
       .from('documents')

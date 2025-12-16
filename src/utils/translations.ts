@@ -148,6 +148,8 @@ export interface Translations {
     splashWelcomeTextEn: string;
     splashWelcomeTextEnHint: string;
     chatLink: string;
+    overview: string;
+    viewAll: string;
   };
 }
 
@@ -296,6 +298,8 @@ const translations: Record<Language, Translations> = {
       splashWelcomeTextEn: 'Full Welcome Text in Splash Screen (EN)',
       splashWelcomeTextEnHint: 'If not filled, standard text will be used: Welcome to your wedding organization space!',
       chatLink: 'Chat Link',
+      overview: 'Overview',
+      viewAll: 'View all →',
     },
   },
   ru: {
@@ -442,6 +446,8 @@ const translations: Record<Language, Translations> = {
       splashWelcomeTextEn: 'Полный текст приветствия в заглушке (EN)',
       splashWelcomeTextEnHint: 'Если не заполнено, будет использоваться стандартный текст: Welcome to your wedding organization space!',
       chatLink: 'Ссылка на чат',
+      overview: 'Обзор',
+      viewAll: 'Смотреть все →',
     },
   },
   ua: {
@@ -588,6 +594,8 @@ const translations: Record<Language, Translations> = {
       splashWelcomeTextEn: 'Повний текст привітання в заглушці (EN)',
       splashWelcomeTextEnHint: 'Якщо не заповнено, буде використано стандартний текст: Welcome to your wedding organization space!',
       chatLink: 'Посилання на чат',
+      overview: 'Огляд',
+      viewAll: 'Переглянути все →',
     },
   },
 };
