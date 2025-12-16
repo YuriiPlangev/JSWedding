@@ -488,6 +488,65 @@ export const clientService = {
       avatar: data.avatar_url,
     };
   },
+
+  // Создать клиента в auth и profiles
+  async createClient(email: string, password: string): Promise<User | null> {
+    try {
+      // Используем email как имя по умолчанию
+      const defaultName = email.split('@')[0];
+
+      // 1. Создаем пользователя через signUp
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name: defaultName,
+            role: 'client',
+          },
+        },
+      });
+
+      if (authError) {
+        console.error('Error creating user:', authError);
+        throw new Error(`Ошибка при создании пользователя: ${authError.message}`);
+      }
+
+      if (!authData.user) {
+        throw new Error('Не удалось создать пользователя');
+      }
+
+      const userId = authData.user.id;
+
+      // 2. Создаем или обновляем профиль в таблице profiles
+      // Используем upsert, чтобы либо создать новый профиль, либо обновить существующий (если был создан триггером)
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert({
+          id: userId,
+          email: email,
+          name: defaultName,
+          role: 'client',
+        }, {
+          onConflict: 'id'
+        });
+
+      if (profileError) {
+        console.error('Error creating/updating profile:', profileError);
+        throw new Error(`Ошибка при создании профиля: ${profileError.message}`);
+      }
+
+      return {
+        id: userId,
+        email: email,
+        name: defaultName,
+        role: 'client' as const,
+      };
+    } catch (error) {
+      console.error('Error creating client:', error);
+      throw error;
+    }
+  },
 };
 
 // Сервис для работы с презентациями

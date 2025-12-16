@@ -14,12 +14,28 @@ const WeddingModal = ({ wedding, clients, onClose, onSave }: WeddingModalProps) 
   const currentLanguage = getInitialLanguage();
   const t = getTranslation(currentLanguage);
 
+  // Вычисляем имена пары для отображения в одном поле
+  const getCoupleNamesEn = () => {
+    if (wedding?.couple_name_1_en && wedding?.couple_name_2_en) {
+      return `${wedding.couple_name_1_en} & ${wedding.couple_name_2_en}`;
+    }
+    return '';
+  };
+
+  // Вычисляем значение по умолчанию для Full Welcome Text
+  const getDefaultFullWelcomeText = () => {
+    if (wedding?.full_welcome_text_en) {
+      return wedding.full_welcome_text_en;
+    }
+    if (wedding?.couple_name_1_en && wedding?.couple_name_2_en) {
+      return `${wedding.couple_name_1_en} & ${wedding.couple_name_2_en}, Welcome to your wedding organization space!`;
+    }
+    return '';
+  };
+
   const [formData, setFormData] = useState({
     client_id: wedding?.client_id || '',
-    couple_name_1_en: wedding?.couple_name_1_en || '',
-    couple_name_1_ru: wedding?.couple_name_1_ru || '',
-    couple_name_2_en: wedding?.couple_name_2_en || '',
-    couple_name_2_ru: wedding?.couple_name_2_ru || '',
+    coupleNamesEn: getCoupleNamesEn(),
     wedding_date: wedding?.wedding_date || '',
     country: wedding?.country || '',
     country_en: wedding?.country_en || '',
@@ -30,12 +46,55 @@ const WeddingModal = ({ wedding, clients, onClose, onSave }: WeddingModalProps) 
     chat_link: wedding?.chat_link || '',
     welcome_message_en: wedding?.welcome_message_en || '',
     splash_welcome_text_en: wedding?.splash_welcome_text_en || '',
-    full_welcome_text_en: wedding?.full_welcome_text_en || '',
+    full_welcome_text_en: getDefaultFullWelcomeText(),
+    full_welcome_text_was_set: !!wedding?.full_welcome_text_en, // Отслеживаем, было ли значение установлено пользователем
   });
+
+  // Обновляем Full Welcome Text при изменении имен пары, только если пользователь еще не установил его вручную
+  const handleCoupleNamesChange = (value: string) => {
+    setFormData(prev => {
+      const newData = { ...prev, coupleNamesEn: value };
+      // Если полный текст не был установлен пользователем, обновляем его автоматически
+      if (!prev.full_welcome_text_was_set && value.trim()) {
+        const names = value.split('&').map(name => name.trim()).filter(Boolean);
+        if (names.length === 2) {
+          newData.full_welcome_text_en = `${names[0]} & ${names[1]}, Welcome to your wedding organization space!`;
+        }
+      }
+      return newData;
+    });
+  };
+
+  // Обработчик изменения Full Welcome Text - помечаем, что пользователь установил его вручную
+  const handleFullWelcomeTextChange = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      full_welcome_text_en: value,
+      full_welcome_text_was_set: true,
+    }));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData as Omit<Wedding, 'id' | 'created_at' | 'updated_at'>);
+    
+    // Парсим имена пары из одной строки
+    const coupleNames = formData.coupleNamesEn.trim();
+    const names = coupleNames.split('&').map(name => name.trim());
+    const couple_name_1_en = names[0] || '';
+    const couple_name_2_en = names[1] || '';
+
+    const weddingData = {
+      ...formData,
+      couple_name_1_en,
+      couple_name_2_en,
+      couple_name_1_ru: wedding?.couple_name_1_ru || '',
+      couple_name_2_ru: wedding?.couple_name_2_ru || '',
+    };
+    
+    delete (weddingData as any).coupleNamesEn;
+    delete (weddingData as any).full_welcome_text_was_set;
+    
+    onSave(weddingData as Omit<Wedding, 'id' | 'created_at' | 'updated_at'>);
   };
 
   return (
@@ -56,74 +115,45 @@ const WeddingModal = ({ wedding, clients, onClose, onSave }: WeddingModalProps) 
               <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
                 {t.organizer.client} *
               </label>
-              <select
+              {clients.length > 0 ? (
+                <select
+                  required
+                  value={formData.client_id}
+                  onChange={(e) => setFormData({ ...formData, client_id: e.target.value })}
+                  className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum cursor-pointer bg-white"
+                  disabled={!!wedding}
+                >
+                  <option value="">{t.organizer.selectClient}</option>
+                  {clients.map((client) => (
+                    <option key={client.id} value={client.id}>
+                      {client.name} ({client.email})
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <div className="w-full px-3 py-2 border border-[#00000033] rounded-lg bg-gray-50">
+                  <p className="text-[14px] font-forum text-[#00000080]">
+                    Список клиентов пуст. Создайте клиента перед добавлением свадьбы.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
+                Имена пары (EN) *
+              </label>
+              <input
+                type="text"
                 required
-                value={formData.client_id}
-                onChange={(e) => setFormData({ ...formData, client_id: e.target.value })}
-                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum cursor-pointer bg-white"
-                disabled={!!wedding}
-              >
-                <option value="">{t.organizer.selectClient}</option>
-                {clients.map((client) => (
-                  <option key={client.id} value={client.id}>
-                    {client.name} ({client.email})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
-                  {t.organizer.partner1NameEn} *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.couple_name_1_en}
-                  onChange={(e) => setFormData({ ...formData, couple_name_1_en: e.target.value })}
-                  className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
-                />
-              </div>
-              <div>
-                <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
-                  {t.organizer.partner1NameRu} *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.couple_name_1_ru}
-                  onChange={(e) => setFormData({ ...formData, couple_name_1_ru: e.target.value })}
-                  className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
-                  {t.organizer.partner2NameEn} *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.couple_name_2_en}
-                  onChange={(e) => setFormData({ ...formData, couple_name_2_en: e.target.value })}
-                  className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
-                />
-              </div>
-              <div>
-                <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
-                  {t.organizer.partner2NameRu} *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.couple_name_2_ru}
-                  onChange={(e) => setFormData({ ...formData, couple_name_2_ru: e.target.value })}
-                  className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
-                />
-              </div>
+                value={formData.coupleNamesEn}
+                onChange={(e) => handleCoupleNamesChange(e.target.value)}
+                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
+                placeholder="Konstantin & Diana"
+              />
+              <p className="text-[12px] max-[1599px]:text-[11px] font-forum font-light text-[#00000060] mt-1">
+                Введите имена пары на английском в одну строку через & (например: Konstantin & Diana)
+              </p>
             </div>
 
             <div>
@@ -222,12 +252,11 @@ const WeddingModal = ({ wedding, clients, onClose, onSave }: WeddingModalProps) 
               <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
                 {t.organizer.fullWelcomeTextEn}
               </label>
-              <input
-                type="text"
+              <textarea
                 value={formData.full_welcome_text_en}
-                onChange={(e) => setFormData({ ...formData, full_welcome_text_en: e.target.value })}
+                onChange={(e) => handleFullWelcomeTextChange(e.target.value)}
+                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white min-h-[100px] resize-y"
                 placeholder="Konstantin & Diana, Welcome to your wedding organization space!"
-                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
               />
               <p className="text-[12px] max-[1599px]:text-[11px] font-forum font-light text-[#00000060] mt-1">
                 {t.organizer.fullWelcomeTextEnHint}

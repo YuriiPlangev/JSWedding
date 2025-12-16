@@ -5,7 +5,7 @@ import { weddingService, taskService, documentService, clientService, presentati
 import type { Wedding, Task, Document, User, Presentation } from '../types';
 import { getTranslation } from '../utils/translations';
 import { getInitialLanguage } from '../utils/languageUtils';
-import { WeddingModal, TaskModal, DocumentModal, PresentationModal } from '../components/modals';
+import { WeddingModal, TaskModal, DocumentModal, PresentationModal, ClientModal } from '../components/modals';
 
 type ViewMode = 'overview' | 'weddings' | 'clients' | 'wedding-details';
 
@@ -34,6 +34,7 @@ const OrganizerDashboard = () => {
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showDocumentModal, setShowDocumentModal] = useState(false);
   const [showPresentationModal, setShowPresentationModal] = useState(false);
+  const [showClientModal, setShowClientModal] = useState(false);
   const [editingWedding, setEditingWedding] = useState<Wedding | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editingDocument, setEditingDocument] = useState<Document | null>(null);
@@ -108,8 +109,17 @@ const OrganizerDashboard = () => {
     }
   };
 
-  const handleCreateWedding = () => {
+  const handleCreateWedding = async () => {
     setEditingWedding(null);
+    // Обновляем список клиентов перед открытием формы
+    if (user?.id) {
+      try {
+        const clientsData = await clientService.getAllClients();
+        setClients(clientsData);
+      } catch (err) {
+        console.error('Error loading clients:', err);
+      }
+    }
     setShowWeddingModal(true);
   };
 
@@ -159,6 +169,21 @@ const OrganizerDashboard = () => {
     } catch (err) {
       console.error('Error saving wedding:', err);
       setError('Ошибка при сохранении свадьбы');
+    }
+  };
+
+  const handleCreateClient = () => {
+    setShowClientModal(true);
+  };
+
+  const handleSaveClient = async (clientData: { email: string; password: string }) => {
+    try {
+      await clientService.createClient(clientData.email, clientData.password);
+      setShowClientModal(false);
+      await loadData(); // Перезагружаем данные, чтобы обновить список клиентов
+    } catch (err: any) {
+      console.error('Error creating client:', err);
+      setError(err.message || 'Ошибка при создании клиента');
     }
   };
 
@@ -479,10 +504,14 @@ const OrganizerDashboard = () => {
             <h2 className="text-[50px] max-[1599px]:text-[36px] lg:max-[1599px]:text-[32px] min-[1300px]:max-[1599px]:text-[38px] font-forum leading-tight text-black mb-6">{t.organizer.overview}</h2>
             
             {/* Statistics */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               <div className="bg-white border border-[#00000033] rounded-lg p-6 hover:shadow-md transition">
                 <div className="text-[36px] max-[1599px]:text-[28px] font-forum font-bold text-black">{stats.totalWeddings}</div>
                 <div className="text-[16px] max-[1599px]:text-[14px] font-forum font-light text-[#00000080] mt-1">Всего проектов</div>
+              </div>
+              <div className="bg-white border border-[#00000033] rounded-lg p-6 hover:shadow-md transition">
+                <div className="text-[36px] max-[1599px]:text-[28px] font-forum font-bold text-black">{stats.totalClients}</div>
+                <div className="text-[16px] max-[1599px]:text-[14px] font-forum font-light text-[#00000080] mt-1">Клиентов</div>
               </div>
               <div className="bg-white border border-[#00000033] rounded-lg p-6 hover:shadow-md transition">
                 <div className="text-[36px] max-[1599px]:text-[28px] font-forum font-bold text-black">{stats.completedTasks}</div>
@@ -494,6 +523,42 @@ const OrganizerDashboard = () => {
                 </div>
                 <div className="text-[16px] max-[1599px]:text-[14px] font-forum font-light text-[#00000080] mt-1">Задач в работе</div>
               </div>
+            </div>
+
+            {/* Clients Section */}
+            <div className="bg-white border border-[#00000033] rounded-lg p-6 mb-8">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-[24px] max-[1599px]:text-[20px] font-forum font-bold text-black">Клиенты</h3>
+                <button
+                  onClick={handleCreateClient}
+                  className="px-4 md:px-6 py-2 md:py-3 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum"
+                >
+                  + Создать клиента
+                </button>
+              </div>
+              {clients.length > 0 ? (
+                <div className="space-y-3">
+                  {clients.map((client) => (
+                    <div
+                      key={client.id}
+                      className="border border-[#00000033] rounded-lg p-4 hover:shadow-md transition"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="text-[18px] max-[1599px]:text-[16px] font-forum font-bold text-black">
+                            {client.name}
+                          </h4>
+                          <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080] mt-1">
+                            {client.email}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[16px] font-forum font-light text-[#00000080]">Клиентов пока нет</p>
+              )}
             </div>
 
             {/* Calendar */}
@@ -941,6 +1006,14 @@ const OrganizerDashboard = () => {
           onClose={() => setShowPresentationModal(false)}
           onUpload={handleUploadPresentation}
           uploading={uploadingPresentation}
+        />
+      )}
+
+      {/* Client Modal */}
+      {showClientModal && (
+        <ClientModal
+          onClose={() => setShowClientModal(false)}
+          onSave={handleSaveClient}
         />
       )}
     </div>
