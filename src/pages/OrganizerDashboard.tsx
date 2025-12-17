@@ -155,7 +155,13 @@ const OrganizerDashboard = () => {
 
     try {
       if (editingWedding) {
-        await weddingService.updateWedding(editingWedding.id, weddingData);
+        console.log('Updating wedding:', editingWedding.id);
+        console.log('Update data:', weddingData);
+        const result = await weddingService.updateWedding(editingWedding.id, weddingData);
+        if (!result) {
+          setError('Не удалось обновить свадьбу. Проверьте консоль для деталей.');
+          return;
+        }
       } else {
         await weddingService.createWedding({
           ...weddingData,
@@ -168,7 +174,7 @@ const OrganizerDashboard = () => {
       await loadData();
     } catch (err) {
       console.error('Error saving wedding:', err);
-      setError('Ошибка при сохранении свадьбы');
+      setError(err instanceof Error ? err.message : 'Ошибка при сохранении свадьбы');
     }
   };
 
