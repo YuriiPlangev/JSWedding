@@ -564,7 +564,7 @@ export const clientService = {
         return [];
       }
 
-      return (data || []).map((profile) => ({
+      return (data || []).map((profile: { id: string; email: string | null; name: string | null; avatar_url: string | null }) => ({
         id: profile.id,
         email: profile.email || '',
         name: profile.name || '',
