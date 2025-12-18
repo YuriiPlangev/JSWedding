@@ -51,17 +51,32 @@ const DocumentsList = ({ documents, currentLanguage = 'ru' }: DocumentsListProps
   }
 
   // Разделяем документы на закрепленные и незакрепленные
-  const pinnedDocuments = documents.filter((doc) => doc.pinned === true);
+  const pinnedDocuments = documents
+    .filter((doc) => doc.pinned === true)
+    .sort((a, b) => {
+      // Сортируем закрепленные по order
+      if (a.order !== null && a.order !== undefined && b.order !== null && b.order !== undefined) {
+        return a.order - b.order;
+      }
+      if (a.order !== null && a.order !== undefined) return -1;
+      if (b.order !== null && b.order !== undefined) return 1;
+      return 0;
+    });
+  
   const unpinnedDocuments = documents
     .filter((doc) => !doc.pinned)
-    // Сортируем незакрепленные: сначала документы со ссылками, потом без ссылок
     .sort((a, b) => {
+      // Сортируем незакрепленные по order
+      if (a.order !== null && a.order !== undefined && b.order !== null && b.order !== undefined) {
+        return a.order - b.order;
+      }
+      if (a.order !== null && a.order !== undefined) return -1;
+      if (b.order !== null && b.order !== undefined) return 1;
+      // Если order нет, сортируем: сначала документы со ссылками, потом без ссылок
       const aHasLink = !!a.link;
       const bHasLink = !!b.link;
-      // Если у одного есть ссылка, а у другого нет - документ со ссылкой идет первым
       if (aHasLink && !bHasLink) return -1;
       if (!aHasLink && bHasLink) return 1;
-      // Если оба со ссылками или оба без ссылок - сохраняем исходный порядок
       return 0;
     });
 

@@ -39,6 +39,10 @@ const OrganizerDashboard = () => {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editingDocument, setEditingDocument] = useState<Document | null>(null);
   const [uploadingPresentation, setUploadingPresentation] = useState(false);
+  
+  // Состояния для drag and drop
+  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
+  const [draggedDocumentId, setDraggedDocumentId] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     if (!user?.id) return;
@@ -142,11 +146,123 @@ const OrganizerDashboard = () => {
           setViewMode('weddings');
         }
       } else {
-        setError(t.organizer.deleteError + ' ' + t.organizer.projects.toLowerCase());
+        setError('Не удалось удалить проект. Проверьте консоль для деталей.');
       }
     } catch (err) {
       console.error('Error deleting wedding:', err);
-      setError(t.organizer.deleteError + ' ' + t.organizer.projects.toLowerCase());
+      setError(err instanceof Error ? err.message : 'Ошибка при удалении проекта');
+    }
+  };
+
+  // Функция для создания стандартных документов при создании свадьбы
+  const createDefaultDocuments = async (weddingId: string) => {
+    // Убираем order из документов, так как колонка может не существовать в базе данных
+    const defaultDocuments = [
+      // Закрепленные документы
+      {
+        wedding_id: weddingId,
+        name: 'Бюджет',
+        name_en: 'Estimate',
+        name_ru: 'Бюджет',
+        name_ua: 'Кошторис',
+        pinned: true,
+        // order: 0, // Убрано, пока колонка не будет добавлена в БД
+      },
+      {
+        wedding_id: weddingId,
+        name: 'Тайминг',
+        name_en: 'Timing plan',
+        name_ru: 'Тайминг',
+        name_ua: 'Таймінг',
+        pinned: true,
+        // order: 1,
+      },
+      {
+        wedding_id: weddingId,
+        name: 'Этапы подготовки свадьбы',
+        name_en: 'Stages of wedding preparation',
+        name_ru: 'Этапы подготовки свадьбы',
+        name_ua: 'Етапи підготовки весілля',
+        pinned: true,
+        // order: 2,
+      },
+      // Незакрепленные документы
+      {
+        wedding_id: weddingId,
+        name: 'Список гостей',
+        name_en: 'Guest list',
+        name_ru: 'Список гостей',
+        name_ua: 'Список гостей',
+        pinned: false,
+        // order: 0,
+      },
+      {
+        wedding_id: weddingId,
+        name: 'Договор & JS',
+        name_en: 'Agreement & JS',
+        name_ru: 'Договор & JS',
+        name_ua: 'Договір & JS',
+        pinned: false,
+        // order: 1,
+      },
+      {
+        wedding_id: weddingId,
+        name: 'Тайминг утра невесты',
+        name_en: "Bride's morning timing plan",
+        name_ru: 'Тайминг утра невесты',
+        name_ua: 'Таймінг ранку нареченої',
+        pinned: false,
+        // order: 2,
+      },
+      {
+        wedding_id: weddingId,
+        name: 'Проживание гостей и специалистов',
+        name_en: 'Accommodation of guests and specialists',
+        name_ru: 'Проживание гостей и специалистов',
+        name_ua: 'Проживання гостей та спеціалістів',
+        pinned: false,
+        // order: 3,
+      },
+      {
+        wedding_id: weddingId,
+        name: 'План рассадки',
+        name_en: 'Seating plan',
+        name_ru: 'План рассадки',
+        name_ua: 'План розсадки',
+        pinned: false,
+        // order: 4,
+      },
+      {
+        wedding_id: weddingId,
+        name: 'Меню',
+        name_en: 'Menu',
+        name_ru: 'Меню',
+        name_ua: 'Меню',
+        pinned: false,
+        // order: 5,
+      },
+      {
+        wedding_id: weddingId,
+        name: 'Алкоголь',
+        name_en: 'Alcohol list',
+        name_ru: 'Алкоголь',
+        name_ua: 'Алкоголь',
+        pinned: false,
+        // order: 6,
+      },
+    ];
+
+    // Создаем все документы параллельно
+    const createPromises = defaultDocuments.map((doc) =>
+      documentService.createDocument(doc)
+    );
+
+    try {
+      await Promise.all(createPromises);
+      console.log('Default documents created successfully');
+    } catch (error) {
+      console.error('Error creating default documents:', error);
+      // Не прерываем процесс, если документы не создались
     }
   };
 
@@ -163,10 +279,15 @@ const OrganizerDashboard = () => {
           return;
         }
       } else {
-        await weddingService.createWedding({
+        const newWedding = await weddingService.createWedding({
           ...weddingData,
           organizer_id: user.id,
         });
+        
+        // После успешного создания свадьбы создаем стандартные документы
+        if (newWedding?.id) {
+          await createDefaultDocuments(newWedding.id);
+        }
       }
 
       setShowWeddingModal(false);
@@ -230,6 +351,18 @@ const OrganizerDashboard = () => {
           return;
         }
       } else {
+        // При создании нового задания устанавливаем порядок в конец списка (если колонка order существует)
+        const existingTasks = selectedWedding.tasks || [];
+        const hasOrderColumn = existingTasks.some(task => task.order !== null && task.order !== undefined);
+        if (hasOrderColumn) {
+          const maxOrder = existingTasks.reduce((max, task) => {
+            const order = task.order ?? -1;
+            return order > max ? order : max;
+          }, -1);
+          taskToSave.order = maxOrder + 1;
+        }
+        // Если колонки order нет, просто не устанавливаем её
+        
         const result = await taskService.createTask(taskToSave);
         if (!result) {
           setError(t.organizer.createError);
@@ -266,6 +399,147 @@ const OrganizerDashboard = () => {
       console.error('Error deleting task:', err);
       setError(t.organizer.deleteError + ' ' + t.organizer.tasks.toLowerCase());
     }
+  };
+
+  // Обработчики drag and drop для заданий
+  const handleTaskDragStart = (e: React.DragEvent, taskId: string) => {
+    setDraggedTaskId(taskId);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', taskId);
+  };
+
+  const handleTaskDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleTaskDrop = async (e: React.DragEvent, targetTaskId: string) => {
+    e.preventDefault();
+    if (!selectedWedding || !draggedTaskId || draggedTaskId === targetTaskId) {
+      setDraggedTaskId(null);
+      return;
+    }
+
+    const tasks = selectedWedding.tasks || [];
+    const draggedIndex = tasks.findIndex(t => t.id === draggedTaskId);
+    const targetIndex = tasks.findIndex(t => t.id === targetTaskId);
+
+    if (draggedIndex === -1 || targetIndex === -1) {
+      setDraggedTaskId(null);
+      return;
+    }
+
+    // Создаем новый массив с обновленным порядком
+    const newTasks = [...tasks];
+    const [draggedTask] = newTasks.splice(draggedIndex, 1);
+    newTasks.splice(targetIndex, 0, draggedTask);
+
+    // Обновляем порядок для всех заданий
+    const taskOrders = newTasks.map((task, index) => ({
+      id: task.id,
+      order: index,
+    }));
+
+    try {
+      const success = await taskService.updateTasksOrder(selectedWedding.id, taskOrders);
+      if (success) {
+        await loadWeddingDetails(selectedWedding.id);
+      } else {
+        setError('Не удалось обновить порядок заданий');
+      }
+    } catch (err) {
+      console.error('Error updating tasks order:', err);
+      setError('Ошибка при обновлении порядка заданий');
+    }
+
+    setDraggedTaskId(null);
+  };
+
+  const handleTaskDragEnd = () => {
+    setDraggedTaskId(null);
+  };
+
+  // Обработчики drag and drop для документов
+  const handleDocumentDragStart = (e: React.DragEvent, documentId: string) => {
+    setDraggedDocumentId(documentId);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', documentId);
+  };
+
+  const handleDocumentDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDocumentDrop = async (e: React.DragEvent, targetDocumentId: string) => {
+    e.preventDefault();
+    if (!selectedWedding || !draggedDocumentId || draggedDocumentId === targetDocumentId) {
+      setDraggedDocumentId(null);
+      return;
+    }
+
+    const documents = selectedWedding.documents || [];
+    const draggedDoc = documents.find(d => d.id === draggedDocumentId);
+    const targetDoc = documents.find(d => d.id === targetDocumentId);
+
+    if (!draggedDoc || !targetDoc) {
+      setDraggedDocumentId(null);
+      return;
+    }
+
+    // Разделяем документы на закрепленные и незакрепленные
+    const pinnedDocs = documents.filter(d => d.pinned);
+    const unpinnedDocs = documents.filter(d => !d.pinned);
+
+    // Если перетаскиваем закрепленный документ, работаем только с закрепленными
+    // Если перетаскиваем незакрепленный, работаем только с незакрепленными
+    let targetArray: Document[];
+    let draggedIndex: number;
+    let targetIndex: number;
+
+    if (draggedDoc.pinned) {
+      targetArray = pinnedDocs;
+      draggedIndex = pinnedDocs.findIndex(d => d.id === draggedDocumentId);
+      targetIndex = pinnedDocs.findIndex(d => d.id === targetDocumentId);
+    } else {
+      targetArray = unpinnedDocs;
+      draggedIndex = unpinnedDocs.findIndex(d => d.id === draggedDocumentId);
+      targetIndex = unpinnedDocs.findIndex(d => d.id === targetDocumentId);
+    }
+
+    if (draggedIndex === -1 || targetIndex === -1) {
+      setDraggedDocumentId(null);
+      return;
+    }
+
+    // Создаем новый массив с обновленным порядком
+    const newArray = [...targetArray];
+    const [draggedItem] = newArray.splice(draggedIndex, 1);
+    newArray.splice(targetIndex, 0, draggedItem);
+
+    // Обновляем порядок для всех документов в этой группе
+    const documentOrders = newArray.map((doc, index) => ({
+      id: doc.id,
+      order: index,
+    }));
+
+    try {
+      const success = await documentService.updateDocumentsOrder(selectedWedding.id, documentOrders);
+      if (success) {
+        await loadWeddingDetails(selectedWedding.id);
+      } else {
+        setError('Не удалось обновить порядок документов');
+      }
+    } catch (err) {
+      console.error('Error updating documents order:', err);
+      setError('Ошибка при обновлении порядка документов');
+    }
+
+    setDraggedDocumentId(null);
+  };
+
+  const handleDocumentDragEnd = () => {
+    setDraggedDocumentId(null);
   };
 
   const handleCreateDocument = () => {
@@ -402,6 +676,20 @@ const OrganizerDashboard = () => {
       if (editingDocument) {
         result = await documentService.updateDocument(editingDocument.id, docData, selectedWedding.id);
       } else {
+        // При создании нового документа устанавливаем порядок в конец соответствующей группы (если колонка order существует)
+        const existingDocuments = selectedWedding.documents || [];
+        const hasOrderColumn = existingDocuments.some(doc => doc.order !== null && doc.order !== undefined);
+        if (hasOrderColumn) {
+          const isPinned = docData.pinned === true;
+          const sameGroupDocs = existingDocuments.filter(d => d.pinned === isPinned);
+          const maxOrder = sameGroupDocs.reduce((max, doc) => {
+            const order = doc.order ?? -1;
+            return order > max ? order : max;
+          }, -1);
+          docData.order = maxOrder + 1;
+        }
+        // Если колонки order нет, просто не устанавливаем её
+        
         result = await documentService.createDocument(docData);
       }
 
@@ -775,7 +1063,12 @@ const OrganizerDashboard = () => {
             {/* Tasks */}
             <div className="bg-white border border-[#00000033] rounded-lg p-6 mb-6">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-[24px] max-[1599px]:text-[20px] font-forum font-bold text-black">{t.organizer.tasks}</h3>
+                <div>
+                  <h3 className="text-[24px] max-[1599px]:text-[20px] font-forum font-bold text-black">{t.organizer.tasks}</h3>
+                  <p className="text-[12px] max-[1599px]:text-[11px] font-forum font-light text-[#00000060] mt-1">
+                    Перетащите элементы для изменения порядка
+                  </p>
+                </div>
                 <button
                   onClick={handleCreateTask}
                   className="px-4 md:px-6 py-2 md:py-3 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum"
@@ -788,9 +1081,18 @@ const OrganizerDashboard = () => {
                   {selectedWedding.tasks.map((task) => (
                     <div
                       key={task.id}
-                      className="border border-[#00000033] rounded-lg p-4 flex justify-between items-start hover:shadow-md transition"
+                      draggable
+                      onDragStart={(e) => handleTaskDragStart(e, task.id)}
+                      onDragOver={handleTaskDragOver}
+                      onDrop={(e) => handleTaskDrop(e, task.id)}
+                      onDragEnd={handleTaskDragEnd}
+                      className={`border border-[#00000033] rounded-lg p-4 flex justify-between items-start hover:shadow-md transition cursor-move ${
+                        draggedTaskId === task.id ? 'opacity-50' : ''
+                      }`}
                     >
-                      <div className="flex-1">
+                      <div className="flex items-start gap-2 flex-1">
+                        <div className="text-[#00000040] mt-1 cursor-move select-none">⋮⋮</div>
+                        <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <span
                             className={`px-2 py-1 text-[12px] rounded-full font-forum ${
@@ -840,6 +1142,7 @@ const OrganizerDashboard = () => {
                             </a>
                           ) : null;
                         })()}
+                        </div>
                       </div>
                       <div className="flex space-x-2 ml-4">
                         <button
@@ -866,7 +1169,12 @@ const OrganizerDashboard = () => {
             {/* Documents */}
             <div className="bg-white border border-[#00000033] rounded-lg p-6 mb-6">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-[24px] max-[1599px]:text-[20px] font-forum font-bold text-black">{t.organizer.documents}</h3>
+                <div>
+                  <h3 className="text-[24px] max-[1599px]:text-[20px] font-forum font-bold text-black">{t.organizer.documents}</h3>
+                  <p className="text-[12px] max-[1599px]:text-[11px] font-forum font-light text-[#00000060] mt-1">
+                    Перетащите элементы для изменения порядка (закрепленные и незакрепленные отдельно)
+                  </p>
+                </div>
                 <button
                   onClick={handleCreateDocument}
                   className="px-4 md:px-6 py-2 md:py-3 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum"
@@ -879,9 +1187,18 @@ const OrganizerDashboard = () => {
                   {selectedWedding.documents.map((doc) => (
                     <div
                       key={doc.id}
-                      className="border border-[#00000033] rounded-lg p-4 flex justify-between items-center hover:shadow-md transition"
+                      draggable
+                      onDragStart={(e) => handleDocumentDragStart(e, doc.id)}
+                      onDragOver={handleDocumentDragOver}
+                      onDrop={(e) => handleDocumentDrop(e, doc.id)}
+                      onDragEnd={handleDocumentDragEnd}
+                      className={`border border-[#00000033] rounded-lg p-4 flex justify-between items-center hover:shadow-md transition cursor-move ${
+                        draggedDocumentId === doc.id ? 'opacity-50' : ''
+                      }`}
                     >
-                      <div className="flex-1">
+                      <div className="flex items-center gap-2 flex-1">
+                        <div className="text-[#00000040] cursor-move select-none">⋮⋮</div>
+                        <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <h4 className="text-[18px] max-[1599px]:text-[16px] font-forum font-bold text-black">
                             {currentLanguage === 'en' && doc.name_en ? doc.name_en :
@@ -905,6 +1222,7 @@ const OrganizerDashboard = () => {
                             {t.organizer.openLink}
                           </a>
                         )}
+                        </div>
                       </div>
                       <div className="flex space-x-2 ml-4">
                         <button

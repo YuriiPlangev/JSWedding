@@ -69,21 +69,26 @@ export const weddingService = {
 
   // Создать свадьбу (только для организатора)
   async createWedding(wedding: Omit<Wedding, 'id' | 'created_at' | 'updated_at'>): Promise<Wedding | null> {
-    const { data, error } = await supabase
-      .from('weddings')
-      .insert(wedding)
-      .select()
-      .single();
+    try {
+      // Используем SQL функцию для создания свадьбы (обходит RLS)
+      const { data, error } = await supabase.rpc('create_wedding', {
+        wedding_data: wedding as any,
+      });
 
-    if (error) {
-      console.error('Error creating wedding:', error);
+      if (error) {
+        console.error('Error creating wedding:', error);
+        return null;
+      }
+
+      // Инвалидируем кеш
+      invalidateCache(`wedding_${wedding.client_id}`);
+
+      // Функция возвращает массив, берем первый элемент
+      return Array.isArray(data) ? data[0] : data;
+    } catch (err) {
+      console.error('Error in createWedding:', err);
       return null;
     }
-
-    // Инвалидируем кеш
-    invalidateCache(`wedding_${wedding.client_id}`);
-
-    return data;
   },
 
   // Обновить свадьбу (только для организатора)
@@ -204,28 +209,45 @@ export const weddingService = {
 
   // Удалить свадьбу (только для организатора)
   async deleteWedding(weddingId: string): Promise<boolean> {
-    const { data: wedding } = await supabase
-      .from('weddings')
-      .select('client_id')
-      .eq('id', weddingId)
-      .single();
+    try {
+      // Получаем информацию о свадьбе перед удалением (для инвалидации кеша)
+      const { data: wedding } = await supabase
+        .from('weddings')
+        .select('client_id')
+        .eq('id', weddingId)
+        .single();
 
-    const { error } = await supabase
-      .from('weddings')
-      .delete()
-      .eq('id', weddingId);
+      if (!wedding) {
+        console.error('Wedding not found:', weddingId);
+        return false;
+      }
 
-    if (error) {
-      console.error('Error deleting wedding:', error);
+      // Используем SQL функцию для удаления свадьбы (обходит RLS)
+      const { data, error } = await supabase.rpc('delete_wedding', {
+        wedding_id: weddingId,
+      });
+
+      if (error) {
+        console.error('Error deleting wedding:', error);
+        console.error('Error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+        });
+        return false;
+      }
+
+      // Инвалидируем кеш
+      invalidateCache(`wedding_${wedding.client_id}`);
+      invalidateCache(`tasks_${weddingId}`);
+      invalidateCache(`documents_${weddingId}`);
+
+      return true;
+    } catch (err) {
+      console.error('Error in deleteWedding:', err);
       return false;
     }
-
-    // Инвалидируем кеш
-    if (wedding) {
-      invalidateCache(`wedding_${wedding.client_id}`);
-    }
-
-    return true;
   },
 
   // Обновить заметки клиента (только для клиента)
@@ -280,7 +302,17 @@ export const taskService = {
       return [];
     }
 
-    const tasks = data || [];
+    // Сортируем на клиенте по order (если поле существует), иначе по created_at
+    const tasks = (data || []).sort((a, b) => {
+      // Сначала сортируем по order (если поле существует и заполнено)
+      if (a.order !== null && a.order !== undefined && b.order !== null && b.order !== undefined) {
+        return a.order - b.order;
+      }
+      if (a.order !== null && a.order !== undefined) return -1;
+      if (b.order !== null && b.order !== undefined) return 1;
+      // Если order нет, используем created_at
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
 
     // Сохраняем в кеш на 3 минуты (задания могут обновляться чаще)
     setCache(cacheKey, tasks, 3 * 60 * 1000);
@@ -347,6 +379,48 @@ export const taskService = {
     invalidateCache(`tasks_${weddingId}`);
 
     return true;
+  },
+
+  // Обновить порядок заданий (только для организатора)
+  async updateTasksOrder(weddingId: string, taskOrders: { id: string; order: number }[]): Promise<boolean> {
+    try {
+      // Обновляем порядок для всех заданий параллельно
+      const updatePromises = taskOrders.map(({ id, order }) =>
+        supabase
+          .from('tasks')
+          .update({ order })
+          .eq('id', id)
+      );
+
+      const results = await Promise.all(updatePromises);
+      const errors = results.filter(result => result.error);
+      
+      // Если есть ошибки, проверяем, не связаны ли они с отсутствием колонки order
+      if (errors.length > 0) {
+        const hasColumnError = errors.some(result => 
+          result.error?.code === '42703' || 
+          result.error?.message?.includes('does not exist') ||
+          result.error?.message?.includes('column') && result.error?.message?.includes('order')
+        );
+        
+        if (hasColumnError) {
+          console.warn('Column "order" does not exist in tasks table. Order updates will be ignored.');
+          // Не считаем это критической ошибкой - просто колонка не существует
+          return true;
+        }
+        
+        console.error('Error updating tasks order:', errors);
+        return false;
+      }
+
+      // Инвалидируем кеш заданий для этой свадьбы
+      invalidateCache(`tasks_${weddingId}`);
+
+      return true;
+    } catch (error) {
+      console.error('Error updating tasks order:', error);
+      return false;
+    }
   },
 };
 
@@ -427,8 +501,36 @@ export const documentService = {
       return [];
     }
 
+    // Сортируем документы на клиенте: сначала закрепленные (pinned), потом по order (если поле существует)
+    const sortedDocuments = (data || []).sort((a, b) => {
+      // Закрепленные документы всегда сверху
+      if (a.pinned && !b.pinned) return -1;
+      if (!a.pinned && b.pinned) return 1;
+      
+      // Если оба закреплены или оба незакреплены, сортируем по order
+      if (a.pinned && b.pinned) {
+        if (a.order !== null && a.order !== undefined && b.order !== null && b.order !== undefined) {
+          return a.order - b.order;
+        }
+        if (a.order !== null && a.order !== undefined) return -1;
+        if (b.order !== null && b.order !== undefined) return 1;
+      }
+      
+      // Для незакрепленных документов сортируем по order
+      if (!a.pinned && !b.pinned) {
+        if (a.order !== null && a.order !== undefined && b.order !== null && b.order !== undefined) {
+          return a.order - b.order;
+        }
+        if (a.order !== null && a.order !== undefined) return -1;
+        if (b.order !== null && b.order !== undefined) return 1;
+      }
+      
+      // Если order нет, используем created_at
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+
     // Генерируем URL для скачивания для каждого документа на основе ссылки
-    const documentsWithUrls = (data || []).map((doc) => {
+    const documentsWithUrls = sortedDocuments.map((doc) => {
       // Если есть ссылка, генерируем URL для скачивания
       if (doc.link) {
         return {
@@ -525,6 +627,48 @@ export const documentService = {
     invalidateCache(`documents_${weddingId}`);
 
     return true;
+  },
+
+  // Обновить порядок документов (только для организатора)
+  async updateDocumentsOrder(weddingId: string, documentOrders: { id: string; order: number }[]): Promise<boolean> {
+    try {
+      // Обновляем порядок для всех документов параллельно
+      const updatePromises = documentOrders.map(({ id, order }) =>
+        supabase
+          .from('documents')
+          .update({ order })
+          .eq('id', id)
+      );
+
+      const results = await Promise.all(updatePromises);
+      const errors = results.filter(result => result.error);
+      
+      // Если есть ошибки, проверяем, не связаны ли они с отсутствием колонки order
+      if (errors.length > 0) {
+        const hasColumnError = errors.some(result => 
+          result.error?.code === '42703' || 
+          result.error?.message?.includes('does not exist') ||
+          result.error?.message?.includes('column') && result.error?.message?.includes('order')
+        );
+        
+        if (hasColumnError) {
+          console.warn('Column "order" does not exist in documents table. Order updates will be ignored.');
+          // Не считаем это критической ошибкой - просто колонка не существует
+          return true;
+        }
+        
+        console.error('Error updating documents order:', errors);
+        return false;
+      }
+
+      // Инвалидируем кеш документов для этой свадьбы
+      invalidateCache(`documents_${weddingId}`);
+
+      return true;
+    } catch (error) {
+      console.error('Error updating documents order:', error);
+      return false;
+    }
   },
 };
 

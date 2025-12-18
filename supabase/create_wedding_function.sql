@@ -1,0 +1,107 @@
+-- ============================================
+-- Функция для создания свадьбы (обходит RLS)
+-- ============================================
+
+-- Удаляем функцию, если она существует
+DROP FUNCTION IF EXISTS create_wedding(JSONB);
+
+-- Создаем функцию для создания свадьбы
+CREATE OR REPLACE FUNCTION create_wedding(
+  wedding_data JSONB
+)
+RETURNS SETOF weddings
+SECURITY DEFINER
+SET search_path = public
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  current_user_id UUID;
+  current_user_role TEXT;
+  new_wedding weddings%ROWTYPE;
+BEGIN
+  -- Получаем текущего пользователя
+  current_user_id := auth.uid();
+  
+  -- Проверяем, что пользователь существует и является организатором
+  SELECT p.role INTO current_user_role
+  FROM profiles p
+  WHERE p.id = current_user_id;
+  
+  IF current_user_role IS NULL OR current_user_role != 'organizer' THEN
+    RAISE EXCEPTION 'Only organizers can create weddings';
+  END IF;
+  
+  -- Проверяем, что organizer_id в данных совпадает с текущим пользователем
+  IF (wedding_data->>'organizer_id')::UUID != current_user_id THEN
+    RAISE EXCEPTION 'Organizer ID must match current user';
+  END IF;
+  
+  -- Проверяем обязательные поля
+  IF wedding_data->>'couple_name_1_en' IS NULL AND wedding_data->>'couple_name_1_ru' IS NULL THEN
+    RAISE EXCEPTION 'couple_name_1_en or couple_name_1_ru is required';
+  END IF;
+  
+  IF wedding_data->>'couple_name_2_en' IS NULL AND wedding_data->>'couple_name_2_ru' IS NULL THEN
+    RAISE EXCEPTION 'couple_name_2_en or couple_name_2_ru is required';
+  END IF;
+  
+  IF wedding_data->>'venue' IS NULL OR wedding_data->>'venue' = '' THEN
+    RAISE EXCEPTION 'venue is required';
+  END IF;
+  
+  -- Создаем свадьбу
+  INSERT INTO weddings (
+    client_id,
+    organizer_id,
+    couple_name_1_en,
+    couple_name_1_ru,
+    couple_name_2_en,
+    couple_name_2_ru,
+    wedding_date,
+    country,
+    country_en,
+    country_ru,
+    country_ua,
+    venue,
+    guest_count,
+    chat_link,
+    notes,
+    splash_welcome_text_en,
+    full_welcome_text_en
+  )
+  VALUES (
+    (wedding_data->>'client_id')::UUID,
+    (wedding_data->>'organizer_id')::UUID,
+    COALESCE(NULLIF(wedding_data->>'couple_name_1_en', ''), NULLIF(wedding_data->>'couple_name_1_ru', '')),
+    COALESCE(NULLIF(wedding_data->>'couple_name_1_ru', ''), NULLIF(wedding_data->>'couple_name_1_en', '')),
+    COALESCE(NULLIF(wedding_data->>'couple_name_2_en', ''), NULLIF(wedding_data->>'couple_name_2_ru', '')),
+    COALESCE(NULLIF(wedding_data->>'couple_name_2_ru', ''), NULLIF(wedding_data->>'couple_name_2_en', '')),
+    (wedding_data->>'wedding_date')::DATE,
+    COALESCE(NULLIF(wedding_data->>'country', ''), NULLIF(wedding_data->>'country_ru', ''), NULLIF(wedding_data->>'country_en', ''), ''),
+    NULLIF(wedding_data->>'country_en', ''),
+    NULLIF(wedding_data->>'country_ru', ''),
+    NULLIF(wedding_data->>'country_ua', ''),
+    wedding_data->>'venue',
+    COALESCE((wedding_data->>'guest_count')::INTEGER, 0),
+    NULLIF(wedding_data->>'chat_link', ''),
+    NULLIF(wedding_data->>'notes', ''),
+    NULLIF(wedding_data->>'splash_welcome_text_en', ''),
+    NULLIF(wedding_data->>'full_welcome_text_en', '')
+  )
+  RETURNING * INTO new_wedding;
+  
+  -- Возвращаем созданную запись
+  RETURN QUERY
+  SELECT w.*
+  FROM weddings w
+  WHERE w.id = new_wedding.id;
+END;
+$$;
+
+-- Даем права на выполнение функции всем аутентифицированным пользователям
+GRANT EXECUTE ON FUNCTION create_wedding(JSONB) TO authenticated;
+
+-- Комментарий к функции
+COMMENT ON FUNCTION create_wedding(JSONB) IS 
+  'Создает свадьбу для организатора. Обходит RLS, но проверяет права доступа внутри функции.';
+

@@ -61,6 +61,7 @@ export interface Task {
   link_text_ua?: string; // Текст ссылки на украинском
   due_date?: string;
   status: 'pending' | 'in_progress' | 'completed';
+  order?: number; // Порядок отображения
   created_at: string;
   updated_at: string;
 }
@@ -75,6 +76,7 @@ export interface Document {
   name_ua?: string; // Название документа на украинском
   link?: string; // Ссылка на документ (для Google Docs/Sheets/Drive)
   pinned?: boolean; // Закреплен ли документ
+  order?: number; // Порядок отображения (для незакрепленных документов, закрепленные всегда сверху)
   file_path?: string; // Путь к файлу в Supabase Storage (опционально, если есть link)
   file_url?: string; // URL для скачивания
   file_size?: number; // Размер файла в байтах
