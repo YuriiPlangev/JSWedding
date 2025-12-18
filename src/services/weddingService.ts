@@ -223,7 +223,7 @@ export const weddingService = {
       }
 
       // Используем SQL функцию для удаления свадьбы (обходит RLS)
-      const { data, error } = await supabase.rpc('delete_wedding', {
+      const { error } = await supabase.rpc('delete_wedding', {
         wedding_id: weddingId,
       });
 
