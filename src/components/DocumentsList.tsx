@@ -171,19 +171,19 @@ const DocumentsList = ({ documents, currentLanguage = 'ru' }: DocumentsListProps
       {pinnedDocuments.length > 0 && (
         <div className='border-b border-[#00000033] shrink-0'>
           <div className='px-3 sm:px-4 md:px-8 lg:px-12 xl:px-[60px] pt-0 pb-2'>
-            <p className='text-[12px] sm:text-[14px] md:text-[16px] max-[1599px]:text-[14px] lg:max-[1599px]:text-[13px] min-[1300px]:max-[1599px]:text-[14px] font-forum font-light text-[#00000080] mb-2'>
+            <p className='text-[11px] sm:text-[13px] md:text-[15px] max-[1599px]:text-[13px] lg:max-[1599px]:text-[12px] min-[1300px]:max-[1599px]:text-[13px] font-forum font-light text-[#00000080] mb-2 tracking-wide lg:tracking-normal'>
               {getTranslation(currentLanguage).dashboard.pinnedDocuments}
             </p>
             <ul>
               {pinnedDocuments.map((doc) => {
                 const hasLink = !!doc.link;
                 const linkClassName = hasLink
-                  ? 'text-[14px] sm:text-[16px] md:text-[18px] lg:text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-light underline underline-offset-4 hover:opacity-70 transition-opacity cursor-pointer break-words'
-                  : 'text-[14px] sm:text-[16px] md:text-[18px] lg:text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-light text-[#00000040] cursor-default break-words';
+                  ? 'text-[13px] sm:text-[15px] md:text-[17px] lg:text-[22px] max-[1599px]:text-[17px] lg:max-[1599px]:text-[16px] min-[1300px]:max-[1599px]:text-[18px] font-forum font-light underline underline-offset-4 hover:opacity-70 transition-opacity cursor-pointer break-words tracking-wide lg:tracking-normal'
+                  : 'text-[13px] sm:text-[15px] md:text-[17px] lg:text-[22px] max-[1599px]:text-[17px] lg:max-[1599px]:text-[16px] min-[1300px]:max-[1599px]:text-[18px] font-forum font-light text-[#00000040] cursor-default break-words tracking-wide lg:tracking-normal';
                 
                 const isDownloading = downloadingIds.has(doc.id);
                 const downloadingClassName = isDownloading 
-                  ? 'text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-light underline underline-offset-4 opacity-60 transition-opacity cursor-pointer'
+                  ? 'text-[22px] max-[1599px]:text-[17px] lg:max-[1599px]:text-[16px] min-[1300px]:max-[1599px]:text-[18px] font-forum font-light underline underline-offset-4 opacity-60 transition-opacity cursor-pointer tracking-wide lg:tracking-normal'
                   : linkClassName;
                 
                 return (
@@ -235,12 +235,12 @@ const DocumentsList = ({ documents, currentLanguage = 'ru' }: DocumentsListProps
             {unpinnedDocuments.map((doc) => {
                 const hasLink = !!doc.link;
                 const linkClassName = hasLink
-                  ? 'text-[14px] sm:text-[16px] md:text-[18px] lg:text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-light underline underline-offset-4 hover:opacity-70 transition-opacity cursor-pointer break-words'
-                  : 'text-[14px] sm:text-[16px] md:text-[18px] lg:text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-light text-[#00000040] cursor-default break-words';
+                  ? 'text-[13px] sm:text-[15px] md:text-[17px] lg:text-[22px] max-[1599px]:text-[17px] lg:max-[1599px]:text-[16px] min-[1300px]:max-[1599px]:text-[18px] font-forum font-light underline underline-offset-4 hover:opacity-70 transition-opacity cursor-pointer break-words tracking-wide lg:tracking-normal'
+                  : 'text-[13px] sm:text-[15px] md:text-[17px] lg:text-[22px] max-[1599px]:text-[17px] lg:max-[1599px]:text-[16px] min-[1300px]:max-[1599px]:text-[18px] font-forum font-light text-[#00000040] cursor-default break-words tracking-wide lg:tracking-normal';
                 
                 const isDownloading = downloadingIds.has(doc.id);
                 const downloadingClassName = isDownloading 
-                  ? 'text-[14px] sm:text-[16px] md:text-[18px] lg:text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-light underline underline-offset-4 opacity-60 transition-opacity cursor-pointer break-words'
+                  ? 'text-[13px] sm:text-[15px] md:text-[17px] lg:text-[22px] max-[1599px]:text-[17px] lg:max-[1599px]:text-[16px] min-[1300px]:max-[1599px]:text-[18px] font-forum font-light underline underline-offset-4 opacity-60 transition-opacity cursor-pointer break-words tracking-wide lg:tracking-normal'
                   : linkClassName;
                 
                 return (

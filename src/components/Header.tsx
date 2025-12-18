@@ -136,7 +136,7 @@ const Header = ({ onLogout, currentLanguage, onLanguageChange, chatLink, wedding
             <img 
               src={logo} 
               alt="logo" 
-              className="h-6 sm:h-7 md:h-8 lg:h-10 max-[1599px]:lg:h-9 min-[1600px]:lg:h-12 w-auto"
+              className="h-8 sm:h-9 md:h-10 lg:h-12 max-[1599px]:lg:h-11 min-[1600px]:lg:h-14 w-auto"
               style={{ display: 'block' }}
             />
           </div>

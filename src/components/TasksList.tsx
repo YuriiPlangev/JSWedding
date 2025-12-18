@@ -94,7 +94,7 @@ const TasksList = ({ tasks, onTaskToggle, currentLanguage = 'ru' }: TasksListPro
               <span className="checkbox-label"></span>
             </label>
             <p 
-              className='text-[14px] sm:text-[16px] md:text-[18px] lg:text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-light break-words'
+              className='text-[13px] sm:text-[15px] md:text-[17px] lg:text-[22px] max-[1599px]:text-[17px] lg:max-[1599px]:text-[16px] min-[1300px]:max-[1599px]:text-[18px] font-forum font-light break-words'
             >
               {/* Парсим текст задания на наличие ссылок в формате [текст](ссылка) */}
               {parseTextWithLinks(taskTitle).map((part, index) => {

@@ -387,7 +387,7 @@ const ClientDashboard = () => {
                       const titleText = getTranslation(currentLanguage).dashboard.tasks;
                       return (
                         <h2 
-                          className='text-[50px] max-[1599px]:text-[36px] lg:max-[1599px]:text-[32px] min-[1300px]:max-[1599px]:text-[38px] mb-1 font-forum'
+                          className='text-[48px] max-[1599px]:text-[34px] lg:max-[1599px]:text-[30px] min-[1300px]:max-[1599px]:text-[36px] mb-1 font-forum text-center lg:text-left'
                         >
                           {titleText}
                         </h2>
@@ -397,7 +397,7 @@ const ClientDashboard = () => {
                       const descText = getTranslation(currentLanguage).dashboard.tasksDescription;
                       return (
                         <p 
-                          className='text-[24px] max-[1599px]:text-[18px] -mt-2 lg:max-[1599px]:text-[16px] min-[1300px]:max-[1599px]:text-[18px] font-forum font-light text-[#00000080]'
+                          className='text-[22px] max-[1599px]:text-[17px] -mt-2 lg:max-[1599px]:text-[15px] min-[1300px]:max-[1599px]:text-[17px] font-forum font-light text-[#00000080] text-center lg:text-left'
                         >
                           {descText}
                         </p>
@@ -420,7 +420,7 @@ const ClientDashboard = () => {
                       const titleText = getTranslation(currentLanguage).dashboard.documents;
                       return (
                         <h2 
-                          className='text-[28px] sm:text-[32px] md:text-[36px] lg:text-[50px] max-[1599px]:text-[36px] lg:max-[1599px]:text-[32px] min-[1300px]:max-[1599px]:text-[38px] mb-0 font-forum'
+                          className='text-[26px] sm:text-[30px] md:text-[34px] lg:text-[48px] max-[1599px]:text-[34px] lg:max-[1599px]:text-[30px] min-[1300px]:max-[1599px]:text-[36px] mb-0 font-forum text-center lg:text-left tracking-wide lg:tracking-normal'
                         >
                           {titleText}
                         </h2>

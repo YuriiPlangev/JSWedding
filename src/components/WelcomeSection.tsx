@@ -12,7 +12,7 @@ const WelcomeSection = ({ wedding, currentLanguage }: WelcomeSectionProps) => {
   return (
     <div className="border-b border-[#00000033] py-4 sm:py-5 md:py-6 max-[1599px]:py-3 md:max-[1599px]:py-4 lg:max-[1599px]:py-3 min-[1300px]:max-[1599px]:py-4 px-3 sm:px-4 md:px-8 lg:px-12 xl:px-[60px]">
       <h2 
-        className="text-[20px] sm:text-[24px] md:text-[28px] lg:text-[32px] max-[1599px]:text-[24px] lg:max-[1599px]:text-[22px] min-[1300px]:max-[1599px]:text-[26px] font-forum leading-tight"
+        className="text-[18px] sm:text-[22px] md:text-[26px] lg:text-[30px] max-[1599px]:text-[22px] lg:max-[1599px]:text-[20px] min-[1300px]:max-[1599px]:text-[24px] font-forum leading-tight text-center lg:text-left"
       >
         {(() => {
           // Если есть полный кастомный текст, используем его
@@ -33,7 +33,7 @@ const WelcomeSection = ({ wedding, currentLanguage }: WelcomeSectionProps) => {
         })()}
       </h2>
       <p 
-        className="text-[12px] sm:text-[14px] md:text-[16px] max-[1599px]:text-[14px] lg:max-[1599px]:text-[13px] min-[1300px]:max-[1599px]:text-[14px] font-forum font-light text-[#00000080] leading-tight mt-1"
+        className="text-[11px] sm:text-[13px] md:text-[15px] max-[1599px]:text-[13px] lg:max-[1599px]:text-[12px] min-[1300px]:max-[1599px]:text-[13px] font-forum font-light text-[#00000080] leading-tight mt-1 text-center lg:text-left"
       >
         {t.dashboard.viewControl}
       </p>
