@@ -369,7 +369,7 @@ const LoginPage = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder='Enter your Email'
-                className='w-full bg-transparent border-0 border-b-1 focus:outline-none focus:border-b-1 pb-1.5 font-gilroy text-[10px] sm:text-[11px] md:text-[11px] lg:text-[10px] max-[1599px]:lg:text-[10px] min-[1300px]:max-[1599px]:text-[11px] min-[1600px]:text-[13px] xl:text-[14px] max-[1599px]:xl:text-[12px] min-[1600px]:xl:text-[15px] pl-1'
+                className='w-full bg-transparent border-0 border-b-1 focus:outline-none focus:border-b-1 pb-1.5 font-gilroy text-[16px] sm:text-[11px] md:text-[11px] lg:text-[10px] max-[1599px]:lg:text-[10px] min-[1300px]:max-[1599px]:text-[11px] min-[1600px]:text-[13px] xl:text-[14px] max-[1599px]:xl:text-[12px] min-[1600px]:xl:text-[15px] pl-1'
                 style={{ 
                   borderColor: '#00000080',
                   color: 'black',
@@ -395,7 +395,7 @@ const LoginPage = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder='Enter your password'
-                    className='w-full bg-transparent border-0 border-b-1 focus:outline-none focus:border-b-1 pb-1.5 pr-8 font-gilroy text-[10px] sm:text-[11px] md:text-[11px] lg:text-[10px] max-[1599px]:lg:text-[10px] min-[1300px]:max-[1599px]:text-[11px] min-[1600px]:text-[13px] xl:text-[14px] max-[1599px]:xl:text-[12px] min-[1600px]:xl:text-[15px] pl-1'
+                    className='w-full bg-transparent border-0 border-b-1 focus:outline-none focus:border-b-1 pb-1.5 pr-8 font-gilroy text-[16px] sm:text-[11px] md:text-[11px] lg:text-[10px] max-[1599px]:lg:text-[10px] min-[1300px]:max-[1599px]:text-[11px] min-[1600px]:text-[13px] xl:text-[14px] max-[1599px]:xl:text-[12px] min-[1600px]:xl:text-[15px] pl-1'
                   style={{ 
                     borderColor: '#00000080',
                     color: 'black',

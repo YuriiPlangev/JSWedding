@@ -55,9 +55,10 @@ const ClientDashboard = () => {
   // Скрытие заглушки при прокрутке
   useEffect(() => {
     let hideTimeout: number | null = null;
+    let isHiding = false;
 
     const handleScroll = () => {
-      if (!splashRef.current || !showSplash || splashRemoved) return;
+      if (!splashRef.current || !showSplash || splashRemoved || isHiding) return;
 
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
       const splashHeight = splashRef.current.offsetHeight;
@@ -66,11 +67,33 @@ const ClientDashboard = () => {
       // (когда scrollTop больше или равен высоте заглушки)
       // В этот момент в верхней части экрана будет виден хедер
       if (scrollTop >= splashHeight) {
+        isHiding = true;
+        
+        // На мобильных устройствах сохраняем текущую позицию скролла
+        // и корректируем её после скрытия заглушки
+        const isMobile = window.innerWidth < 1024; // lg breakpoint
+        const currentScroll = scrollTop;
+        
         setShowSplash(false);
+        
         // После завершения анимации (800ms) полностью удаляем элемент из DOM
         if (hideTimeout) clearTimeout(hideTimeout);
         hideTimeout = window.setTimeout(() => {
           setSplashRemoved(true);
+          
+          // На мобильных устройствах корректируем позицию скролла после скрытия заглушки
+          // чтобы избежать принудительной прокрутки вниз
+          if (isMobile) {
+            requestAnimationFrame(() => {
+              const newScroll = Math.max(0, currentScroll - splashHeight);
+              window.scrollTo({
+                top: newScroll,
+                behavior: 'auto'
+              });
+            });
+          }
+          
+          isHiding = false;
         }, 800);
       }
     };
@@ -87,6 +110,7 @@ const ClientDashboard = () => {
   useEffect(() => {
     const SCROLL_KEY = 'clientDashboard_scrollPosition';
     let isRestoring = false;
+    const isMobile = window.innerWidth < 1024; // lg breakpoint
 
     // Сохраняем позицию скролла в sessionStorage
     const saveScrollPosition = () => {
@@ -98,6 +122,12 @@ const ClientDashboard = () => {
 
     // Восстанавливаем позицию скролла
     const restoreScrollPosition = () => {
+      // На мобильных устройствах отключаем автоматическое восстановление скролла
+      // чтобы избежать принудительной прокрутки
+      if (isMobile) {
+        return;
+      }
+      
       const saved = sessionStorage.getItem(SCROLL_KEY);
       if (saved) {
         const savedPosition = parseInt(saved, 10);
