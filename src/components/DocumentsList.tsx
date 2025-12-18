@@ -170,16 +170,16 @@ const DocumentsList = ({ documents, currentLanguage = 'ru' }: DocumentsListProps
       {/* Закрепленные документы */}
       {pinnedDocuments.length > 0 && (
         <div className='border-b border-[#00000033] shrink-0'>
-          <div className='px-4 md:px-8 lg:px-12 xl:px-[60px] pt-0 pb-2'>
-            <p className='text-[16px]  max-[1599px]:text-[14px] lg:max-[1599px]:text-[13px] min-[1300px]:max-[1599px]:text-[14px] font-forum font-light text-[#00000080] mb-2'>
+          <div className='px-3 sm:px-4 md:px-8 lg:px-12 xl:px-[60px] pt-0 pb-2'>
+            <p className='text-[12px] sm:text-[14px] md:text-[16px] max-[1599px]:text-[14px] lg:max-[1599px]:text-[13px] min-[1300px]:max-[1599px]:text-[14px] font-forum font-light text-[#00000080] mb-2'>
               {getTranslation(currentLanguage).dashboard.pinnedDocuments}
             </p>
             <ul>
               {pinnedDocuments.map((doc) => {
                 const hasLink = !!doc.link;
                 const linkClassName = hasLink
-                  ? 'text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-light underline underline-offset-4 hover:opacity-70 transition-opacity cursor-pointer'
-                  : 'text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-light text-[#00000040] cursor-default';
+                  ? 'text-[14px] sm:text-[16px] md:text-[18px] lg:text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-light underline underline-offset-4 hover:opacity-70 transition-opacity cursor-pointer break-words'
+                  : 'text-[14px] sm:text-[16px] md:text-[18px] lg:text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-light text-[#00000040] cursor-default break-words';
                 
                 const isDownloading = downloadingIds.has(doc.id);
                 const downloadingClassName = isDownloading 
@@ -230,17 +230,17 @@ const DocumentsList = ({ documents, currentLanguage = 'ru' }: DocumentsListProps
       {/* Незакрепленные документы */}
       {unpinnedDocuments.length > 0 && (
         <div ref={scrollableRef} className='flex-1 overflow-y-auto documents-scrollable min-h-0'>
-          <div className='px-4 md:px-8 lg:px-12 xl:px-[60px] pb-6'>
+          <div className='px-3 sm:px-4 md:px-8 lg:px-12 xl:px-[60px] pb-6'>
             <ul className='py-4'>
             {unpinnedDocuments.map((doc) => {
                 const hasLink = !!doc.link;
                 const linkClassName = hasLink
-                  ? 'text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-light underline underline-offset-4 hover:opacity-70 transition-opacity cursor-pointer'
-                  : 'text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-light text-[#00000040] cursor-default';
+                  ? 'text-[14px] sm:text-[16px] md:text-[18px] lg:text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-light underline underline-offset-4 hover:opacity-70 transition-opacity cursor-pointer break-words'
+                  : 'text-[14px] sm:text-[16px] md:text-[18px] lg:text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-light text-[#00000040] cursor-default break-words';
                 
                 const isDownloading = downloadingIds.has(doc.id);
                 const downloadingClassName = isDownloading 
-                  ? 'text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-light underline underline-offset-4 opacity-60 transition-opacity cursor-pointer'
+                  ? 'text-[14px] sm:text-[16px] md:text-[18px] lg:text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-light underline underline-offset-4 opacity-60 transition-opacity cursor-pointer break-words'
                   : linkClassName;
                 
                 return (

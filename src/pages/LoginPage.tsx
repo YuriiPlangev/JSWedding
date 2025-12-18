@@ -9,7 +9,6 @@ import logoV2 from '../assets/logoV2.svg';
 import openEye from '../assets/openEye.png';
 import closeEye from '../assets/closeEye.png';
 import { getFontStyle } from '../utils/fontUtils';
-import MobileNotSupported from '../components/MobileNotSupported';
 import { getTranslation } from '../utils/translations';
 
 const LoginPage = () => {
@@ -19,7 +18,6 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [bgLoaded, setBgLoaded] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
   const { login, isAuthenticated, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   
@@ -30,23 +28,6 @@ const LoginPage = () => {
   // Время перехода в миллисекундах (можно изменить здесь)
   const SCROLL_DURATION = 2000;
 
-  // Проверка размера экрана для мобильных устройств
-  useEffect(() => {
-    const checkScreenSize = () => {
-      // Показываем заглушку только на действительно мобильных устройствах (до 768px)
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    // Проверяем при загрузке
-    checkScreenSize();
-
-    // Проверяем при изменении размера окна
-    window.addEventListener('resize', checkScreenSize);
-
-    return () => {
-      window.removeEventListener('resize', checkScreenSize);
-    };
-  }, []);
 
   // Если пользователь уже залогинен, редиректим в зависимости от роли
   useEffect(() => {
@@ -200,11 +181,6 @@ const LoginPage = () => {
     };
   }, []);
 
-  // Показываем страницу для мобильных устройств, если экран меньше ноутбучного
-  if (isMobile) {
-    return <MobileNotSupported />;
-  }
-
   // Если пользователь уже залогинен, редиректим в зависимости от роли
   if (isAuthenticated && user) {
     if (user.role === 'organizer') {
@@ -239,7 +215,7 @@ const LoginPage = () => {
   return (
     <div className='relative bg-white overflow-x-hidden'>
       {/* Первая секция - занимает весь экран */}
-      <div ref={firstSectionRef} className='relative h-screen' style={{ backgroundColor: '#E5E5E5' }}>
+      <div ref={firstSectionRef} className='relative min-h-screen h-screen' style={{ backgroundColor: '#E5E5E5' }}>
       {/* Контейнер с изображением и overlay - с анимацией расширяющегося круга */}
       <div
         className={`absolute inset-0 z-10 ${bgLoaded ? 'circle-reveal' : ''}`}
@@ -271,17 +247,17 @@ const LoginPage = () => {
 
       {/* Контейнер с логотипом и текстом - объединенный для удобства управления позиционированием */}
       <div 
-        className="absolute z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-[55%] flex flex-col items-center justify-center w-auto"
+        className="absolute z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-[55%] flex flex-col items-center justify-center w-full max-w-full px-1 sm:px-2 md:px-4"
       >
         {/* Логотип */}
-        <div className="w-[200px] h-[200px] md:w-[300px] md:h-[300px] lg:w-[240px] lg:h-[240px] max-[1599px]:lg:w-[200px] max-[1599px]:lg:h-[200px] xl:w-[300px] max-[1599px]:xl:w-[240px] min-[1600px]:xl:h-[300px] overflow-visible flex items-center justify-center">
+        <div className="w-[100px] h-[100px] sm:w-[120px] sm:h-[120px] md:w-[150px] md:h-[150px] lg:w-[240px] lg:h-[240px] max-[1599px]:lg:w-[200px] max-[1599px]:lg:h-[200px] xl:w-[300px] max-[1599px]:xl:w-[240px] min-[1600px]:xl:h-[300px] overflow-visible flex items-center justify-center shrink-0">
         <svg 
           width="225" 
           height="232" 
           viewBox="0 0 225 232" 
           fill="none" 
           xmlns="http://www.w3.org/2000/svg" 
-          className={`w-[150px] h-[155px] md:w-[225px] md:h-[232px] lg:w-[180px] lg:h-[186px] max-[1599px]:lg:w-[150px] max-[1599px]:lg:h-[155px] xl:w-[225px] max-[1599px]:xl:w-[180px] min-[1600px]:xl:h-[232px] ${bgLoaded ? 'logo-fill-animate' : 'logo-fill-black'}`} 
+          className={`w-[80px] h-[83px] sm:w-[100px] sm:h-[103px] md:w-[120px] md:h-[124px] lg:w-[180px] lg:h-[186px] max-[1599px]:lg:w-[150px] max-[1599px]:lg:h-[155px] xl:w-[225px] max-[1599px]:xl:w-[180px] min-[1600px]:xl:h-[232px] ${bgLoaded ? 'logo-fill-animate' : 'logo-fill-black'}`}
           style={{ overflow: 'visible' }}
         >
           {/* Круговой текст */}
@@ -299,7 +275,7 @@ const LoginPage = () => {
           const welcomeText = englishTranslations.login.welcomeText;
           return (
             <h1 
-              className={`text-[24px] md:text-[40px] lg:text-[36px] max-[1599px]:lg:text-[28px] xl:text-[50px] max-[1599px]:xl:text-[32px] font-normal whitespace-nowrap mt-6 md:mt-10 lg:mt-6 max-[1599px]:lg:mt-5 xl:mt-10 max-[1599px]:xl:mt-6 min-[1600px]:xl:mt-10 pb-2.5 text-center px-4 ${bgLoaded ? 'text-white-animate' : 'text-black'}`}
+              className={`text-[16px] sm:text-[18px] md:text-[20px] lg:text-[24px] xl:text-[36px] max-[1599px]:lg:text-[28px] xl:text-[50px] max-[1599px]:xl:text-[32px] font-normal mt-4 sm:mt-5 md:mt-6 lg:mt-6 max-[1599px]:lg:mt-5 xl:mt-10 max-[1599px]:xl:mt-6 min-[1600px]:xl:mt-10 pb-2.5 text-center w-full leading-tight ${bgLoaded ? 'text-white-animate' : 'text-black'}`}
               style={getFontStyle(welcomeText)}
             >
               {welcomeText}
@@ -311,7 +287,7 @@ const LoginPage = () => {
           const descText = englishTranslations.login.descriptionText;
           return (
             <p 
-              className={`mt-4 lg:mt-2 max-[1599px]:lg:mt-2 xl:mt-4 max-[1599px]:xl:mt-3 min-[1600px]:xl:mt-4 font-gilroy text-[16px] md:text-[24px] lg:text-[20px] max-[1599px]:lg:text-[16px] xl:text-[32px] max-[1599px]:xl:text-[20px] font-light whitespace-nowrap text-center px-4 ${bgLoaded ? 'text-white-animate' : 'text-black'}`}
+              className={`mt-2 sm:mt-3 md:mt-4 lg:mt-2 max-[1599px]:lg:mt-2 xl:mt-4 max-[1599px]:xl:mt-3 min-[1600px]:xl:mt-4 font-gilroy text-[11px] sm:text-[12px] md:text-[14px] lg:text-[16px] xl:text-[20px] max-[1599px]:lg:text-[16px] xl:text-[32px] max-[1599px]:xl:text-[20px] font-light text-center w-full leading-relaxed ${bgLoaded ? 'text-white-animate' : 'text-black'}`}
               style={getFontStyle(descText)}
             >
               {descText}
@@ -327,14 +303,14 @@ const LoginPage = () => {
           }`}
         >
           <img src={scrollDown} alt="scrollDown" className='animate-pulse-opacity' />
-          <p className='mt-2 text-white font-gilroy text-sm md:text-base lg:text-sm xl:text-base'>Scroll down to continue</p>
+          <p className='mt-2 text-white font-gilroy text-[10px] sm:text-xs md:text-sm lg:text-sm xl:text-base px-2 text-center'>Scroll down to continue</p>
         </div>
       </div>
 
       {/* Вторая секция */}
       <div 
         ref={secondSectionRef}
-        className='relative h-screen w-full'
+        className='relative min-h-screen h-screen w-full'
       >
         {/* Фоновое изображение */}
         <div
@@ -355,34 +331,34 @@ const LoginPage = () => {
         
 
         {/* Форма входа */}
-        <div className='relative z-20 flex flex-col items-center justify-center h-full py-4 max-[1599px]:py-6 min-[1600px]:py-8'>
+        <div className='relative z-20 flex flex-col items-center justify-center min-h-full h-full py-4 sm:py-6 md:py-8 max-[1599px]:py-6 min-[1600px]:py-8'>
           {/* Логотип над формой */}
-          <div className="mb-6 max-[1599px]:mb-4 lg:max-[1599px]:mb-4 min-[1300px]:max-[1599px]:mb-5 min-[1600px]:mb-8">
-            <img src={logoV2} alt="logo" className="w-auto h-auto max-w-[90vw] md:max-w-[80vw] lg:max-w-[65vw] max-[1599px]:lg:max-w-[60vw] min-[1300px]:max-[1599px]:max-w-[65vw] min-[1600px]:max-w-none" style={{ maxHeight: '140px', objectFit: 'contain' }} />
+          <div className="mb-4 sm:mb-5 md:mb-6 max-[1599px]:mb-4 lg:max-[1599px]:mb-4 min-[1300px]:max-[1599px]:mb-5 min-[1600px]:mb-8">
+            <img src={logoV2} alt="logo" className="w-auto h-auto max-w-[85vw] sm:max-w-[80vw] md:max-w-[75vw] lg:max-w-[65vw] max-[1599px]:lg:max-w-[60vw] min-[1300px]:max-[1599px]:max-w-[65vw] min-[1600px]:max-w-none" style={{ maxHeight: '140px', objectFit: 'contain' }} />
           </div>
           <form 
             onSubmit={handleSubmit}
-            className='relative bg-[#FBF9F5B2] backdrop-blur-sm w-auto max-w-[420px] md:max-w-[480px] lg:max-w-[440px] max-[1599px]:lg:max-w-[400px] min-[1300px]:max-[1599px]:max-w-[440px] min-[1600px]:max-w-[520px] xl:max-w-[580px] max-[1599px]:xl:max-w-[460px] min-[1600px]:xl:max-w-[640px] p-3 md:p-4 lg:p-3 max-[1599px]:lg:p-3 min-[1300px]:max-[1599px]:p-4 min-[1600px]:p-6 xl:p-6 max-[1599px]:xl:p-4 min-[1600px]:xl:p-8 mx-4 flex flex-col items-center justify-center'
+            className='relative bg-[#FBF9F5B2] backdrop-blur-sm w-auto max-w-[90vw] sm:max-w-[85vw] md:max-w-[420px] lg:max-w-[440px] max-[1599px]:lg:max-w-[400px] min-[1300px]:max-[1599px]:max-w-[440px] min-[1600px]:max-w-[520px] xl:max-w-[580px] max-[1599px]:xl:max-w-[460px] min-[1600px]:xl:max-w-[640px] p-4 sm:p-5 md:p-4 lg:p-3 max-[1599px]:lg:p-3 min-[1300px]:max-[1599px]:p-4 min-[1600px]:p-6 xl:p-6 max-[1599px]:xl:p-4 min-[1600px]:xl:p-8 mx-4 flex flex-col items-center justify-center'
           >
             <div className='flex flex-col items-center justify-center mb-6 max-[1599px]:mb-5 lg:max-[1599px]:mb-4 min-[1300px]:max-[1599px]:mb-5 min-[1600px]:mb-7 xl:mb-9 max-[1599px]:xl:mb-6 min-[1600px]:xl:mb-9 w-full'>
              
               
               <h1 
-                className='text-black text-[18px] md:text-[20px] lg:text-[18px] max-[1599px]:lg:text-[17px] min-[1300px]:max-[1599px]:text-[20px] min-[1600px]:text-[24px] xl:text-[28px] max-[1599px]:xl:text-[22px] min-[1600px]:xl:text-[32px] font-branch font-regular mt-3 md:mt-3 lg:mt-2 max-[1599px]:lg:mt-2 min-[1300px]:max-[1599px]:mt-3 min-[1600px]:mt-4 xl:mt-5 max-[1599px]:xl:mt-3 min-[1600px]:xl:mt-6 mb-1.5 text-center'
+                className='text-black text-[16px] sm:text-[18px] md:text-[20px] lg:text-[18px] max-[1599px]:lg:text-[17px] min-[1300px]:max-[1599px]:text-[20px] min-[1600px]:text-[24px] xl:text-[28px] max-[1599px]:xl:text-[22px] min-[1600px]:xl:text-[32px] font-branch font-regular mt-2 sm:mt-3 md:mt-3 lg:mt-2 max-[1599px]:lg:mt-2 min-[1300px]:max-[1599px]:mt-3 min-[1600px]:mt-4 xl:mt-5 max-[1599px]:xl:mt-3 min-[1600px]:xl:mt-6 mb-1.5 text-center'
               >
                 Enter your account
               </h1>
-              <p className='text-black text-brown font-gilroy font-light mb-3 md:mb-3 lg:mb-2 max-[1599px]:lg:mb-2 min-[1300px]:max-[1599px]:mb-3 min-[1600px]:mb-4 xl:mb-5 max-[1599px]:xl:mb-3 min-[1600px]:xl:mb-6 text-center text-[11px] md:text-[12px] lg:text-[11px] max-[1599px]:lg:text-[10px] min-[1300px]:max-[1599px]:text-[12px] min-[1600px]:text-[13px] xl:text-[15px] max-[1599px]:xl:text-[13px] min-[1600px]:xl:text-[17px] px-3 md:px-6 lg:px-4 max-[1599px]:lg:px-3 min-[1300px]:max-[1599px]:px-6 min-[1600px]:px-8 xl:px-10 max-[1599px]:xl:px-6 min-[1600px]:xl:px-14'>
+              <p className='text-black text-brown font-gilroy font-light mb-3 md:mb-3 lg:mb-2 max-[1599px]:lg:mb-2 min-[1300px]:max-[1599px]:mb-3 min-[1600px]:mb-4 xl:mb-5 max-[1599px]:xl:mb-3 min-[1600px]:xl:mb-6 text-center text-[10px] sm:text-[11px] md:text-[12px] lg:text-[11px] max-[1599px]:lg:text-[10px] min-[1300px]:max-[1599px]:text-[12px] min-[1600px]:text-[13px] xl:text-[15px] max-[1599px]:xl:text-[13px] min-[1600px]:xl:text-[17px] px-2 sm:px-3 md:px-6 lg:px-4 max-[1599px]:lg:px-3 min-[1300px]:max-[1599px]:px-6 min-[1600px]:px-8 xl:px-10 max-[1599px]:xl:px-6 min-[1600px]:xl:px-14'>
                 Here you'll find all documents, timelines, updates, and planning tools – everything you need to feel confident, informed, and supported at every stage.
               </p>
               {/* Контейнер для изображения loginCircle и полосок */}
             </div>
 
             {/* Поле Email */}
-            <div className='mb-4 max-[1599px]:mb-3 lg:max-[1599px]:mb-3 min-[1300px]:max-[1599px]:mb-4 min-[1600px]:mb-5 xl:mb-6 max-[1599px]:xl:mb-4 min-[1600px]:xl:mb-6 self-start w-full'>
+            <div className='mb-3 sm:mb-4 max-[1599px]:mb-3 lg:max-[1599px]:mb-3 min-[1300px]:max-[1599px]:mb-4 min-[1600px]:mb-5 xl:mb-6 max-[1599px]:xl:mb-4 min-[1600px]:xl:mb-6 self-start w-full'>
               <label 
                 htmlFor='email' 
-                className='block text-sm font-gilroy mb-1.5 text-[11px] md:text-[11px] lg:text-[10px] max-[1599px]:lg:text-[10px] min-[1300px]:max-[1599px]:text-[11px] min-[1600px]:text-[13px] xl:text-[14px] max-[1599px]:xl:text-[12px] min-[1600px]:xl:text-[15px]'
+                className='block text-sm font-gilroy mb-1.5 text-[10px] sm:text-[11px] md:text-[11px] lg:text-[10px] max-[1599px]:lg:text-[10px] min-[1300px]:max-[1599px]:text-[11px] min-[1600px]:text-[13px] xl:text-[14px] max-[1599px]:xl:text-[12px] min-[1600px]:xl:text-[15px]'
                 style={{ color: 'black', fontWeight: "400" }}
               >
                 Email
@@ -393,7 +369,7 @@ const LoginPage = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder='Enter your Email'
-                className='w-full bg-transparent border-0 border-b-1 focus:outline-none focus:border-b-1 pb-1.5 font-gilroy text-[11px] md:text-[11px] lg:text-[10px] max-[1599px]:lg:text-[10px] min-[1300px]:max-[1599px]:text-[11px] min-[1600px]:text-[13px] xl:text-[14px] max-[1599px]:xl:text-[12px] min-[1600px]:xl:text-[15px] pl-1'
+                className='w-full bg-transparent border-0 border-b-1 focus:outline-none focus:border-b-1 pb-1.5 font-gilroy text-[10px] sm:text-[11px] md:text-[11px] lg:text-[10px] max-[1599px]:lg:text-[10px] min-[1300px]:max-[1599px]:text-[11px] min-[1600px]:text-[13px] xl:text-[14px] max-[1599px]:xl:text-[12px] min-[1600px]:xl:text-[15px] pl-1'
                 style={{ 
                   borderColor: '#00000080',
                   color: 'black',
@@ -404,10 +380,10 @@ const LoginPage = () => {
             </div>
 
             {/* Поле Password */}
-            <div className='mb-6 max-[1599px]:mb-4 lg:max-[1599px]:mb-4 min-[1300px]:max-[1599px]:mb-5 min-[1600px]:mb-6 xl:mb-8 max-[1599px]:xl:mb-6 min-[1600px]:xl:mb-8 self-start w-full'>
+            <div className='mb-4 sm:mb-5 md:mb-6 max-[1599px]:mb-4 lg:max-[1599px]:mb-4 min-[1300px]:max-[1599px]:mb-5 min-[1600px]:mb-6 xl:mb-8 max-[1599px]:xl:mb-6 min-[1600px]:xl:mb-8 self-start w-full'>
               <label 
                 htmlFor='password' 
-                className='block text-sm font-gilroy mb-1.5 text-[11px] md:text-[11px] lg:text-[10px] max-[1599px]:lg:text-[10px] min-[1300px]:max-[1599px]:text-[11px] min-[1600px]:text-[13px] xl:text-[14px] max-[1599px]:xl:text-[12px] min-[1600px]:xl:text-[15px]'
+                className='block text-sm font-gilroy mb-1.5 text-[10px] sm:text-[11px] md:text-[11px] lg:text-[10px] max-[1599px]:lg:text-[10px] min-[1300px]:max-[1599px]:text-[11px] min-[1600px]:text-[13px] xl:text-[14px] max-[1599px]:xl:text-[12px] min-[1600px]:xl:text-[15px]'
                 style={{ color: 'black', fontWeight: "400" }}
               >
                 Password
@@ -419,7 +395,7 @@ const LoginPage = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder='Enter your password'
-                    className='w-full bg-transparent border-0 border-b-1 focus:outline-none focus:border-b-1 pb-1.5 pr-8 font-gilroy text-[11px] md:text-[11px] lg:text-[10px] max-[1599px]:lg:text-[10px] min-[1300px]:max-[1599px]:text-[11px] min-[1600px]:text-[13px] xl:text-[14px] max-[1599px]:xl:text-[12px] min-[1600px]:xl:text-[15px] pl-1'
+                    className='w-full bg-transparent border-0 border-b-1 focus:outline-none focus:border-b-1 pb-1.5 pr-8 font-gilroy text-[10px] sm:text-[11px] md:text-[11px] lg:text-[10px] max-[1599px]:lg:text-[10px] min-[1300px]:max-[1599px]:text-[11px] min-[1600px]:text-[13px] xl:text-[14px] max-[1599px]:xl:text-[12px] min-[1600px]:xl:text-[15px] pl-1'
                   style={{ 
                     borderColor: '#00000080',
                     color: 'black',
@@ -446,18 +422,18 @@ const LoginPage = () => {
             <button
               type='submit'
               disabled={loading}
-              className='w-full py-1.5 md:py-2 lg:py-1.5 max-[1599px]:lg:py-1.5 min-[1300px]:max-[1599px]:py-2 min-[1600px]:py-2.5 xl:py-3 max-[1599px]:xl:py-2.5 min-[1600px]:xl:py-4 border font-gilroy text-lg flex items-center justify-center gap-1.5 max-[1599px]:gap-1.5 min-[1600px]:gap-2 transition-all disabled:opacity-50 cursor-pointer relative overflow-hidden group'
+              className='w-full py-2 sm:py-2.5 md:py-2 lg:py-1.5 max-[1599px]:lg:py-1.5 min-[1300px]:max-[1599px]:py-2 min-[1600px]:py-2.5 xl:py-3 max-[1599px]:xl:py-2.5 min-[1600px]:xl:py-4 border font-gilroy text-lg flex items-center justify-center gap-1.5 max-[1599px]:gap-1.5 min-[1600px]:gap-2 transition-all disabled:opacity-50 cursor-pointer relative overflow-hidden group'
               style={{ 
                 borderColor: 'black',
                 color: 'black',
               }}
             >
               {/* Затемнение при наведении */}
-              <div className='absolute inset-0 bg-black opacity-0 group-hover:opacity-[0.05] transition-opacity duration-300'></div>
-              <span className='relative z-10 font-branch text-[18px] md:text-[20px] lg:text-[18px] max-[1599px]:lg:text-[17px] min-[1300px]:max-[1599px]:text-[20px] min-[1600px]:text-[24px] xl:text-[28px] max-[1599px]:xl:text-[22px] min-[1600px]:xl:text-[32px]'>
+              <div className='absolute inset-0 bg-black opacity-0 group-hover:opacity-[0.05] group-active:opacity-[0.1] transition-opacity duration-300'></div>
+              <span className='relative z-10 font-branch text-[14px] sm:text-[16px] md:text-[18px] lg:text-[18px] max-[1599px]:lg:text-[17px] min-[1300px]:max-[1599px]:text-[20px] min-[1600px]:text-[24px] xl:text-[28px] max-[1599px]:xl:text-[22px] min-[1600px]:xl:text-[32px]'>
                 Start the preparation
               </span>
-              <img src={arrowRight} alt="arrow" className='relative z-10 arrow-hover-animate w-4 h-4 md:w-5 md:h-5 lg:w-4 lg:h-4 max-[1599px]:lg:w-3.5 max-[1599px]:lg:h-3.5 min-[1300px]:max-[1599px]:w-4 min-[1300px]:max-[1599px]:h-4 min-[1600px]:w-5 min-[1600px]:h-5 xl:w-6 xl:h-6 max-[1599px]:xl:w-4.5 max-[1599px]:xl:h-4.5 min-[1600px]:xl:w-6 min-[1600px]:xl:h-6' />
+              <img src={arrowRight} alt="arrow" className='relative z-10 arrow-hover-animate w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 lg:w-4 lg:h-4 max-[1599px]:lg:w-3.5 max-[1599px]:lg:h-3.5 min-[1300px]:max-[1599px]:w-4 min-[1300px]:max-[1599px]:h-4 min-[1600px]:w-5 min-[1600px]:h-5 xl:w-6 xl:h-6 max-[1599px]:xl:w-4.5 max-[1599px]:xl:h-4.5 min-[1600px]:xl:w-6 min-[1600px]:xl:h-6' />
             </button>
 
             {/* Сообщение об ошибке */}

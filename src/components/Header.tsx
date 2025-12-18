@@ -129,14 +129,14 @@ const Header = ({ onLogout, currentLanguage, onLanguageChange, chatLink, wedding
 
   return (
     <header className="w-full bg-[#eae6db] border-b border-[#00000033] relative z-50" >
-      <div className="px-4 md:px-8 lg:px-12 xl:px-[60px]">
+      <div className="px-2 sm:px-4 md:px-8 lg:px-12 xl:px-[60px]">
         <div className="flex justify-between items-stretch">
           {/* Left side - Logo and text */}
-          <div className="flex items-center gap-3 md:gap-4">
+          <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
             <img 
               src={logo} 
               alt="logo" 
-              className="h-8 md:h-10 max-[1599px]:lg:h-9 min-[1600px]:lg:h-12 w-auto"
+              className="h-6 sm:h-7 md:h-8 lg:h-10 max-[1599px]:lg:h-9 min-[1600px]:lg:h-12 w-auto"
               style={{ display: 'block' }}
             />
           </div>
@@ -150,11 +150,11 @@ const Header = ({ onLogout, currentLanguage, onLanguageChange, chatLink, wedding
                 <div className="relative">
                   <button 
                     onClick={handleToggleNotes}
-                    className="flex items-center gap-2 px-4 md:px-6 max-[1599px]:md:px-5 min-[1600px]:md:px-6 lg:px-5 max-[1599px]:lg:px-5 min-[1600px]:lg:px-7.5 py-4 md:py-6 max-[1599px]:md:py-5 min-[1600px]:md:py-6 lg:py-5 max-[1599px]:lg:py-5 min-[1600px]:lg:py-7.5 cursor-pointer border-l border-[#00000033] h-full"
+                    className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-4 lg:px-6 max-[1599px]:md:px-5 min-[1600px]:md:px-6 lg:px-5 max-[1599px]:lg:px-5 min-[1600px]:lg:px-7.5 py-3 sm:py-4 md:py-6 max-[1599px]:md:py-5 min-[1600px]:md:py-6 lg:py-5 max-[1599px]:lg:py-5 min-[1600px]:lg:py-7.5 cursor-pointer border-l border-[#00000033] h-full"
                   >
-                    <img src={notesIcon} alt="notes" className="h-5 md:h-6 max-[1599px]:md:h-5 min-[1600px]:md:h-6 lg:h-5 max-[1599px]:lg:h-5 min-[1600px]:lg:h-6 w-auto" />
+                    <img src={notesIcon} alt="notes" className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 max-[1599px]:md:h-5 min-[1600px]:md:h-6 lg:h-5 max-[1599px]:lg:h-5 min-[1600px]:lg:h-6 w-auto" />
                     <span 
-                      className="hidden lg:inline font-forum text-[24px] max-[1599px]:text-[20px] lg:max-[1599px]:text-[18px] min-[1300px]:max-[1599px]:text-[22px] min-[1600px]:text-[24px] font-light text-[#00000080]"
+                      className="hidden md:inline font-forum text-[16px] sm:text-[18px] md:text-[20px] lg:text-[24px] max-[1599px]:text-[20px] lg:max-[1599px]:text-[18px] min-[1300px]:max-[1599px]:text-[22px] min-[1600px]:text-[24px] font-light text-[#00000080]"
                       style={getFontStyle(notesText)}
                     >
                       {notesText}
@@ -170,7 +170,7 @@ const Header = ({ onLogout, currentLanguage, onLanguageChange, chatLink, wedding
                         onClick={handleCloseNotes}
                       />
                       <div 
-                        className="absolute left-0 top-full mt-0 w-[400px] max-w-[90vw] bg-[#eae6db] border border-[#00000033] border-t-0 shadow-lg z-50"
+                        className="absolute left-0 top-full mt-0 w-[90vw] sm:w-[400px] max-w-[90vw] bg-[#eae6db] border border-[#00000033] border-t-0 shadow-lg z-50"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <div className="p-4">
@@ -178,7 +178,7 @@ const Header = ({ onLogout, currentLanguage, onLanguageChange, chatLink, wedding
                             value={notes}
                             onChange={handleNotesChange}
                             placeholder={getTranslation(currentLanguage).header.notesPlaceholder}
-                            className="w-full min-h-[200px] p-4 border border-[#00000033] rounded bg-white text-black font-gilroy text-[14px] md:text-[16px] resize-none focus:outline-none focus:ring-2 focus:ring-black focus:ring-opacity-20"
+                            className="w-full min-h-[150px] sm:min-h-[200px] p-3 sm:p-4 border border-[#00000033] rounded bg-white text-black font-gilroy text-[12px] sm:text-[14px] md:text-[16px] resize-none focus:outline-none focus:ring-2 focus:ring-black focus:ring-opacity-20"
                             style={{ fontFamily: 'inherit' }}
                           />
                           <div className="mt-3 flex justify-end items-center">
@@ -207,11 +207,11 @@ const Header = ({ onLogout, currentLanguage, onLanguageChange, chatLink, wedding
                     href={chatLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-4 md:px-6 max-[1599px]:md:px-5 min-[1600px]:md:px-6 lg:px-5 max-[1599px]:lg:px-5 min-[1600px]:lg:px-7.5 py-4 md:py-6 max-[1599px]:md:py-5 min-[1600px]:md:py-6 lg:py-5 max-[1599px]:lg:py-5 min-[1600px]:lg:py-7.5 cursor-pointer border-x border-[#00000033] h-full"
+                    className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-4 lg:px-6 max-[1599px]:md:px-5 min-[1600px]:md:px-6 lg:px-5 max-[1599px]:lg:px-5 min-[1600px]:lg:px-7.5 py-3 sm:py-4 md:py-6 max-[1599px]:md:py-5 min-[1600px]:md:py-6 lg:py-5 max-[1599px]:lg:py-5 min-[1600px]:lg:py-7.5 cursor-pointer border-x border-[#00000033] h-full"
                   >
-                    <img src={contactIcon} alt="contact" className="h-5 md:h-6 max-[1599px]:md:h-5 min-[1600px]:md:h-6 lg:h-5 max-[1599px]:lg:h-5 min-[1600px]:lg:h-6 w-auto" />
+                    <img src={contactIcon} alt="contact" className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 max-[1599px]:md:h-5 min-[1600px]:md:h-6 lg:h-5 max-[1599px]:lg:h-5 min-[1600px]:lg:h-6 w-auto" />
                     <span 
-                      className="hidden lg:inline font-forum text-[24px] max-[1599px]:text-[20px] lg:max-[1599px]:text-[18px] min-[1300px]:max-[1599px]:text-[22px] min-[1600px]:text-[24px] font-light text-[#00000080]"
+                      className="hidden md:inline font-forum text-[16px] sm:text-[18px] md:text-[20px] lg:text-[24px] max-[1599px]:text-[20px] lg:max-[1599px]:text-[18px] min-[1300px]:max-[1599px]:text-[22px] min-[1600px]:text-[24px] font-light text-[#00000080]"
                       style={getFontStyle(contactText)}
                     >
                       {contactText}
@@ -220,10 +220,10 @@ const Header = ({ onLogout, currentLanguage, onLanguageChange, chatLink, wedding
                 );
               }
               return (
-                <button className="flex items-center gap-2 px-4 md:px-6 max-[1599px]:md:px-5 min-[1600px]:md:px-6 lg:px-5 max-[1599px]:lg:px-5 min-[1600px]:lg:px-7.5 py-4 md:py-6 max-[1599px]:md:py-5 min-[1600px]:md:py-6 lg:py-5 max-[1599px]:lg:py-5 min-[1600px]:lg:py-7.5 cursor-pointer border-x border-[#00000033] h-full">
-                  <img src={contactIcon} alt="contact" className="h-5 md:h-6 max-[1599px]:md:h-5 min-[1600px]:md:h-6 lg:h-5 max-[1599px]:lg:h-5 min-[1600px]:lg:h-6 w-auto" />
+                <button className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-4 lg:px-6 max-[1599px]:md:px-5 min-[1600px]:md:px-6 lg:px-5 max-[1599px]:lg:px-5 min-[1600px]:lg:px-7.5 py-3 sm:py-4 md:py-6 max-[1599px]:md:py-5 min-[1600px]:md:py-6 lg:py-5 max-[1599px]:lg:py-5 min-[1600px]:lg:py-7.5 cursor-pointer border-x border-[#00000033] h-full">
+                  <img src={contactIcon} alt="contact" className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 max-[1599px]:md:h-5 min-[1600px]:md:h-6 lg:h-5 max-[1599px]:lg:h-5 min-[1600px]:lg:h-6 w-auto" />
                   <span 
-                    className="hidden lg:inline font-forum text-[24px] max-[1599px]:text-[20px] lg:max-[1599px]:text-[18px] min-[1300px]:max-[1599px]:text-[22px] min-[1600px]:text-[24px] font-light text-[#00000080]"
+                    className="hidden md:inline font-forum text-[16px] sm:text-[18px] md:text-[20px] lg:text-[24px] max-[1599px]:text-[20px] lg:max-[1599px]:text-[18px] min-[1300px]:max-[1599px]:text-[22px] min-[1600px]:text-[24px] font-light text-[#00000080]"
                     style={getFontStyle(contactText)}
                   >
                     {contactText}
@@ -237,11 +237,11 @@ const Header = ({ onLogout, currentLanguage, onLanguageChange, chatLink, wedding
             <div className="relative self-stretch flex items-stretch">
               <button
                 onClick={() => setIsLanguageMenuOpen(!isLanguageMenuOpen)}
-                className="flex items-center gap-2 max-[1599px]:lg:gap-3 min-[1600px]:lg:gap-2.5 px-4 md:px-6 max-[1599px]:md:px-5 min-[1600px]:md:px-5 lg:px-5 max-[1599px]:lg:px-5 min-[1600px]:lg:px-5 py-4 md:py-6 max-[1599px]:md:py-5 min-[1600px]:md:py-5 lg:py-5 max-[1599px]:lg:py-5 min-[1600px]:lg:py-5 cursor-pointer border-r border-[#00000033] font-forum text-[28px] max-[1599px]:text-[24px] lg:max-[1599px]:text-[22px] min-[1300px]:max-[1599px]:text-[26px] min-[1600px]:text-[24px] font-light h-full w-full"
+                className="flex items-center gap-1 sm:gap-2 max-[1599px]:lg:gap-3 min-[1600px]:lg:gap-2.5 px-2 sm:px-3 md:px-4 lg:px-6 max-[1599px]:md:px-5 min-[1600px]:md:px-5 lg:px-5 max-[1599px]:lg:px-5 min-[1600px]:lg:px-5 py-3 sm:py-4 md:py-6 max-[1599px]:md:py-5 min-[1600px]:md:py-5 lg:py-5 max-[1599px]:lg:py-5 min-[1600px]:lg:py-5 cursor-pointer border-r border-[#00000033] font-forum text-[18px] sm:text-[20px] md:text-[24px] lg:text-[28px] max-[1599px]:text-[24px] lg:max-[1599px]:text-[22px] min-[1300px]:max-[1599px]:text-[26px] min-[1600px]:text-[24px] font-light h-full w-full"
                 style={{ pointerEvents: 'auto' }}
               >
-                <span className="text-[20px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[18px] min-[1300px]:max-[1599px]:text-[20px] min-[1600px]:text-[20px] uppercase text-[#00000080]">{currentLanguage}</span>
-                <img src={languageIcon} alt="language" className="h-3 w-4 max-[1599px]:h-2.5 max-[1599px]:w-3.5 min-[1600px]:h-2.5 min-[1600px]:w-3.5" />
+                <span className="text-[14px] sm:text-[16px] md:text-[18px] lg:text-[20px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[18px] min-[1300px]:max-[1599px]:text-[20px] min-[1600px]:text-[20px] uppercase text-[#00000080]">{currentLanguage}</span>
+                <img src={languageIcon} alt="language" className="h-2.5 w-3 sm:h-3 sm:w-4 max-[1599px]:h-2.5 max-[1599px]:w-3.5 min-[1600px]:h-2.5 min-[1600px]:w-3.5" />
               </button>
               
               {isLanguageMenuOpen && (
@@ -296,7 +296,7 @@ const Header = ({ onLogout, currentLanguage, onLanguageChange, chatLink, wedding
               return (
                 <button
                   onClick={onLogout}
-                  className="pl-4 md:pl-8 max-[1599px]:md:pl-6 min-[1600px]:md:pl-8 lg:pl-10 max-[1599px]:lg:pl-10 min-[1600px]:lg:pl-12 xl:pl-[64.5px] max-[1599px]:xl:pl-10 min-[1600px]:xl:pl-[64.5px] py-4 md:py-6 max-[1599px]:md:py-5 min-[1600px]:md:py-6 lg:py-5 max-[1599px]:lg:py-5 min-[1600px]:lg:py-7.5 text-[#00000080] cursor-pointer font-forum text-[24px] max-[1599px]:text-[20px] lg:max-[1599px]:text-[18px] min-[1300px]:max-[1599px]:text-[22px] min-[1600px]:text-[24px] font-light"
+                  className="pl-2 sm:pl-3 md:pl-4 lg:pl-8 max-[1599px]:md:pl-6 min-[1600px]:md:pl-8 lg:pl-10 max-[1599px]:lg:pl-10 min-[1600px]:lg:pl-12 xl:pl-[64.5px] max-[1599px]:xl:pl-10 min-[1600px]:xl:pl-[64.5px] py-3 sm:py-4 md:py-6 max-[1599px]:md:py-5 min-[1600px]:md:py-6 lg:py-5 max-[1599px]:lg:py-5 min-[1600px]:lg:py-7.5 text-[#00000080] cursor-pointer font-forum text-[14px] sm:text-[16px] md:text-[18px] lg:text-[24px] max-[1599px]:text-[20px] lg:max-[1599px]:text-[18px] min-[1300px]:max-[1599px]:text-[22px] min-[1600px]:text-[24px] font-light"
                   style={getFontStyle(logoutText)}
                 >
                   {logoutText}

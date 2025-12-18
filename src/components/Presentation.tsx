@@ -98,12 +98,16 @@ const Presentation = ({ presentation, currentLanguage = 'ua' }: PresentationProp
 
   return (
     <div className="flex bg-[#eae6db] w-full relative font-forum" style={{ minHeight: '100vh', height: '100vh' }}>
-      {/* Кнопка открытия/закрытия меню на мобильных */}
+      {/* Кнопка открытия/закрытия меню на мобильных - только внутри секции презентации */}
       {isMobile && (
         <button
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="fixed top-4 left-4 z-50 bg-[#eae6db] border border-[#00000033] rounded-lg p-2 shadow-lg lg:hidden"
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsMenuOpen(!isMenuOpen);
+          }}
+          className="absolute top-4 left-4 z-50 bg-[#eae6db] border border-[#00000033] rounded-lg p-2 shadow-lg lg:hidden"
           aria-label="Toggle menu"
+          style={{ pointerEvents: 'auto' }}
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             {isMenuOpen ? (
@@ -115,45 +119,49 @@ const Presentation = ({ presentation, currentLanguage = 'ua' }: PresentationProp
         </button>
       )}
 
+      {/* Overlay на мобильных - только внутри секции презентации, вне меню чтобы не блокировать клики */}
+      {isMobile && isMenuOpen && (
+        <div
+          className="absolute inset-0 bg-transparent z-30 lg:hidden"
+          onClick={() => setIsMenuOpen(false)}
+          style={{ pointerEvents: 'auto' }}
+        />
+      )}
+
       {/* Левая панель навигации */}
       <div
         className={`${
           isMobile
-            ? `fixed inset-y-0 left-0 z-40 bg-[#eae6db] transform transition-transform duration-300 ease-in-out ${
+            ? `absolute inset-y-0 left-0 z-40 bg-[#eae6db] transform transition-transform duration-300 ease-in-out ${
                 isMenuOpen ? 'translate-x-0' : '-translate-x-full'
               }`
             : 'relative shrink'
         } border-r border-[#00000033] flex flex-col shadow-lg lg:shadow-none`}
+        style={{ pointerEvents: 'auto' }}
       >
-        {/* Overlay на мобильных */}
-        {isMobile && isMenuOpen && (
-          <div
-            className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
-            onClick={() => setIsMenuOpen(false)}
-          />
-        )}
-
-        <div className="border-b border-[#00000033] py-1 min-[1600px]:py-2 px-1.5 sm:px-2 md:px-3 min-[1600px]:px-4 md:min-[1600px]:px-8 lg:min-[1600px]:px-12 xl:min-[1600px]:px-[60px]">
+        <div className={`border-b border-[#00000033] py-1 min-[1600px]:py-2 px-1.5 sm:px-2 md:px-3 min-[1600px]:px-4 md:min-[1600px]:px-8 lg:min-[1600px]:px-12 xl:min-[1600px]:px-[60px] ${isMobile ? 'pt-16' : ''}`}>
           <h1 className="text-[50px] max-[1599px]:text-[14px] sm:max-[1599px]:text-[16px] md:max-[1599px]:text-[18px] lg:max-[1599px]:text-[20px] font-forum mb-0.5 min-[1600px]:mb-1 wrap-break-word">{title}</h1>
           <p className="text-[24px] max-[1599px]:text-[10px] sm:max-[1599px]:text-[11px] md:max-[1599px]:text-[12px] lg:max-[1599px]:text-[12px] font-forum font-light text-[#00000080]">
             {translations.presentation.sections}
           </p>
         </div>
 
-        <nav className="flex-1 overflow-y-auto">
+        <nav className="flex-1 overflow-y-auto relative z-50">
           <ul>
             {menuSections.map((section) => (
               <li key={section.id} className='py-0.5 sm:py-1 min-[1600px]:py-2 min-[1600px]:min-[1600px]:py-2.5 border-b border-[#00000033] cursor-pointer'>
                 <button
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     handleMenuClick(section.slideIndex);
                     if (isMobile) setIsMenuOpen(false);
                   }}
-                  className={`w-full text-left flex items-center justify-between font-forum font-light text-[10px] sm:text-[11px] md:text-[12px] lg:text-[13px] min-[1600px]:text-[24px] transition-colors cursor-pointer px-1.5 sm:px-2 md:px-3 min-[1600px]:px-4 md:min-[1600px]:px-8 lg:min-[1600px]:px-12 xl:min-[1600px]:px-[60px] ${
+                  className={`w-full text-left flex items-center justify-between font-forum font-light text-[10px] sm:text-[11px] md:text-[12px] lg:text-[13px] min-[1600px]:text-[24px] transition-colors cursor-pointer px-1.5 sm:px-2 md:px-3 min-[1600px]:px-4 md:min-[1600px]:px-8 lg:min-[1600px]:px-12 xl:min-[1600px]:px-[60px] relative z-50 ${
                     activeIndex === section.slideIndex
                       ? 'text-black'
                       : 'text-[#00000080] hover:text-black'
                   }`}
+                  style={{ pointerEvents: 'auto' }}
                 >
                   <span className="wrap-break-word text-sm pr-1 min-[1600px]:pr-2 text-left font-forum">{section.name}</span>
                   {activeIndex === section.slideIndex && (

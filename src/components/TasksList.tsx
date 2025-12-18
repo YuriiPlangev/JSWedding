@@ -77,13 +77,13 @@ const TasksList = ({ tasks, onTaskToggle, currentLanguage = 'ru' }: TasksListPro
   }
 
   return (
-    <ul className='pr-4 max-[1599px]:pr-4 md:max-[1599px]:pr-6 lg:max-[1599px]:pr-8 min-[1300px]:max-[1599px]:pr-10'>
+    <ul className='pr-3 sm:pr-4 max-[1599px]:pr-4 md:max-[1599px]:pr-6 lg:max-[1599px]:pr-8 min-[1300px]:max-[1599px]:pr-10'>
       {tasks.map((task) => {
         const isCompleted = task.status === 'completed';
         const taskTitle = getTaskTitle(task);
 
         return (
-          <li key={task.id} className='flex items-center gap-8 max-[1599px]:gap-4 lg:max-[1599px]:gap-4 min-[1300px]:max-[1599px]:gap-6 py-6 max-[1599px]:py-3 lg:max-[1599px]:py-3 min-[1300px]:max-[1599px]:py-4'>
+          <li key={task.id} className='flex items-center gap-4 sm:gap-5 md:gap-6 lg:gap-8 max-[1599px]:gap-4 lg:max-[1599px]:gap-4 min-[1300px]:max-[1599px]:gap-6 py-4 sm:py-5 md:py-6 max-[1599px]:py-3 lg:max-[1599px]:py-3 min-[1300px]:max-[1599px]:py-4'>
             <label className="custom-checkbox cursor-pointer">
               <input
                 type="checkbox"
@@ -94,7 +94,7 @@ const TasksList = ({ tasks, onTaskToggle, currentLanguage = 'ru' }: TasksListPro
               <span className="checkbox-label"></span>
             </label>
             <p 
-              className='text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-light'
+              className='text-[14px] sm:text-[16px] md:text-[18px] lg:text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-light break-words'
             >
               {/* Парсим текст задания на наличие ссылок в формате [текст](ссылка) */}
               {parseTextWithLinks(taskTitle).map((part, index) => {

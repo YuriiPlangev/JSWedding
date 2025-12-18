@@ -5,7 +5,6 @@ import type { Wedding, Task, Document } from '../types';
 import Header from '../components/Header';
 import TasksList from '../components/TasksList';
 import DocumentsList from '../components/DocumentsList';
-import MobileNotSupported from '../components/MobileNotSupported';
 import Presentation from '../components/Presentation';
 import SplashScreen from '../components/SplashScreen';
 import WelcomeSection from '../components/WelcomeSection';
@@ -29,7 +28,6 @@ const ClientDashboard = () => {
     localStorage.setItem('preferredLanguage', lang);
   };
 
-  const [isMobile, setIsMobile] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
   const [splashRemoved, setSplashRemoved] = useState(false);
   const splashRef = useRef<HTMLDivElement>(null);
@@ -184,23 +182,6 @@ const ClientDashboard = () => {
     };
   }, []);
 
-  // Проверка размера экрана для мобильных устройств
-  useEffect(() => {
-    const checkScreenSize = () => {
-      // Показываем заглушку только на действительно мобильных устройствах (до 768px)
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    // Проверяем при загрузке
-    checkScreenSize();
-
-    // Проверяем при изменении размера окна
-    window.addEventListener('resize', checkScreenSize);
-
-    return () => {
-      window.removeEventListener('resize', checkScreenSize);
-    };
-  }, []);
 
   const loadWeddingData = useCallback(async (forceRefresh: boolean = false) => {
     if (!user?.id) return;
@@ -318,16 +299,6 @@ const ClientDashboard = () => {
   };
 
 
-  // Показываем страницу для мобильных устройств, если экран меньше ноутбучного
-  if (isMobile) {
-    return (
-      <MobileNotSupported 
-        coupleName1={wedding?.couple_name_1_en}
-        coupleName2={wedding?.couple_name_2_en}
-      />
-    );
-  }
-
   return (
     <div className="relative">
       {/* Заглушка - первая секция */}
@@ -346,7 +317,7 @@ const ClientDashboard = () => {
 
       {/* Основной контент - вторая секция */}
       {wedding && !loading && (
-      <div className="relative h-screen flex flex-col overflow-hidden">
+      <div className="relative min-h-screen flex flex-col overflow-x-hidden">
         {/* Header внутри контента - появляется вместе с ним */}
         <Header
           onLogout={logout}
@@ -380,7 +351,7 @@ const ClientDashboard = () => {
 
               <div className="flex flex-col lg:flex-row border-b border-[#00000033] flex-1 min-h-0">
                 {/* Задания */}
-                <div className='border-r-0 lg:border-r border-[#00000033] lg:min-w-3/7 pl-4 md:pl-8 lg:pl-12 xl:pl-[60px] self-stretch overflow-hidden flex flex-col'>
+                <div className='border-r-0 lg:border-r border-b lg:border-b-0 border-[#00000033] lg:min-w-3/7 pl-4 md:pl-8 lg:pl-12 xl:pl-[60px] self-stretch overflow-hidden flex flex-col'>
                   <div className='py-2 lg:max-[1599px]:py-2 min-[1300px]:max-[1599px]:py-3 min-[1600px]:py-4 pr-4 max-[1599px]:pr-4 md:max-[1599px]:pr-6 lg:max-[1599px]:pr-8 min-[1300px]:max-[1599px]:pr-10'>
                     {(() => {
                       const titleText = getTranslation(currentLanguage).dashboard.tasks;
@@ -414,12 +385,12 @@ const ClientDashboard = () => {
 
                 {/* Документы */}
                 <div className='w-full flex flex-col min-h-0'>
-                  <div className='pt-2 lg:max-[1599px]:pt-2 min-[1300px]:max-[1599px]:pt-3 min-[1600px]:pt-4 px-4 md:px-8 lg:px-12 xl:px-[60px] shrink-0'>
+                  <div className='pt-3 sm:pt-3 md:pt-2 lg:max-[1599px]:pt-2 min-[1300px]:max-[1599px]:pt-3 min-[1600px]:pt-4 px-3 sm:px-4 md:px-8 lg:px-12 xl:px-[60px] shrink-0'>
                     {(() => {
                       const titleText = getTranslation(currentLanguage).dashboard.documents;
                       return (
                         <h2 
-                          className='text-[50px] max-[1599px]:text-[36px] lg:max-[1599px]:text-[32px] min-[1300px]:max-[1599px]:text-[38px] mb-0 font-forum'
+                          className='text-[28px] sm:text-[32px] md:text-[36px] lg:text-[50px] max-[1599px]:text-[36px] lg:max-[1599px]:text-[32px] min-[1300px]:max-[1599px]:text-[38px] mb-0 font-forum'
                         >
                           {titleText}
                         </h2>

@@ -728,15 +728,15 @@ const OrganizerDashboard = () => {
     <div className="min-h-screen bg-[#FBF9F5]">
       {/* Header */}
       <header className="bg-[#FBF9F5] border-b border-[#00000033]">
-        <div className="px-4 md:px-8 lg:px-12 xl:px-[60px] py-4 md:py-6">
-          <div className="flex justify-between items-center">
+        <div className="px-3 sm:px-4 md:px-8 lg:px-12 xl:px-[60px] py-3 sm:py-4 md:py-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
             <div>
-              <h1 className="text-[32px] max-[1599px]:text-[24px] lg:max-[1599px]:text-[22px] min-[1300px]:max-[1599px]:text-[26px] font-forum leading-tight text-black">Панель организатора</h1>
-              <p className="text-[16px] max-[1599px]:text-[14px] lg:max-[1599px]:text-[13px] min-[1300px]:max-[1599px]:text-[14px] font-forum font-light text-[#00000080] leading-tight mt-1">Добро пожаловать, {user?.name}</p>
+              <h1 className="text-[20px] sm:text-[24px] md:text-[28px] lg:text-[32px] max-[1599px]:text-[24px] lg:max-[1599px]:text-[22px] min-[1300px]:max-[1599px]:text-[26px] font-forum leading-tight text-black">Панель организатора</h1>
+              <p className="text-[12px] sm:text-[14px] md:text-[16px] max-[1599px]:text-[14px] lg:max-[1599px]:text-[13px] min-[1300px]:max-[1599px]:text-[14px] font-forum font-light text-[#00000080] leading-tight mt-1">Добро пожаловать, {user?.name}</p>
             </div>
             <button
               onClick={logout}
-              className="px-4 md:px-6 py-2 md:py-3 text-[16px] max-[1599px]:text-[14px] font-forum text-[#00000080] hover:text-black transition-colors cursor-pointer border border-[#00000033] rounded-lg hover:bg-white"
+              className="px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 md:py-3 text-[12px] sm:text-[14px] md:text-[16px] max-[1599px]:text-[14px] font-forum text-[#00000080] hover:text-black transition-colors cursor-pointer border border-[#00000033] rounded-lg hover:bg-white w-full sm:w-auto"
             >
               Выйти
             </button>
@@ -745,12 +745,12 @@ const OrganizerDashboard = () => {
       </header>
 
       {/* Navigation */}
-      <nav className="bg-[#FBF9F5] border-b border-[#00000033]">
-        <div className="px-4 md:px-8 lg:px-12 xl:px-[60px]">
-          <div className="flex space-x-6 md:space-x-8">
+      <nav className="bg-[#FBF9F5] border-b border-[#00000033] overflow-x-auto">
+        <div className="px-3 sm:px-4 md:px-8 lg:px-12 xl:px-[60px]">
+          <div className="flex space-x-4 sm:space-x-6 md:space-x-8 min-w-max">
             <button
               onClick={() => setViewMode('overview')}
-              className={`py-4 px-1 border-b-2 font-forum text-[16px] max-[1599px]:text-[14px] transition-colors cursor-pointer ${
+              className={`py-3 sm:py-4 px-1 border-b-2 font-forum text-[14px] sm:text-[16px] max-[1599px]:text-[14px] transition-colors cursor-pointer whitespace-nowrap ${
                 viewMode === 'overview'
                   ? 'border-black text-black'
                   : 'border-transparent text-[#00000080] hover:text-black hover:border-[#00000033]'
@@ -760,7 +760,7 @@ const OrganizerDashboard = () => {
             </button>
             <button
               onClick={() => setViewMode('weddings')}
-              className={`py-4 px-1 border-b-2 font-forum text-[16px] max-[1599px]:text-[14px] transition-colors cursor-pointer ${
+              className={`py-3 sm:py-4 px-1 border-b-2 font-forum text-[14px] sm:text-[16px] max-[1599px]:text-[14px] transition-colors cursor-pointer whitespace-nowrap ${
                 viewMode === 'weddings'
                   ? 'border-black text-black'
                   : 'border-transparent text-[#00000080] hover:text-black hover:border-[#00000033]'
@@ -770,7 +770,7 @@ const OrganizerDashboard = () => {
             </button>
             {viewMode === 'wedding-details' && selectedWedding && (
               <button
-                className="py-4 px-1 border-b-2 font-forum text-[16px] max-[1599px]:text-[14px] border-black text-black cursor-pointer"
+                className="py-3 sm:py-4 px-1 border-b-2 font-forum text-[14px] sm:text-[16px] max-[1599px]:text-[14px] border-black text-black cursor-pointer whitespace-nowrap"
               >
                 {selectedWedding.couple_name_1_ru} & {selectedWedding.couple_name_2_ru}
               </button>
@@ -780,7 +780,7 @@ const OrganizerDashboard = () => {
       </nav>
 
       {/* Main Content */}
-      <main className="px-4 md:px-8 lg:px-12 xl:px-[60px] py-6 md:py-8 font-forum">
+      <main className="px-3 sm:px-4 md:px-8 lg:px-12 xl:px-[60px] py-4 sm:py-5 md:py-6 lg:py-8 font-forum">
         {error && (
           <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
             <p className="text-red-800 font-forum">{error}</p>
@@ -795,37 +795,37 @@ const OrganizerDashboard = () => {
 
         {viewMode === 'overview' && (
           <div>
-            <h2 className="text-[50px] max-[1599px]:text-[36px] lg:max-[1599px]:text-[32px] min-[1300px]:max-[1599px]:text-[38px] font-forum leading-tight text-black mb-6">{t.organizer.overview}</h2>
+            <h2 className="text-[28px] sm:text-[32px] md:text-[36px] lg:text-[50px] max-[1599px]:text-[36px] lg:max-[1599px]:text-[32px] min-[1300px]:max-[1599px]:text-[38px] font-forum leading-tight text-black mb-4 sm:mb-5 md:mb-6">{t.organizer.overview}</h2>
             
             {/* Statistics */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <div className="bg-white border border-[#00000033] rounded-lg p-6 hover:shadow-md transition">
-                <div className="text-[36px] max-[1599px]:text-[28px] font-forum font-bold text-black">{stats.totalWeddings}</div>
-                <div className="text-[16px] max-[1599px]:text-[14px] font-forum font-light text-[#00000080] mt-1">Всего проектов</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 md:gap-6 mb-6 sm:mb-7 md:mb-8">
+              <div className="bg-white border border-[#00000033] rounded-lg p-4 sm:p-5 md:p-6 hover:shadow-md transition">
+                <div className="text-[28px] sm:text-[32px] md:text-[36px] max-[1599px]:text-[28px] font-forum font-bold text-black">{stats.totalWeddings}</div>
+                <div className="text-[12px] sm:text-[14px] md:text-[16px] max-[1599px]:text-[14px] font-forum font-light text-[#00000080] mt-1">Всего проектов</div>
               </div>
-              <div className="bg-white border border-[#00000033] rounded-lg p-6 hover:shadow-md transition">
-                <div className="text-[36px] max-[1599px]:text-[28px] font-forum font-bold text-black">{stats.totalClients}</div>
-                <div className="text-[16px] max-[1599px]:text-[14px] font-forum font-light text-[#00000080] mt-1">Клиентов</div>
+              <div className="bg-white border border-[#00000033] rounded-lg p-4 sm:p-5 md:p-6 hover:shadow-md transition">
+                <div className="text-[28px] sm:text-[32px] md:text-[36px] max-[1599px]:text-[28px] font-forum font-bold text-black">{stats.totalClients}</div>
+                <div className="text-[12px] sm:text-[14px] md:text-[16px] max-[1599px]:text-[14px] font-forum font-light text-[#00000080] mt-1">Клиентов</div>
               </div>
-              <div className="bg-white border border-[#00000033] rounded-lg p-6 hover:shadow-md transition">
-                <div className="text-[36px] max-[1599px]:text-[28px] font-forum font-bold text-black">{stats.completedTasks}</div>
-                <div className="text-[16px] max-[1599px]:text-[14px] font-forum font-light text-[#00000080] mt-1">Выполненных задач</div>
+              <div className="bg-white border border-[#00000033] rounded-lg p-4 sm:p-5 md:p-6 hover:shadow-md transition">
+                <div className="text-[28px] sm:text-[32px] md:text-[36px] max-[1599px]:text-[28px] font-forum font-bold text-black">{stats.completedTasks}</div>
+                <div className="text-[12px] sm:text-[14px] md:text-[16px] max-[1599px]:text-[14px] font-forum font-light text-[#00000080] mt-1">Выполненных задач</div>
               </div>
-              <div className="bg-white border border-[#00000033] rounded-lg p-6 hover:shadow-md transition">
-                <div className="text-[36px] max-[1599px]:text-[28px] font-forum font-bold text-black">
+              <div className="bg-white border border-[#00000033] rounded-lg p-4 sm:p-5 md:p-6 hover:shadow-md transition">
+                <div className="text-[28px] sm:text-[32px] md:text-[36px] max-[1599px]:text-[28px] font-forum font-bold text-black">
                   {stats.totalTasks - stats.completedTasks}
                 </div>
-                <div className="text-[16px] max-[1599px]:text-[14px] font-forum font-light text-[#00000080] mt-1">Задач в работе</div>
+                <div className="text-[12px] sm:text-[14px] md:text-[16px] max-[1599px]:text-[14px] font-forum font-light text-[#00000080] mt-1">Задач в работе</div>
               </div>
             </div>
 
             {/* Clients Section */}
-            <div className="bg-white border border-[#00000033] rounded-lg p-6 mb-8">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-[24px] max-[1599px]:text-[20px] font-forum font-bold text-black">Клиенты</h3>
+            <div className="bg-white border border-[#00000033] rounded-lg p-4 sm:p-5 md:p-6 mb-6 sm:mb-7 md:mb-8">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 mb-4">
+                <h3 className="text-[18px] sm:text-[20px] md:text-[24px] max-[1599px]:text-[20px] font-forum font-bold text-black">Клиенты</h3>
                 <button
                   onClick={handleCreateClient}
-                  className="px-4 md:px-6 py-2 md:py-3 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum"
+                  className="px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 md:py-3 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[12px] sm:text-[14px] md:text-[16px] max-[1599px]:text-[14px] font-forum w-full sm:w-auto"
                 >
                   + Создать клиента
                 </button>
@@ -838,11 +838,11 @@ const OrganizerDashboard = () => {
                       className="border border-[#00000033] rounded-lg p-4 hover:shadow-md transition"
                     >
                       <div className="flex justify-between items-start">
-                        <div>
-                          <h4 className="text-[18px] max-[1599px]:text-[16px] font-forum font-bold text-black">
+                        <div className="w-full min-w-0">
+                          <h4 className="text-[16px] sm:text-[18px] max-[1599px]:text-[16px] font-forum font-bold text-black break-words">
                             {client.name}
                           </h4>
-                          <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080] mt-1">
+                          <p className="text-[12px] sm:text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080] mt-1 break-words">
                             {client.email}
                           </p>
                         </div>
@@ -864,12 +864,12 @@ const OrganizerDashboard = () => {
             </div> */}
 
             {/* Recent Weddings */}
-            <div className="bg-white border border-[#00000033] rounded-lg p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-[24px] max-[1599px]:text-[20px] font-forum font-bold text-black">Последние проекты</h3>
+            <div className="bg-white border border-[#00000033] rounded-lg p-4 sm:p-5 md:p-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 mb-4">
+                <h3 className="text-[18px] sm:text-[20px] md:text-[24px] max-[1599px]:text-[20px] font-forum font-bold text-black">Последние проекты</h3>
                 <button
                   onClick={() => setViewMode('weddings')}
-                  className="text-[16px] max-[1599px]:text-[14px] font-forum text-[#00000080] hover:text-black transition-colors cursor-pointer"
+                  className="text-[14px] sm:text-[16px] max-[1599px]:text-[14px] font-forum text-[#00000080] hover:text-black transition-colors cursor-pointer"
                 >
                   {t.organizer.viewAll}
                 </button>
@@ -883,15 +883,15 @@ const OrganizerDashboard = () => {
                       onClick={() => loadWeddingDetails(wedding.id)}
                     >
                       <div className="flex justify-between items-start">
-                        <div>
-                          <h4 className="text-[18px] max-[1599px]:text-[16px] font-forum font-bold text-black">
+                        <div className="w-full min-w-0">
+                          <h4 className="text-[16px] sm:text-[18px] max-[1599px]:text-[16px] font-forum font-bold text-black break-words">
                             {currentLanguage === 'en' && wedding.couple_name_1_en && wedding.couple_name_2_en
                               ? `${wedding.couple_name_1_en} & ${wedding.couple_name_2_en}`
                               : currentLanguage === 'ua' && wedding.couple_name_1_ru && wedding.couple_name_2_ru
                               ? `${wedding.couple_name_1_ru} & ${wedding.couple_name_2_ru}`
                               : `${wedding.couple_name_1_ru || wedding.couple_name_1_en || ''} & ${wedding.couple_name_2_ru || wedding.couple_name_2_en || ''}`}
                           </h4>
-                          <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080] mt-1">
+                          <p className="text-[12px] sm:text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080] mt-1 break-words">
                             {new Date(wedding.wedding_date).toLocaleDateString(currentLanguage === 'en' ? 'en-US' : currentLanguage === 'ua' ? 'uk-UA' : 'ru-RU')} • {wedding.venue}
                           </p>
                         </div>
@@ -908,37 +908,37 @@ const OrganizerDashboard = () => {
 
         {viewMode === 'weddings' && (
           <div>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-[50px] max-[1599px]:text-[36px] lg:max-[1599px]:text-[32px] min-[1300px]:max-[1599px]:text-[38px] font-forum leading-tight text-black">{t.organizer.projects}</h2>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 mb-4 sm:mb-5 md:mb-6">
+              <h2 className="text-[28px] sm:text-[32px] md:text-[36px] lg:text-[50px] max-[1599px]:text-[36px] lg:max-[1599px]:text-[32px] min-[1300px]:max-[1599px]:text-[38px] font-forum leading-tight text-black">{t.organizer.projects}</h2>
               <button
                 onClick={handleCreateWedding}
-                className="px-4 md:px-6 py-2 md:py-3 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum"
+                className="px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 md:py-3 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[12px] sm:text-[14px] md:text-[16px] max-[1599px]:text-[14px] font-forum w-full sm:w-auto"
               >
                 + {t.organizer.addProject}
               </button>
             </div>
 
             {weddings.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
                 {weddings.map((wedding) => (
                   <div
                     key={wedding.id}
-                    className="bg-white border border-[#00000033] rounded-lg p-6 hover:shadow-lg transition"
+                    className="bg-white border border-[#00000033] rounded-lg p-4 sm:p-5 md:p-6 hover:shadow-lg transition"
                   >
                     <div className="flex justify-between items-start mb-4">
-                      <div className="flex-1">
-                        <h3 className="text-[20px] max-[1599px]:text-[18px] font-forum font-bold text-black mb-2">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-[16px] sm:text-[18px] md:text-[20px] max-[1599px]:text-[18px] font-forum font-bold text-black mb-2 break-words">
                           {currentLanguage === 'en' && wedding.couple_name_1_en && wedding.couple_name_2_en
                             ? `${wedding.couple_name_1_en} & ${wedding.couple_name_2_en}`
                             : currentLanguage === 'ua' && wedding.couple_name_1_ru && wedding.couple_name_2_ru
                             ? `${wedding.couple_name_1_ru} & ${wedding.couple_name_2_ru}`
                             : `${wedding.couple_name_1_ru || wedding.couple_name_1_en || ''} & ${wedding.couple_name_2_ru || wedding.couple_name_2_en || ''}`}
                         </h3>
-                        <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">
+                        <p className="text-[12px] sm:text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080] break-words">
                           {t.organizer.weddingDate}: {new Date(wedding.wedding_date).toLocaleDateString(currentLanguage === 'en' ? 'en-US' : currentLanguage === 'ua' ? 'uk-UA' : 'ru-RU')}
                         </p>
-                        <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">{t.organizer.place}: {wedding.venue}</p>
-                        <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">{t.organizer.guestCount}: {wedding.guest_count}</p>
+                        <p className="text-[12px] sm:text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080] break-words">{t.organizer.place}: {wedding.venue}</p>
+                        <p className="text-[12px] sm:text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">{t.organizer.guestCount}: {wedding.guest_count}</p>
                         {wedding.chat_link && (
                           <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-black mt-1">
                             <a href={wedding.chat_link} target="_blank" rel="noopener noreferrer" className="hover:underline cursor-pointer">
@@ -948,25 +948,27 @@ const OrganizerDashboard = () => {
                         )}
                       </div>
                     </div>
-                    <div className="flex space-x-2">
+                    <div className="flex flex-col sm:flex-row gap-2 mt-4">
                       <button
                         onClick={() => loadWeddingDetails(wedding.id)}
-                        className="flex-1 px-3 py-2 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[14px] font-forum"
+                        className="flex-1 px-3 py-2 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[12px] sm:text-[14px] font-forum"
                       >
                         {t.common.more}
                       </button>
-                      <button
-                        onClick={() => handleEditWedding(wedding)}
-                        className="px-3 py-2 bg-white border border-[#00000033] text-black rounded-lg hover:bg-gray-50 transition-colors cursor-pointer text-[14px] font-forum"
-                      >
-                        {t.common.edit}
-                      </button>
-                      <button
-                        onClick={() => handleDeleteWedding(wedding.id)}
-                        className="px-3 py-2 bg-white border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors cursor-pointer text-[14px] font-forum"
-                      >
-                        {t.common.delete}
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleEditWedding(wedding)}
+                          className="flex-1 px-3 py-2 bg-white border border-[#00000033] text-black rounded-lg hover:bg-gray-50 transition-colors cursor-pointer text-[12px] sm:text-[14px] font-forum"
+                        >
+                          {t.common.edit}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteWedding(wedding.id)}
+                          className="flex-1 px-3 py-2 bg-white border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors cursor-pointer text-[12px] sm:text-[14px] font-forum"
+                        >
+                          {t.common.delete}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -987,15 +989,15 @@ const OrganizerDashboard = () => {
 
         {viewMode === 'wedding-details' && selectedWedding && (
           <div>
-            <div className="flex justify-between items-center mb-6">
-              <div>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 mb-4 sm:mb-5 md:mb-6">
+              <div className="w-full sm:w-auto min-w-0">
                 <button
                   onClick={() => setViewMode('weddings')}
-                  className="text-[16px] max-[1599px]:text-[14px] font-forum text-[#00000080] hover:text-black transition-colors mb-2 cursor-pointer"
+                  className="text-[14px] sm:text-[16px] max-[1599px]:text-[14px] font-forum text-[#00000080] hover:text-black transition-colors mb-2 cursor-pointer"
                 >
                   {t.organizer.backToProjects}
                 </button>
-                <h2 className="text-[50px] max-[1599px]:text-[36px] lg:max-[1599px]:text-[32px] min-[1300px]:max-[1599px]:text-[38px] font-forum leading-tight text-black">
+                <h2 className="text-[24px] sm:text-[28px] md:text-[32px] lg:text-[50px] max-[1599px]:text-[36px] lg:max-[1599px]:text-[32px] min-[1300px]:max-[1599px]:text-[38px] font-forum leading-tight text-black break-words">
                   {currentLanguage === 'en' && selectedWedding.couple_name_1_en && selectedWedding.couple_name_2_en
                     ? `${selectedWedding.couple_name_1_en} & ${selectedWedding.couple_name_2_en}`
                     : currentLanguage === 'ua' && selectedWedding.couple_name_1_ru && selectedWedding.couple_name_2_ru
@@ -1005,25 +1007,25 @@ const OrganizerDashboard = () => {
               </div>
               <button
                 onClick={() => handleEditWedding(selectedWedding)}
-                className="px-4 md:px-6 py-2 md:py-3 bg-white border border-[#00000033] text-black rounded-lg hover:bg-gray-50 transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum"
+                className="px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 md:py-3 bg-white border border-[#00000033] text-black rounded-lg hover:bg-gray-50 transition-colors cursor-pointer text-[12px] sm:text-[14px] md:text-[16px] max-[1599px]:text-[14px] font-forum w-full sm:w-auto"
               >
                 {t.organizer.editProject}
               </button>
             </div>
 
             {/* Wedding Info */}
-            <div className="bg-white border border-[#00000033] rounded-lg p-6 mb-6">
-              <h3 className="text-[24px] max-[1599px]:text-[20px] font-forum font-bold text-black mb-4">{t.organizer.projectInfo}</h3>
-              <div className="grid grid-cols-2 gap-4">
+            <div className="bg-white border border-[#00000033] rounded-lg p-4 sm:p-5 md:p-6 mb-4 sm:mb-5 md:mb-6">
+              <h3 className="text-[18px] sm:text-[20px] md:text-[24px] max-[1599px]:text-[20px] font-forum font-bold text-black mb-3 sm:mb-4">{t.organizer.projectInfo}</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">{t.organizer.weddingDate}</p>
-                  <p className="text-[18px] max-[1599px]:text-[16px] font-forum font-bold text-black mt-1">
+                  <p className="text-[12px] sm:text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">{t.organizer.weddingDate}</p>
+                  <p className="text-[16px] sm:text-[18px] max-[1599px]:text-[16px] font-forum font-bold text-black mt-1 break-words">
                     {new Date(selectedWedding.wedding_date).toLocaleDateString(currentLanguage === 'en' ? 'en-US' : currentLanguage === 'ua' ? 'uk-UA' : 'ru-RU')}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">{t.organizer.country}</p>
-                  <p className="text-[18px] max-[1599px]:text-[16px] font-forum font-bold text-black mt-1">
+                  <p className="text-[12px] sm:text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">{t.organizer.country}</p>
+                  <p className="text-[16px] sm:text-[18px] max-[1599px]:text-[16px] font-forum font-bold text-black mt-1 break-words">
                     {currentLanguage === 'en' && selectedWedding.country_en ? selectedWedding.country_en :
                      currentLanguage === 'ru' && selectedWedding.country_ru ? selectedWedding.country_ru :
                      currentLanguage === 'ua' && selectedWedding.country_ua ? selectedWedding.country_ua :
@@ -1031,12 +1033,12 @@ const OrganizerDashboard = () => {
                   </p>
                 </div>
                 <div>
-                  <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">{t.organizer.place}</p>
-                  <p className="text-[18px] max-[1599px]:text-[16px] font-forum font-bold text-black mt-1">{selectedWedding.venue}</p>
+                  <p className="text-[12px] sm:text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">{t.organizer.place}</p>
+                  <p className="text-[16px] sm:text-[18px] max-[1599px]:text-[16px] font-forum font-bold text-black mt-1 break-words">{selectedWedding.venue}</p>
                 </div>
                 <div>
-                  <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">{t.organizer.guestCount}</p>
-                  <p className="text-[18px] max-[1599px]:text-[16px] font-forum font-bold text-black mt-1">{selectedWedding.guest_count}</p>
+                  <p className="text-[12px] sm:text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">{t.organizer.guestCount}</p>
+                  <p className="text-[16px] sm:text-[18px] max-[1599px]:text-[16px] font-forum font-bold text-black mt-1">{selectedWedding.guest_count}</p>
                 </div>
                 {selectedWedding.client && (
                   <div>
