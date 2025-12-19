@@ -129,7 +129,7 @@ const Header = ({ onLogout, currentLanguage, onLanguageChange, chatLink, wedding
 
   return (
     <header className="w-full bg-[#eae6db] border-b border-[#00000033] relative z-50" >
-      <div className="px-2 sm:px-4 md:px-8 lg:px-12 xl:px-[60px]">
+      <div className="px-3 sm:px-4 md:px-8 lg:px-12 xl:px-[60px]">
         <div className="flex justify-between items-stretch">
           {/* Left side - Logo and text */}
           <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
@@ -142,12 +142,12 @@ const Header = ({ onLogout, currentLanguage, onLanguageChange, chatLink, wedding
           </div>
           
           {/* Right side - Navigation items */}
-          <div className="flex items-center justify-center gap-0">
+          <div className="flex items-stretch justify-center gap-0">
             {/* Leave your Notes */}
             {(() => {
               const notesText = getTranslation(currentLanguage).header.notes;
               return (
-                <div className="relative">
+                <div className="relative self-stretch">
                   <button 
                     onClick={handleToggleNotes}
                     className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-4 lg:px-6 max-[1599px]:md:px-5 min-[1600px]:md:px-6 lg:px-5 max-[1599px]:lg:px-5 min-[1600px]:lg:px-7.5 py-3 sm:py-4 md:py-6 max-[1599px]:md:py-5 min-[1600px]:md:py-6 lg:py-5 max-[1599px]:lg:py-5 min-[1600px]:lg:py-7.5 cursor-pointer border-l border-[#00000033] h-full"
@@ -296,7 +296,7 @@ const Header = ({ onLogout, currentLanguage, onLanguageChange, chatLink, wedding
               return (
                 <button
                   onClick={onLogout}
-                  className="pl-2 sm:pl-3 md:pl-4 lg:pl-8 max-[1599px]:md:pl-6 min-[1600px]:md:pl-8 lg:pl-10 max-[1599px]:lg:pl-10 min-[1600px]:lg:pl-12 xl:pl-[64.5px] max-[1599px]:xl:pl-10 min-[1600px]:xl:pl-[64.5px] py-3 sm:py-4 md:py-6 max-[1599px]:md:py-5 min-[1600px]:md:py-6 lg:py-5 max-[1599px]:lg:py-5 min-[1600px]:lg:py-7.5 text-[#00000080] cursor-pointer font-forum text-[14px] sm:text-[16px] md:text-[18px] lg:text-[24px] max-[1599px]:text-[20px] lg:max-[1599px]:text-[18px] min-[1300px]:max-[1599px]:text-[22px] min-[1600px]:text-[24px] font-light"
+                  className="pl-2 sm:pl-3 md:pl-4 lg:pl-8 max-[1599px]:md:pl-6 min-[1600px]:md:pl-8 lg:pl-10 max-[1599px]:lg:pl-10 min-[1600px]:lg:pl-12 xl:pl-[64.5px] max-[1599px]:xl:pl-10 min-[1600px]:xl:pl-[64.5px] py-3 sm:py-4 md:py-6 max-[1599px]:md:py-5 min-[1600px]:md:py-6 lg:py-5 max-[1599px]:lg:py-5 min-[1600px]:lg:py-7.5 text-[#00000080] cursor-pointer font-forum text-[14px] sm:text-[16px] md:text-[18px] lg:text-[24px] max-[1599px]:text-[20px] lg:max-[1599px]:text-[18px] min-[1300px]:max-[1599px]:text-[22px] min-[1600px]:text-[24px] font-light h-full"
                   style={getFontStyle(logoutText)}
                 >
                   {logoutText}

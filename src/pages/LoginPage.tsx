@@ -275,7 +275,7 @@ const LoginPage = () => {
           const welcomeText = englishTranslations.login.welcomeText;
           return (
             <h1 
-              className={`text-[16px] sm:text-[18px] md:text-[20px] lg:text-[24px] xl:text-[36px] max-[1599px]:lg:text-[28px] xl:text-[50px] max-[1599px]:xl:text-[32px] font-normal mt-4 sm:mt-5 md:mt-6 lg:mt-6 max-[1599px]:lg:mt-5 xl:mt-10 max-[1599px]:xl:mt-6 min-[1600px]:xl:mt-10 pb-2.5 text-center w-full leading-tight ${bgLoaded ? 'text-white-animate' : 'text-black'}`}
+              className={`text-[12px] sm:text-[14px] md:text-[18px] lg:text-[24px] xl:text-[36px] max-[1599px]:lg:text-[28px] xl:text-[50px] max-[1599px]:xl:text-[32px] font-normal mt-4 sm:mt-5 md:mt-6 lg:mt-6 max-[1599px]:lg:mt-5 xl:mt-10 max-[1599px]:xl:mt-6 min-[1600px]:xl:mt-10 pb-2.5 text-center w-full leading-tight whitespace-nowrap lg:whitespace-normal ${bgLoaded ? 'text-white-animate' : 'text-black'}`}
               style={getFontStyle(welcomeText)}
             >
               {welcomeText}
@@ -287,7 +287,7 @@ const LoginPage = () => {
           const descText = englishTranslations.login.descriptionText;
           return (
             <p 
-              className={`mt-2 sm:mt-3 md:mt-4 lg:mt-2 max-[1599px]:lg:mt-2 xl:mt-4 max-[1599px]:xl:mt-3 min-[1600px]:xl:mt-4 font-gilroy text-[11px] sm:text-[12px] md:text-[14px] lg:text-[16px] xl:text-[20px] max-[1599px]:lg:text-[16px] xl:text-[32px] max-[1599px]:xl:text-[20px] font-light text-center w-full leading-relaxed ${bgLoaded ? 'text-white-animate' : 'text-black'}`}
+              className={`mt-2 sm:mt-3 md:mt-4 lg:mt-2 max-[1599px]:lg:mt-2 xl:mt-4 max-[1599px]:xl:mt-3 min-[1600px]:xl:mt-4 font-gilroy text-[11px] sm:text-[12px] md:text-[14px] lg:text-[16px] xl:text-[20px] max-[1599px]:lg:text-[16px] xl:text-[32px] max-[1599px]:xl:text-[20px] font-light text-center w-full leading-relaxed px-4 sm:px-6 lg:px-0 mx-auto lg:mx-0 max-w-[90vw] lg:max-w-full ${bgLoaded ? 'text-white-animate' : 'text-black'}`}
               style={getFontStyle(descText)}
             >
               {descText}
@@ -303,7 +303,7 @@ const LoginPage = () => {
           }`}
         >
           <img src={scrollDown} alt="scrollDown" className='animate-pulse-opacity' />
-          <p className='mt-2 text-white font-gilroy text-[10px] sm:text-xs md:text-sm lg:text-sm xl:text-base px-2 text-center'>Scroll down to continue</p>
+          <p className='mt-2 text-white font-gilroy text-[9px] sm:text-[10px] md:text-xs lg:text-sm xl:text-base px-4 sm:px-6 md:px-8 text-center max-w-[90vw]'>Scroll down to continue</p>
         </div>
       </div>
 

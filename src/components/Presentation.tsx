@@ -105,7 +105,7 @@ const Presentation = ({ presentation, currentLanguage = 'ua' }: PresentationProp
             e.stopPropagation();
             setIsMenuOpen(!isMenuOpen);
           }}
-          className="absolute top-4 left-4 z-50 bg-[#eae6db] border border-[#00000033] rounded-lg p-2 shadow-lg lg:hidden"
+          className="absolute top-4 left-4 z-50 bg-[#eae6db] border border-[#00000033] p-2 shadow-lg lg:hidden"
           aria-label="Toggle menu"
           style={{ pointerEvents: 'auto' }}
         >
