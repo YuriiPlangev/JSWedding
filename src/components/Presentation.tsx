@@ -31,8 +31,14 @@ interface PresentationProps {
 const Presentation = ({ presentation, currentLanguage = 'ua' }: PresentationProps) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [fullscreenIndex, setFullscreenIndex] = useState(0);
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<{ [key: number]: HTMLButtonElement | null }>({});
+  const sliderRef = useRef<HTMLDivElement>(null);
+  const touchStartX = useRef<number>(0);
+  const touchStartY = useRef<number>(0);
+  const isDragging = useRef<boolean>(false);
   const translations = getTranslation(currentLanguage);
 
   // Определяем размер экрана
@@ -165,13 +171,171 @@ const Presentation = ({ presentation, currentLanguage = 'ua' }: PresentationProp
     setActiveIndex((prev) => (prev < allSlides.length - 1 ? prev + 1 : prev));
   };
 
+  // Обработчики для свайпа по картинкам
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    isDragging.current = false;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!touchStartX.current || !touchStartY.current) return;
+    
+    const touchCurrentX = e.touches[0].clientX;
+    const touchCurrentY = e.touches[0].clientY;
+    const diffX = touchStartX.current - touchCurrentX;
+    const diffY = touchStartY.current - touchCurrentY;
+    
+    // Если движение больше по горизонтали, чем по вертикали - это свайп
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 10) {
+      isDragging.current = true;
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStartX.current || !isDragging.current) {
+      touchStartX.current = 0;
+      touchStartY.current = 0;
+      return;
+    }
+
+    const touchEndX = e.changedTouches[0].clientX;
+    const diffX = touchStartX.current - touchEndX;
+    const threshold = 50; // Минимальное расстояние для свайпа
+
+    if (Math.abs(diffX) > threshold) {
+      if (diffX > 0) {
+        // Свайп влево - следующий слайд
+        handleNext();
+      } else {
+        // Свайп вправо - предыдущий слайд
+        handlePrev();
+      }
+    }
+
+    touchStartX.current = 0;
+    touchStartY.current = 0;
+    isDragging.current = false;
+  };
+
+  // Обработчики для полноэкранного режима
+  const handleImageClick = (index: number) => {
+    setFullscreenIndex(index);
+    setIsFullscreen(true);
+    // Блокируем скролл страницы при открытии модального окна
+    document.body.style.overflow = 'hidden';
+  };
+
+  const handleCloseFullscreen = () => {
+    setIsFullscreen(false);
+    document.body.style.overflow = '';
+  };
+
+  // Обработчики свайпа в полноэкранном режиме (вертикальные)
+  const handleFullscreenTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    isDragging.current = false;
+  };
+
+  const handleFullscreenTouchMove = (e: React.TouchEvent) => {
+    if (!touchStartX.current || !touchStartY.current) return;
+    
+    const touchCurrentX = e.touches[0].clientX;
+    const touchCurrentY = e.touches[0].clientY;
+    const diffX = touchStartX.current - touchCurrentX;
+    const diffY = touchStartY.current - touchCurrentY;
+    
+    if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 10) {
+      isDragging.current = true;
+    }
+  };
+
+  const handleFullscreenTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStartX.current || !isDragging.current) {
+      touchStartX.current = 0;
+      touchStartY.current = 0;
+      return;
+    }
+
+    const touchEndY = e.changedTouches[0].clientY;
+    const diffY = touchStartY.current - touchEndY;
+    const threshold = 50;
+
+    if (Math.abs(diffY) > threshold) {
+      if (diffY > 0) {
+        // Свайп вверх - следующий слайд
+        if (fullscreenIndex < allSlides.length - 1) {
+          setFullscreenIndex(fullscreenIndex + 1);
+        }
+      } else {
+        // Свайп вниз - предыдущий слайд
+        if (fullscreenIndex > 0) {
+          setFullscreenIndex(fullscreenIndex - 1);
+        }
+      }
+    }
+
+    touchStartX.current = 0;
+    touchStartY.current = 0;
+    isDragging.current = false;
+  };
+
+  // Обработка клавиатуры в полноэкранном режиме (вертикальная навигация)
+  useEffect(() => {
+    if (!isFullscreen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleCloseFullscreen();
+      } else if (e.key === 'ArrowUp' && fullscreenIndex > 0) {
+        setFullscreenIndex(fullscreenIndex - 1);
+      } else if (e.key === 'ArrowDown' && fullscreenIndex < allSlides.length - 1) {
+        setFullscreenIndex(fullscreenIndex + 1);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFullscreen, fullscreenIndex]);
+
   return (
     <div className="flex flex-col bg-[#eae6db] w-full relative font-forum lg:flex-row" style={{ minHeight: isMobile ? 'auto' : '100vh', height: isMobile ? 'auto' : '100vh' }}>
       {/* Заголовок "Презентация компании" - только на мобильных, сверху секции */}
       {isMobile && (
-        <div className="border-b border-[#00000033] py-2 px-3 sm:px-4 md:px-8 lg:hidden">
-          <h1 className="text-[26px] sm:text-[30px] md:text-[34px] font-forum mb-0 text-center wrap-break-word">{title}</h1>
-        </div>
+        <>
+          <div className="border-b border-[#00000033] py-2 px-3 sm:px-4 md:px-8 lg:hidden">
+            <h1 className="text-[26px] sm:text-[30px] md:text-[34px] font-forum mb-0 text-center wrap-break-word">{title}</h1>
+          </div>
+          {/* Табы навигации по секциям - под заголовком (только на мобильных) */}
+          <div 
+            ref={tabsContainerRef}
+            className="border-b border-[#00000033] bg-[#eae6db] overflow-x-auto lg:hidden"
+            style={{ 
+              scrollBehavior: 'smooth',
+              scrollPaddingInline: '8px'
+            }}
+          >
+            <div className="flex gap-1 sm:gap-2 px-2 sm:px-3 md:px-4 py-2 sm:py-2.5 md:py-3">
+              {menuSections.map((section) => (
+                <button
+                  key={section.id}
+                  ref={(el) => {
+                    tabRefs.current[section.id] = el;
+                  }}
+                  onClick={() => handleMenuClick(section.slideIndex)}
+                  className={`px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 rounded-lg font-forum font-light text-[11px] sm:text-[12px] md:text-[13px] transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                    activeIndex === section.slideIndex
+                      ? 'text-black bg-[#00000015] border border-[#00000033]'
+                      : 'text-[#00000080] bg-transparent border border-transparent hover:text-black hover:bg-[#00000005]'
+                  }`}
+                >
+                  {section.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
       )}
 
 
@@ -216,7 +380,14 @@ const Presentation = ({ presentation, currentLanguage = 'ua' }: PresentationProp
 
       {/* Правая часть со слайдером */}
       <div className="flex-1 flex flex-col min-w-0 lg:min-h-0">
-        <div className="flex-1 relative overflow-hidden lg:min-h-0" style={{ height: 'calc(100% - 3.5rem)' }}>
+        <div 
+          ref={sliderRef}
+          className="flex-1 relative overflow-hidden lg:min-h-0" 
+          style={{ height: 'calc(100% - 3.5rem)' }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
           <div
             className="flex h-full transition-transform duration-500 ease-in-out"
             style={{
@@ -226,7 +397,7 @@ const Presentation = ({ presentation, currentLanguage = 'ua' }: PresentationProp
             {allSlides.map((slideImage, index) => (
               <div
                 key={index}
-                className="h-full shrink-0"
+                className="h-full shrink-0 relative"
                 style={{ width: '100%', minWidth: '100%' }}
               >
                 <img
@@ -246,6 +417,30 @@ const Presentation = ({ presentation, currentLanguage = 'ua' }: PresentationProp
                     }
                   }}
                 />
+                {/* Иконка полноэкранного режима */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleImageClick(index);
+                  }}
+                  className="absolute top-2 right-2 sm:top-3 sm:right-3 md:top-4 md:right-4 z-10 bg-[#eae6db] border border-[#00000033] hover:bg-[#00000005] rounded p-1.5 sm:p-2 transition-all cursor-pointer"
+                  aria-label="Open fullscreen"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-black"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
+                    />
+                  </svg>
+                </button>
               </div>
             ))}
           </div>
@@ -295,38 +490,121 @@ const Presentation = ({ presentation, currentLanguage = 'ua' }: PresentationProp
             </button>
           </div>
 
-          {/* Табы навигации по секциям - Вариант 4: Табы внизу (только на мобильных) */}
-          {isMobile && (
-            <div 
-              ref={tabsContainerRef}
-              className="border-t border-[#00000033] bg-[#eae6db] overflow-x-auto"
-              style={{ 
-                scrollBehavior: 'smooth',
-                scrollPaddingInline: '8px'
-              }}
-            >
-              <div className="flex gap-1 sm:gap-2 px-2 sm:px-3 md:px-4 py-2 sm:py-2.5 md:py-3">
-                {menuSections.map((section) => (
-                  <button
-                    key={section.id}
-                    ref={(el) => {
-                      tabRefs.current[section.id] = el;
-                    }}
-                    onClick={() => handleMenuClick(section.slideIndex)}
-                    className={`px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 rounded-lg font-forum font-light text-[11px] sm:text-[12px] md:text-[13px] transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                      activeIndex === section.slideIndex
-                        ? 'text-black bg-[#00000015] border border-[#00000033]'
-                        : 'text-[#00000080] bg-transparent border border-transparent hover:text-black hover:bg-[#00000005]'
-                    }`}
-                  >
-                    {section.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
+
+      {/* Модальное окно для полноэкранного просмотра */}
+      {isFullscreen && (
+        <div 
+          className="fixed inset-0 z-[9999] bg-black flex items-center justify-center"
+          onClick={handleCloseFullscreen}
+          onTouchStart={handleFullscreenTouchStart}
+          onTouchMove={handleFullscreenTouchMove}
+          onTouchEnd={handleFullscreenTouchEnd}
+        >
+          {/* Кнопка закрытия */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleCloseFullscreen();
+            }}
+            className="absolute bottom-4 right-4 z-[10000] text-black text-3xl font-bold hover:bg-[#00000005] transition-all w-10 h-10 flex items-center justify-center bg-[#eae6db] border border-[#00000033] rounded-full"
+            style={{ transform: 'rotate(-90deg)' }}
+            aria-label="Close"
+          >
+            ×
+          </button>
+
+          {/* Стрелка вверх (предыдущий слайд) */}
+          {fullscreenIndex > 0 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setFullscreenIndex(fullscreenIndex - 1);
+              }}
+              className="absolute top-4 left-1/2 z-[10000] text-black text-4xl font-bold hover:bg-[#00000005] transition-all w-12 h-12 flex items-center justify-center bg-[#eae6db] border border-[#00000033] rounded-full"
+              style={{ transform: 'translateX(-50%)' }}
+              aria-label="Previous"
+            >
+              ↑
+            </button>
+          )}
+
+          {/* Стрелка вниз (следующий слайд) */}
+          {fullscreenIndex < allSlides.length - 1 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setFullscreenIndex(fullscreenIndex + 1);
+              }}
+              className="absolute bottom-4 left-1/2 z-[10000] text-black text-4xl font-bold hover:bg-[#00000005] transition-all w-12 h-12 flex items-center justify-center bg-[#eae6db] border border-[#00000033] rounded-full"
+              style={{ transform: 'translateX(-50%)' }}
+              aria-label="Next"
+            >
+              ↓
+            </button>
+          )}
+
+          {/* Контейнер с изображениями для вертикальной прокрутки */}
+          <div 
+            className="w-full h-full relative overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div 
+              className="flex flex-col w-full h-full"
+              style={{
+                transform: `translateY(-${fullscreenIndex * 100}%)`,
+                transition: 'transform 0.3s ease-in-out',
+              }}
+            >
+              {allSlides.map((slideImage, index) => (
+                <div
+                  key={index}
+                  className="w-full h-full shrink-0 flex items-center justify-center"
+                  style={{ minHeight: '100%' }}
+                >
+                  <img
+                    src={slideImage}
+                    alt={`Slide ${index + 1}`}
+                    className="object-contain"
+                    style={{
+                      display: 'block',
+                      width: '100vh',
+                      height: '100vw',
+                      maxWidth: '100vh',
+                      maxHeight: '100vw',
+                      transform: 'rotate(90deg)',
+                    }}
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      if (target.src !== pres2) {
+                        target.src = pres2;
+                      }
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Индикатор текущего слайда */}
+          <div 
+            className="absolute left-4 top-1/2 z-[10000] flex flex-col gap-2"
+            style={{ transform: 'translateY(-50%)' }}
+          >
+            {allSlides.map((_, index) => (
+              <div
+                key={index}
+                className={`w-2 h-2 rounded-full transition-all ${
+                  fullscreenIndex === index
+                    ? 'bg-white h-8'
+                    : 'bg-white bg-opacity-50'
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
