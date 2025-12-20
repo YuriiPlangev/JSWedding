@@ -250,14 +250,14 @@ const LoginPage = () => {
         className="absolute z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-[55%] flex flex-col items-center justify-center w-full max-w-full px-1 sm:px-2 md:px-4"
       >
         {/* Логотип */}
-        <div className="w-[100px] h-[100px] sm:w-[120px] sm:h-[120px] md:w-[150px] md:h-[150px] lg:w-[240px] lg:h-[240px] max-[1599px]:lg:w-[200px] max-[1599px]:lg:h-[200px] xl:w-[300px] max-[1599px]:xl:w-[240px] min-[1600px]:xl:h-[300px] overflow-visible flex items-center justify-center shrink-0">
+        <div className="w-[110px] h-[110px] sm:w-[130px] sm:h-[130px] md:w-[160px] md:h-[160px] lg:w-[240px] lg:h-[240px] max-[1599px]:lg:w-[200px] max-[1599px]:lg:h-[200px] xl:w-[300px] max-[1599px]:xl:w-[240px] min-[1600px]:xl:h-[300px] overflow-visible flex items-center justify-center shrink-0">
         <svg 
           width="225" 
           height="232" 
           viewBox="0 0 225 232" 
           fill="none" 
           xmlns="http://www.w3.org/2000/svg" 
-          className={`w-[80px] h-[83px] sm:w-[100px] sm:h-[103px] md:w-[120px] md:h-[124px] lg:w-[180px] lg:h-[186px] max-[1599px]:lg:w-[150px] max-[1599px]:lg:h-[155px] xl:w-[225px] max-[1599px]:xl:w-[180px] min-[1600px]:xl:h-[232px] ${bgLoaded ? 'logo-fill-animate' : 'logo-fill-black'}`}
+          className={`w-[90px] h-[93px] sm:w-[110px] sm:h-[113px] md:w-[130px] md:h-[134px] lg:w-[180px] lg:h-[186px] max-[1599px]:lg:w-[150px] max-[1599px]:lg:h-[155px] xl:w-[225px] max-[1599px]:xl:w-[180px] min-[1600px]:xl:h-[232px] ${bgLoaded ? 'logo-fill-animate' : 'logo-fill-black'}`}
           style={{ overflow: 'visible' }}
         >
           {/* Круговой текст */}
@@ -275,7 +275,7 @@ const LoginPage = () => {
           const welcomeText = englishTranslations.login.welcomeText;
           return (
             <h1 
-              className={`text-[12px] sm:text-[14px] md:text-[18px] lg:text-[24px] xl:text-[36px] max-[1599px]:lg:text-[28px] xl:text-[50px] max-[1599px]:xl:text-[32px] font-normal mt-4 sm:mt-5 md:mt-6 lg:mt-6 max-[1599px]:lg:mt-5 xl:mt-10 max-[1599px]:xl:mt-6 min-[1600px]:xl:mt-10 pb-2.5 text-center w-full leading-tight whitespace-nowrap lg:whitespace-normal ${bgLoaded ? 'text-white-animate' : 'text-black'}`}
+              className={`text-[14px] sm:text-[16px] md:text-[20px] lg:text-[24px] xl:text-[36px] max-[1599px]:lg:text-[28px] xl:text-[50px] max-[1599px]:xl:text-[32px] font-normal mt-4 sm:mt-5 md:mt-6 lg:mt-6 max-[1599px]:lg:mt-5 xl:mt-10 max-[1599px]:xl:mt-6 min-[1600px]:xl:mt-10 pb-2.5 text-center w-full leading-tight whitespace-nowrap lg:whitespace-normal ${bgLoaded ? 'text-white-animate' : 'text-black'}`}
               style={getFontStyle(welcomeText)}
             >
               {welcomeText}

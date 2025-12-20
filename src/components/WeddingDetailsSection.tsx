@@ -92,7 +92,7 @@ const WeddingDetailsSection = ({ wedding, currentLanguage }: WeddingDetailsSecti
                 {/* Левая колонка */}
                 <div className='flex flex-col gap-4 sm:gap-5 md:gap-6'>
                   {/* 1 ряд: Локація */}
-                  <div className='flex flex-col items-start text-left'>
+                  <div className='flex flex-col items-center text-center'>
                     <p 
                       className='text-[12px] sm:text-[14px] md:text-[16px] text-[#00000080] font-forum font-light mb-1 sm:mb-1.5'
                     >
@@ -102,7 +102,7 @@ const WeddingDetailsSection = ({ wedding, currentLanguage }: WeddingDetailsSecti
                   </div>
                   
                   {/* 2 ряд: Країна */}
-                  <div className='flex flex-col items-start text-left'>
+                  <div className='flex flex-col items-center text-center'>
                     <p 
                       className='text-[12px] sm:text-[14px] md:text-[16px] text-[#00000080] font-forum font-light mb-1 sm:mb-1.5'
                     >
@@ -117,7 +117,7 @@ const WeddingDetailsSection = ({ wedding, currentLanguage }: WeddingDetailsSecti
                 {/* Правая колонка */}
                 <div className='flex flex-col gap-4 sm:gap-5 md:gap-6'>
                   {/* 1 ряд: Кількість гостей */}
-                  <div className='flex flex-col items-start text-left'>
+                  <div className='flex flex-col items-center text-center'>
                     <p 
                       className='text-[12px] sm:text-[14px] md:text-[16px] text-[#00000080] font-forum font-light mb-1 sm:mb-1.5'
                     >
@@ -127,7 +127,7 @@ const WeddingDetailsSection = ({ wedding, currentLanguage }: WeddingDetailsSecti
                   </div>
                   
                   {/* 2 ряд: Дни до свадьбы */}
-                  <div className='flex flex-col items-start text-left'>
+                  <div className='flex flex-col items-center text-center'>
                     <p className='text-[16px] sm:text-[18px] md:text-[20px] font-forum font-bold leading-tight mb-1 sm:mb-1.5'>
                       {calculateDaysUntilWedding(wedding.wedding_date)} {t.dashboard.days}
                     </p>

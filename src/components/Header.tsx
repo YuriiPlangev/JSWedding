@@ -132,11 +132,11 @@ const Header = ({ onLogout, currentLanguage, onLanguageChange, chatLink, wedding
       <div className="px-3 sm:px-4 md:px-8 lg:px-12 xl:px-[60px]">
         <div className="flex justify-between items-stretch">
           {/* Left side - Logo and text */}
-          <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
+          <div className="flex items-center gap-2 sm:gap-3 md:gap-4 lg:gap-2 pl-2 sm:pl-3 md:pl-4 lg:pl-0 pr-2 sm:pr-3 md:pr-4 lg:pr-0 py-2 sm:py-2.5 md:py-3 lg:py-0">
             <img 
               src={logo} 
               alt="logo" 
-              className="h-8 sm:h-9 md:h-10 lg:h-12 max-[1599px]:lg:h-11 min-[1600px]:lg:h-14 w-auto"
+              className="h-12 sm:h-[52px] md:h-14 lg:h-12 max-[1599px]:lg:h-11 min-[1600px]:lg:h-14 w-auto"
               style={{ display: 'block' }}
             />
           </div>
@@ -152,7 +152,7 @@ const Header = ({ onLogout, currentLanguage, onLanguageChange, chatLink, wedding
                     onClick={handleToggleNotes}
                     className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-4 lg:px-6 max-[1599px]:md:px-5 min-[1600px]:md:px-6 lg:px-5 max-[1599px]:lg:px-5 min-[1600px]:lg:px-7.5 py-3 sm:py-4 md:py-6 max-[1599px]:md:py-5 min-[1600px]:md:py-6 lg:py-5 max-[1599px]:lg:py-5 min-[1600px]:lg:py-7.5 cursor-pointer border-l border-[#00000033] h-full"
                   >
-                    <img src={notesIcon} alt="notes" className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 max-[1599px]:md:h-5 min-[1600px]:md:h-6 lg:h-5 max-[1599px]:lg:h-5 min-[1600px]:lg:h-6 w-auto" />
+                    <img src={notesIcon} alt="notes" className="h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7 lg:h-5 max-[1599px]:lg:h-5 min-[1600px]:lg:h-6 w-auto" />
                     <span 
                       className="hidden md:inline font-forum text-[16px] sm:text-[18px] md:text-[20px] lg:text-[24px] max-[1599px]:text-[20px] lg:max-[1599px]:text-[18px] min-[1300px]:max-[1599px]:text-[22px] min-[1600px]:text-[24px] font-light text-[#00000080]"
                       style={getFontStyle(notesText)}
@@ -170,7 +170,7 @@ const Header = ({ onLogout, currentLanguage, onLanguageChange, chatLink, wedding
                         onClick={handleCloseNotes}
                       />
                       <div 
-                        className="absolute left-0 top-full mt-0 w-[90vw] sm:w-[400px] max-w-[90vw] bg-[#eae6db] border border-[#00000033] border-t-0 shadow-lg z-50"
+                        className="fixed lg:absolute left-1/2 lg:left-0 top-[60px] sm:top-[70px] md:top-[80px] lg:top-full -translate-x-1/2 lg:translate-x-0 mt-0 w-[90vw] sm:w-[400px] max-w-[90vw] bg-[#eae6db] border border-[#00000033] lg:border-t-0 shadow-lg z-50"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <div className="p-4">
@@ -209,7 +209,7 @@ const Header = ({ onLogout, currentLanguage, onLanguageChange, chatLink, wedding
                     rel="noopener noreferrer"
                     className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-4 lg:px-6 max-[1599px]:md:px-5 min-[1600px]:md:px-6 lg:px-5 max-[1599px]:lg:px-5 min-[1600px]:lg:px-7.5 py-3 sm:py-4 md:py-6 max-[1599px]:md:py-5 min-[1600px]:md:py-6 lg:py-5 max-[1599px]:lg:py-5 min-[1600px]:lg:py-7.5 cursor-pointer border-x border-[#00000033] h-full"
                   >
-                    <img src={contactIcon} alt="contact" className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 max-[1599px]:md:h-5 min-[1600px]:md:h-6 lg:h-5 max-[1599px]:lg:h-5 min-[1600px]:lg:h-6 w-auto" />
+                    <img src={contactIcon} alt="contact" className="h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7 lg:h-5 max-[1599px]:lg:h-5 min-[1600px]:lg:h-6 w-auto" />
                     <span 
                       className="hidden md:inline font-forum text-[16px] sm:text-[18px] md:text-[20px] lg:text-[24px] max-[1599px]:text-[20px] lg:max-[1599px]:text-[18px] min-[1300px]:max-[1599px]:text-[22px] min-[1600px]:text-[24px] font-light text-[#00000080]"
                       style={getFontStyle(contactText)}
@@ -221,7 +221,7 @@ const Header = ({ onLogout, currentLanguage, onLanguageChange, chatLink, wedding
               }
               return (
                 <button className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-4 lg:px-6 max-[1599px]:md:px-5 min-[1600px]:md:px-6 lg:px-5 max-[1599px]:lg:px-5 min-[1600px]:lg:px-7.5 py-3 sm:py-4 md:py-6 max-[1599px]:md:py-5 min-[1600px]:md:py-6 lg:py-5 max-[1599px]:lg:py-5 min-[1600px]:lg:py-7.5 cursor-pointer border-x border-[#00000033] h-full">
-                  <img src={contactIcon} alt="contact" className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 max-[1599px]:md:h-5 min-[1600px]:md:h-6 lg:h-5 max-[1599px]:lg:h-5 min-[1600px]:lg:h-6 w-auto" />
+                  <img src={contactIcon} alt="contact" className="h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7 lg:h-4 max-[1599px]:lg:h-4 min-[1600px]:lg:h-4 w-auto" />
                   <span 
                     className="hidden md:inline font-forum text-[16px] sm:text-[18px] md:text-[20px] lg:text-[24px] max-[1599px]:text-[20px] lg:max-[1599px]:text-[18px] min-[1300px]:max-[1599px]:text-[22px] min-[1600px]:text-[24px] font-light text-[#00000080]"
                     style={getFontStyle(contactText)}
