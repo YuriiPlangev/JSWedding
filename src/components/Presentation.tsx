@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { Presentation as PresentationType } from '../types';
 import { getTranslation } from '../utils/translations';
 
@@ -31,6 +31,8 @@ interface PresentationProps {
 const Presentation = ({ presentation, currentLanguage = 'ua' }: PresentationProps) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
+  const tabsContainerRef = useRef<HTMLDivElement>(null);
+  const tabRefs = useRef<{ [key: number]: HTMLButtonElement | null }>({});
   const translations = getTranslation(currentLanguage);
 
   // Определяем размер экрана
@@ -83,6 +85,77 @@ const Presentation = ({ presentation, currentLanguage = 'ua' }: PresentationProp
   const handleMenuClick = (slideIndex: number) => {
     setActiveIndex(slideIndex);
   };
+
+  // Автоматическая прокрутка к активному табу при изменении activeIndex
+  useEffect(() => {
+    if (!isMobile || !tabsContainerRef.current) return;
+    
+    // Используем requestAnimationFrame для немедленного запуска без задержки
+    requestAnimationFrame(() => {
+      const activeSection = menuSections.find(s => s.slideIndex === activeIndex);
+      if (activeSection && tabRefs.current[activeSection.id] && tabsContainerRef.current) {
+        const tabElement = tabRefs.current[activeSection.id];
+        const container = tabsContainerRef.current;
+        
+        if (tabElement) {
+          // Получаем позиции относительно контейнера
+          const containerRect = container.getBoundingClientRect();
+          const tabRect = tabElement.getBoundingClientRect();
+          
+          // Вычисляем, насколько таб выходит за границы контейнера
+          const tabLeft = tabRect.left - containerRect.left + container.scrollLeft;
+          const tabRight = tabLeft + tabElement.offsetWidth;
+          const containerScrollLeft = container.scrollLeft;
+          const containerWidth = container.clientWidth;
+          const containerScrollRight = containerScrollLeft + containerWidth;
+          
+          // Плавная прокрутка с использованием requestAnimationFrame для более плавной анимации
+          const startScroll = container.scrollLeft;
+          let targetScroll: number;
+          
+          // Если таб слева от видимой области - прокручиваем влево
+          if (tabLeft < containerScrollLeft) {
+            targetScroll = tabLeft - 8; // небольшой отступ
+          }
+          // Если таб справа от видимой области - прокручиваем вправо
+          else if (tabRight > containerScrollRight) {
+            targetScroll = tabRight - containerWidth + 8; // небольшой отступ
+          }
+          // Если таб в видимой области, но не по центру - центрируем
+          else {
+            const tabCenter = tabLeft + tabElement.offsetWidth / 2;
+            const containerCenter = containerScrollLeft + containerWidth / 2;
+            targetScroll = containerScrollLeft + (tabCenter - containerCenter);
+          }
+          
+          targetScroll = Math.max(0, Math.min(targetScroll, container.scrollWidth - containerWidth));
+          
+          // Плавная анимация прокрутки с ease-in-out для эффекта "скольжения"
+          const duration = 400;
+          const startTime = performance.now();
+          
+          const animateScroll = (currentTime: number) => {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            // Используем ease-in-out для плавного "скольжения"
+            const easeInOut = progress < 0.5
+              ? 2 * progress * progress
+              : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+            
+            const currentScroll = startScroll + (targetScroll - startScroll) * easeInOut;
+            container.scrollLeft = currentScroll;
+            
+            if (progress < 1) {
+              requestAnimationFrame(animateScroll);
+            }
+          };
+          
+          requestAnimationFrame(animateScroll);
+        }
+      }
+    });
+  }, [activeIndex, isMobile]);
 
   const handlePrev = () => {
     setActiveIndex((prev) => (prev > 0 ? prev - 1 : prev));
@@ -224,11 +297,21 @@ const Presentation = ({ presentation, currentLanguage = 'ua' }: PresentationProp
 
           {/* Табы навигации по секциям - Вариант 4: Табы внизу (только на мобильных) */}
           {isMobile && (
-            <div className="border-t border-[#00000033] bg-[#eae6db] overflow-x-auto">
+            <div 
+              ref={tabsContainerRef}
+              className="border-t border-[#00000033] bg-[#eae6db] overflow-x-auto"
+              style={{ 
+                scrollBehavior: 'smooth',
+                scrollPaddingInline: '8px'
+              }}
+            >
               <div className="flex gap-1 sm:gap-2 px-2 sm:px-3 md:px-4 py-2 sm:py-2.5 md:py-3">
                 {menuSections.map((section) => (
                   <button
                     key={section.id}
+                    ref={(el) => {
+                      tabRefs.current[section.id] = el;
+                    }}
                     onClick={() => handleMenuClick(section.slideIndex)}
                     className={`px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 rounded-lg font-forum font-light text-[11px] sm:text-[12px] md:text-[13px] transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                       activeIndex === section.slideIndex
