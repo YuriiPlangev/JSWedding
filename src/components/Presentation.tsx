@@ -30,7 +30,6 @@ interface PresentationProps {
 
 const Presentation = ({ presentation, currentLanguage = 'ua' }: PresentationProps) => {
   const [activeIndex, setActiveIndex] = useState(0);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const translations = getTranslation(currentLanguage);
 
@@ -38,9 +37,6 @@ const Presentation = ({ presentation, currentLanguage = 'ua' }: PresentationProp
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 1024);
-      if (window.innerWidth >= 1024) {
-        setIsMenuOpen(true); // На десктопе меню всегда открыто
-      }
     };
     
     checkMobile();
