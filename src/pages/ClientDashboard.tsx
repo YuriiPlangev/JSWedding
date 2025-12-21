@@ -11,6 +11,7 @@ import WelcomeSection from '../components/WelcomeSection';
 import WeddingDetailsSection from '../components/WeddingDetailsSection';
 import { getTranslation } from '../utils/translations';
 import { getInitialLanguage } from '../utils/languageUtils';
+import scrollDown from '../assets/scroll-down.svg';
 
 const ClientDashboard = () => {
   const { user, logout } = useAuth();
@@ -364,21 +365,46 @@ const ClientDashboard = () => {
           }}
         />
         <main className="flex-1 flex flex-col font-forum min-h-0 mb-4">
-          {/* Приветствие */}
-          <WelcomeSection wedding={wedding} currentLanguage={currentLanguage} />
-
-          {/* Ошибка */}
-          {error && (
-            <div className="mb-8 bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-red-800 font-forum">{error}</p>
+          {/* Мобильная версия: Приветствие и детали свадьбы на всю высоту экрана, по центру */}
+          <div className="lg:hidden min-h-[calc(100vh-60px)] sm:min-h-[calc(100vh-70px)] md:min-h-[calc(100vh-80px)] flex flex-col">
+            <div>
+              <WelcomeSection wedding={wedding} currentLanguage={currentLanguage} />
+              {error && (
+                <div className="mb-8 bg-red-50 border border-red-200 rounded-lg p-4">
+                  <p className="text-red-800 font-forum">{error}</p>
+                </div>
+              )}
             </div>
-          )}
+            <div className="flex-1 flex flex-col">
+              {wedding && (
+                <WeddingDetailsSection wedding={wedding} currentLanguage={currentLanguage} />
+              )}
+              {/* Scroll down indicator - только на мобильной версии, по центру оставшегося пространства */}
+              <div className="flex-1 flex flex-col items-center justify-center lg:hidden">
+                <div className="flex flex-col items-center">
+                  <img src={scrollDown} alt="scrollDown" className='brightness-0 w-8 h-8 md:w-10 md:h-10 animate-pulse-opacity' />
+                  <p className='mt-2 text-black font-gilroy text-sm md:text-base'>{getTranslation(currentLanguage).welcome.scrollDown}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Десктопная версия: Приветствие и детали свадьбы как обычно */}
+          <div className="hidden lg:block">
+            <WelcomeSection wedding={wedding} currentLanguage={currentLanguage} />
+            {error && (
+              <div className="mb-8 bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-red-800 font-forum">{error}</p>
+              </div>
+            )}
+            {wedding && (
+              <WeddingDetailsSection wedding={wedding} currentLanguage={currentLanguage} />
+            )}
+          </div>
 
           {wedding && (
             <>
-              {/* Основная информация о свадьбе */}
-              <WeddingDetailsSection wedding={wedding} currentLanguage={currentLanguage} />
-
+              {/* Задания - начинаются с новой страницы на мобильной версии */}
               <div className="flex flex-col lg:flex-row border-b border-[#00000033] flex-1 min-h-0">
                 {/* Задания */}
                 <div className='border-r-0 lg:border-r border-b lg:border-b-0 border-[#00000033] lg:min-w-3/7 pl-4 md:pl-8 lg:pl-12 xl:pl-[60px] self-stretch overflow-hidden flex flex-col'>

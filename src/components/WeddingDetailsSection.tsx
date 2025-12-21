@@ -58,7 +58,7 @@ const WeddingDetailsSection = ({ wedding, currentLanguage }: WeddingDetailsSecti
 
   return (
     <div className='border-b border-[#00000033] flex flex-col lg:flex-row pl-0 sm:pl-0 md:pl-8 lg:pl-12 xl:pl-[60px] shrink-0'>
-      <div className='border-r-0 lg:border-r border-[#00000033] border-b lg:border-b-0 py-4 sm:py-4 md:py-3 lg:max-[1599px]:py-2 min-[1300px]:max-[1599px]:py-3 min-[1600px]:py-4 px-3 sm:px-4 pr-3 sm:pr-4 max-[1599px]:pr-4 md:max-[1599px]:pr-6 lg:max-[1599px]:pr-8 min-[1300px]:max-[1599px]:pr-10'>
+      <div className='border-r-0 lg:border-r border-[#00000033] border-b lg:border-b-0 py-8 sm:py-10 md:py-12 max-[1599px]:py-8 md:max-[1599px]:py-10 lg:max-[1599px]:py-2 min-[1300px]:max-[1599px]:py-3 min-[1600px]:py-4 px-3 sm:px-4 pr-3 sm:pr-4 max-[1599px]:pr-4 md:max-[1599px]:pr-6 lg:max-[1599px]:pr-8 min-[1300px]:max-[1599px]:pr-10'>
         <h2 
           className='text-[26px] sm:text-[30px] md:text-[34px] lg:text-[48px] max-[1599px]:text-[34px] lg:max-[1599px]:text-[30px] min-[1300px]:max-[1599px]:text-[36px] font-forum leading-tight text-center lg:text-left'
         >
@@ -71,12 +71,12 @@ const WeddingDetailsSection = ({ wedding, currentLanguage }: WeddingDetailsSecti
         </p>
       </div>
       <div className='flex items-start flex-1'>
-        <div className='w-full pl-0 pr-1 sm:pr-2 md:pl-8 md:pr-8 lg:px-8 xl:px-[60px] py-4 sm:py-5 md:py-6 max-[1599px]:py-4 lg:max-[1599px]:py-3 min-[1300px]:max-[1599px]:py-4'>
-          {/* Мобильная версия: Дата по центру сверху, потом 2 колонки в 2 ряда */}
+        <div className='w-full pl-0 pr-1 sm:pr-2 md:pl-8 md:pr-8 lg:px-8 xl:px-[60px] pt-0 pb-4 sm:pt-0 sm:pb-5 md:py-6 max-[1599px]:py-4 lg:max-[1599px]:py-3 min-[1300px]:max-[1599px]:py-4'>
+          {/* Мобильная версия: Все элементы в одну колонку */}
           <div className='lg:hidden'>
             <div className='w-full'>
-              {/* Дата свадьбы - по центру сверху */}
-              <div className='flex justify-center mb-4 sm:mb-5 md:mb-6'>
+              <div className='flex flex-col items-center gap-4 sm:gap-5 md:gap-6'>
+                {/* Дата свадьбы */}
                 <div className='flex flex-col items-center text-center'>
                   <p 
                     className='text-[12px] sm:text-[14px] md:text-[16px] text-[#00000080] font-forum font-light mb-1 sm:mb-1.5'
@@ -85,58 +85,49 @@ const WeddingDetailsSection = ({ wedding, currentLanguage }: WeddingDetailsSecti
                   </p>
                   <p className='text-[16px] sm:text-[18px] md:text-[20px] font-forum font-bold leading-tight'>{formatDate(wedding.wedding_date)}</p>
                 </div>
-              </div>
-              
-              {/* Две колонки с максимальным расстоянием */}
-              <div className='flex justify-around gap-y-4 sm:gap-y-5 md:gap-y-6 -ml-9 sm:-ml-10'>
-                {/* Левая колонка */}
-                <div className='flex flex-col gap-4 sm:gap-5 md:gap-6'>
-                  {/* 1 ряд: Локація */}
-                  <div className='flex flex-col items-center text-center'>
-                    <p 
-                      className='text-[12px] sm:text-[14px] md:text-[16px] text-[#00000080] font-forum font-light mb-1 sm:mb-1.5'
-                    >
-                      {t.dashboard.celebrationPlace}
-                    </p>
-                    <p className='text-[16px] sm:text-[18px] md:text-[20px] font-forum font-bold leading-tight break-words'>{wedding.venue}</p>
-                  </div>
-                  
-                  {/* 2 ряд: Країна */}
-                  <div className='flex flex-col items-center text-center'>
-                    <p 
-                      className='text-[12px] sm:text-[14px] md:text-[16px] text-[#00000080] font-forum font-light mb-1 sm:mb-1.5'
-                    >
-                      {t.dashboard.venue}
-                    </p>
-                    <p className='text-[16px] sm:text-[18px] md:text-[20px] font-forum font-bold leading-tight break-words'>
-                      {getCountryDisplay()}
-                    </p>
-                  </div>
+                
+                {/* Локация */}
+                <div className='flex flex-col items-center text-center'>
+                  <p 
+                    className='text-[12px] sm:text-[14px] md:text-[16px] text-[#00000080] font-forum font-light mb-1 sm:mb-1.5'
+                  >
+                    {t.dashboard.celebrationPlace}
+                  </p>
+                  <p className='text-[16px] sm:text-[18px] md:text-[20px] font-forum font-bold leading-tight break-words'>{wedding.venue}</p>
                 </div>
                 
-                {/* Правая колонка */}
-                <div className='flex flex-col gap-4 sm:gap-5 md:gap-6'>
-                  {/* 1 ряд: Кількість гостей */}
-                  <div className='flex flex-col items-center text-center'>
-                    <p 
-                      className='text-[12px] sm:text-[14px] md:text-[16px] text-[#00000080] font-forum font-light mb-1 sm:mb-1.5'
-                    >
-                      {t.dashboard.numberOfGuests}
-                    </p>
-                    <p className='text-[16px] sm:text-[18px] md:text-[20px] font-forum font-bold leading-tight'>{wedding.guest_count}</p>
-                  </div>
-                  
-                  {/* 2 ряд: Дни до свадьбы */}
-                  <div className='flex flex-col items-center text-center'>
-                    <p className='text-[16px] sm:text-[18px] md:text-[20px] font-forum font-bold leading-tight mb-1 sm:mb-1.5'>
-                      {calculateDaysUntilWedding(wedding.wedding_date)} {t.dashboard.days}
-                    </p>
-                    <p 
-                      className='text-[12px] sm:text-[14px] md:text-[16px] font-forum font-light text-[#00000080] leading-tight'
-                    >
-                      {t.dashboard.daysTillCelebration}
-                    </p>
-                  </div>
+                {/* Страна */}
+                <div className='flex flex-col items-center text-center'>
+                  <p 
+                    className='text-[12px] sm:text-[14px] md:text-[16px] text-[#00000080] font-forum font-light mb-1 sm:mb-1.5'
+                  >
+                    {t.dashboard.venue}
+                  </p>
+                  <p className='text-[16px] sm:text-[18px] md:text-[20px] font-forum font-bold leading-tight break-words'>
+                    {getCountryDisplay()}
+                  </p>
+                </div>
+                
+                {/* Количество гостей */}
+                <div className='flex flex-col items-center text-center'>
+                  <p 
+                    className='text-[12px] sm:text-[14px] md:text-[16px] text-[#00000080] font-forum font-light mb-1 sm:mb-1.5'
+                  >
+                    {t.dashboard.numberOfGuests}
+                  </p>
+                  <p className='text-[16px] sm:text-[18px] md:text-[20px] font-forum font-bold leading-tight'>{wedding.guest_count}</p>
+                </div>
+                
+                {/* Дни до свадьбы */}
+                <div className='flex flex-col items-center text-center'>
+                  <p className='text-[16px] sm:text-[18px] md:text-[20px] font-forum font-bold leading-tight mb-1 sm:mb-1.5'>
+                    {calculateDaysUntilWedding(wedding.wedding_date)} {t.dashboard.days}
+                  </p>
+                  <p 
+                    className='text-[12px] sm:text-[14px] md:text-[16px] font-forum font-light text-[#00000080] leading-tight'
+                  >
+                    {t.dashboard.daysTillCelebration}
+                  </p>
                 </div>
               </div>
             </div>
