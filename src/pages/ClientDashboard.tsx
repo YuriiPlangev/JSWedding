@@ -348,7 +348,7 @@ const ClientDashboard = () => {
 
       {/* Основной контент - вторая секция */}
       {wedding && !loading && (
-      <div className="relative min-h-screen flex flex-col overflow-x-hidden">
+      <div className="relative min-h-screen lg:h-screen flex flex-col overflow-x-hidden lg:overflow-y-auto">
         {/* Header внутри контента - появляется вместе с ним */}
         <Header
           onLogout={logout}
