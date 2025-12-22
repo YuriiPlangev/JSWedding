@@ -71,7 +71,7 @@ const WeddingDetailsSection = ({ wedding, currentLanguage }: WeddingDetailsSecti
         </p>
       </div>
       <div className='flex items-start lg:items-center flex-1'>
-        <div className='w-full pl-0 pr-1 sm:pr-2 md:pl-8 md:pr-8 lg:px-8 xl:px-[60px] py-8 sm:py-10 md:py-8 md:max-lg:py-6 lg:py-2 max-[1599px]:lg:py-2 min-[1300px]:max-[1599px]:lg:py-3 min-[1600px]:lg:py-4'>
+        <div className='w-full pl-0 pr-1 sm:pr-2 md:pl-8 md:pr-8 md:max-lg:pl-0 md:max-lg:pr-0 md:max-lg:flex md:max-lg:justify-center lg:px-8 xl:px-[60px] py-8 sm:py-10 md:py-8 md:max-lg:py-6 lg:py-2 max-[1599px]:lg:py-2 min-[1300px]:max-[1599px]:lg:py-3 min-[1600px]:lg:py-4'>
           {/* Мобильная версия: Все элементы в одну колонку */}
           <div className='lg:hidden'>
             <div className='w-full'>
@@ -134,8 +134,8 @@ const WeddingDetailsSection = ({ wedding, currentLanguage }: WeddingDetailsSecti
           </div>
 
           {/* Десктопная версия: как было раньше - 4 элемента в ряд */}
-          <div className='hidden lg:block'>
-            <ul className='grid grid-cols-5 gap-x-4 sm:gap-x-6 md:gap-x-6 md:max-lg:gap-x-4 lg:gap-x-8 gap-y-4 sm:gap-y-5 md:gap-y-4 md:max-lg:gap-y-3 lg:gap-y-6'>
+          <div className='hidden lg:block md:max-lg:flex md:max-lg:justify-center'>
+            <ul className='grid grid-cols-5 gap-x-4 sm:gap-x-6 md:gap-x-6 md:max-lg:gap-x-4 lg:gap-x-8 gap-y-4 sm:gap-y-5 md:gap-y-4 md:max-lg:gap-y-3 lg:gap-y-6 md:max-lg:mx-auto'>
               <li className='flex flex-col justify-start items-center text-center'>
                 <p 
                   className='text-[12px] sm:text-[14px] md:text-[13px] md:max-lg:text-[11px] lg:text-[16px] max-[1599px]:text-[14px] lg:max-[1599px]:text-[13px] min-[1300px]:max-[1599px]:text-[14px] text-[#00000080] font-forum font-light mb-1 sm:mb-1.5'
