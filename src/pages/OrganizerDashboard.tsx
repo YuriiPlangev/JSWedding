@@ -337,36 +337,11 @@ const OrganizerDashboard = () => {
       }
     };
 
-    const handleDeleteTask = async (taskId: string) => {
-      if (!confirm('Вы уверены, что хотите удалить это задание?')) {
-        return;
-      }
-
-      try {
-        const success = await taskService.deleteOrganizerTask(taskId);
-        if (success) {
-          await loadOrganizerTasks();
-        } else {
-          setError('Не удалось удалить задание');
-        }
-      } catch (err) {
-        console.error('Error deleting task:', err);
-        setError('Ошибка при удалении задания');
-      }
-    };
-
     const getTaskTitle = (task: Task) => {
       if (currentLanguage === 'en' && task.title_en) return task.title_en;
       if (currentLanguage === 'ua' && task.title_ua) return task.title_ua;
       if (currentLanguage === 'ru' && task.title_ru) return task.title_ru;
       return task.title;
-    };
-
-    const getTaskLinkText = (task: Task) => {
-      if (currentLanguage === 'ua' && task.link_text_ua) return task.link_text_ua;
-      if (currentLanguage === 'ru' && task.link_text_ru) return task.link_text_ru;
-      if (currentLanguage === 'en' && task.link_text_en) return task.link_text_en;
-      return task.link_text;
     };
 
     if (loadingTasks) {
@@ -1186,6 +1161,8 @@ const OrganizerDashboard = () => {
       // Подготавливаем данные для сохранения
       const taskToSave: Omit<Task, 'id' | 'created_at' | 'updated_at'> = {
         wedding_id: selectedWedding.id,
+        organizer_id: null, // Для заданий свадьбы organizer_id будет null
+        task_group_id: null, // Для заданий свадьбы task_group_id будет null
         title: taskData.title.trim(),
         status: taskData.status,
         ...(taskData.title_en?.trim() && { title_en: taskData.title_en.trim() }),
@@ -1564,12 +1541,13 @@ const OrganizerDashboard = () => {
     }
   };
 
-  const stats = {
-    totalWeddings: weddings.length,
-    totalClients: clients.length,
-    totalTasks: selectedWedding?.tasks?.length || 0,
-    completedTasks: selectedWedding?.tasks?.filter(t => t.status === 'completed').length || 0,
-  };
+  // Статистика (можно использовать в будущем)
+  // const stats = {
+  //   totalWeddings: weddings.length,
+  //   totalClients: clients.length,
+  //   totalTasks: selectedWedding?.tasks?.length || 0,
+  //   completedTasks: selectedWedding?.tasks?.filter(t => t.status === 'completed').length || 0,
+  // };
 
   if (loading && weddings.length === 0) {
     return (

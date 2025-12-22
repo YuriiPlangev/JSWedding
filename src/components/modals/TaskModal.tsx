@@ -43,9 +43,12 @@ const TaskModal = ({ task, onClose, onSave }: TaskModalProps) => {
     
     // Подготавливаем данные, убирая пустые опциональные поля
     // wedding_id не включаем - он будет добавлен в родительском компоненте (для заданий свадеб) или будет null (для заданий организатора)
+    // organizer_id и task_group_id также не включаем - они будут установлены в родительском компоненте
     const taskData: Omit<Task, 'id' | 'created_at' | 'updated_at' | 'wedding_id'> = {
       title: mainTitle,
       status: formData.status,
+      organizer_id: null, // Для заданий свадьбы organizer_id будет null
+      task_group_id: null, // Для заданий свадьбы task_group_id будет null
       ...(formData.title_en?.trim() && { title_en: formData.title_en.trim() }),
       ...(formData.title_ru?.trim() && { title_ru: formData.title_ru.trim() }),
       ...(formData.title_ua?.trim() && { title_ua: formData.title_ua.trim() }),

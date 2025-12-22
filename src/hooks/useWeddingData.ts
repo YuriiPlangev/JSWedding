@@ -1,6 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { weddingService, taskService, documentService } from '../services/weddingService';
-import type { Wedding, Task, Document } from '../types';
 
 // Хук для загрузки данных свадьбы клиента
 export const useClientWedding = (clientId: string | undefined) => {
