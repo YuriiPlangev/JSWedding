@@ -1,5 +1,3 @@
 // Экспорт кастомных хуков
-// Пример:
-// export { useLocalStorage } from './useLocalStorage';
-// export { useDebounce } from './useDebounce';
+export { useClientWedding, useWeddingTasks, useWeddingDocuments, usePrefetchWeddingData } from './useWeddingData';
 

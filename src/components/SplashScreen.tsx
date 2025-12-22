@@ -48,13 +48,25 @@ const SplashScreen = ({ wedding, savedCoupleNames, showSplash, splashRemoved, on
         ) : (
           <>
             {/* Имена пары - показываем сохраненные имена сразу, чтобы избежать "прыжка" */}
-            {(wedding || savedCoupleNames) && (
-              <h1 
-                className="text-[36px] sm:text-[54px] md:text-[72px] lg:text-[58px] max-[1599px]:lg:text-[58px] min-[1600px]:lg:text-[90px] xl:text-[90px] max-[1599px]:xl:text-[76px] min-[1600px]:xl:text-[117px] font-sloop text-black px-4 leading-[1.1]"
-              >
-                {(wedding?.couple_name_1_en || savedCoupleNames?.name1 || '')} <span className='font-sloop'> & </span>  {(wedding?.couple_name_2_en || savedCoupleNames?.name2 || '')} 
-              </h1>
-            )}
+            {(() => {
+              const name1 = wedding?.couple_name_1_en || savedCoupleNames?.name1 || '';
+              const name2 = wedding?.couple_name_2_en || savedCoupleNames?.name2 || '';
+              const hasName1 = name1.trim() !== '';
+              const hasName2 = name2.trim() !== '';
+              const hasBothNames = hasName1 && hasName2;
+              
+              if (!hasName1 && !hasName2) {
+                return null;
+              }
+              
+              return (
+                <h1 
+                  className="text-[36px] sm:text-[54px] md:text-[72px] lg:text-[58px] max-[1599px]:lg:text-[58px] min-[1600px]:lg:text-[90px] xl:text-[90px] max-[1599px]:xl:text-[76px] min-[1600px]:xl:text-[117px] font-sloop text-black px-4 leading-[1.1]"
+                >
+                  {hasName1 && name1}{hasBothNames && <span className='font-sloop'> & </span>}{hasName2 && name2}
+                </h1>
+              );
+            })()}
             {/* Приветственный текст */}
             <p 
               className="text-[18px] sm:text-[23px] md:text-[28px] lg:text-[23px] max-[1599px]:lg:text-[23px] min-[1600px]:lg:text-[36px] xl:text-[38px] max-[1599px]:xl:text-[30px] min-[1600px]:xl:text-[47px] text-black px-4 leading-[1.2] mt-6 md:mt-8 lg:mt-6 xl:mt-8 font-branch"

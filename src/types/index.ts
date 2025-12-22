@@ -14,6 +14,7 @@ export interface Wedding {
   id: string;
   client_id: string; // ID клиента из auth.users
   organizer_id: string; // ID организатора из auth.users
+  project_name?: string; // Название проекта (только для организатора)
   couple_name_1_en: string; // Имя первого партнера на английском
   couple_name_1_ru: string; // Имя первого партнера на русском
   couple_name_2_en: string; // Имя второго партнера на английском
@@ -46,10 +47,22 @@ export interface WeddingEvent {
   guestCount: number;
 }
 
+// Типы для блоков заданий организатора
+export interface TaskGroup {
+  id: string;
+  organizer_id: string; // ID организатора
+  name: string; // Название блока (только на русском)
+  color?: string; // Цвет блока (hex код)
+  created_at: string;
+  updated_at: string;
+}
+
 // Типы для заданий
 export interface Task {
   id: string;
-  wedding_id: string; // ID свадьбы
+  wedding_id: string | null; // ID свадьбы (null для заданий организатора)
+  organizer_id: string | null; // ID организатора (для внутренних заданий)
+  task_group_id: string | null; // ID блока заданий (для заданий организатора)
   title: string; // Название задания (для обратной совместимости)
   title_en?: string; // Название задания на английском
   title_ru?: string; // Название задания на русском

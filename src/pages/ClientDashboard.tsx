@@ -1,7 +1,9 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
-import { weddingService, taskService, documentService } from '../services/weddingService';
-import type { Wedding, Task, Document } from '../types';
+import { taskService } from '../services/weddingService';
+import type { Task } from '../types';
+import { useClientWedding, useWeddingTasks, useWeddingDocuments } from '../hooks';
 import Header from '../components/Header';
 import TasksList from '../components/TasksList';
 import DocumentsList from '../components/DocumentsList';
@@ -15,11 +17,15 @@ import scrollDown from '../assets/scroll-down.svg';
 
 const ClientDashboard = () => {
   const { user, logout } = useAuth();
-  const [wedding, setWedding] = useState<Wedding | null>(null);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [documents, setDocuments] = useState<Document[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  
+  // Используем React Query для загрузки данных
+  const { data: wedding, isLoading: weddingLoading, error: weddingError } = useClientWedding(user?.id);
+  const { data: tasks = [] } = useWeddingTasks(wedding?.id);
+  const { data: documents = [] } = useWeddingDocuments(wedding?.id);
+  
+  const error = weddingError ? 'Ошибка при загрузке данных. Попробуйте обновить страницу.' : null;
+  
   // Загружаем язык из localStorage при инициализации
   const [currentLanguage, setCurrentLanguage] = useState<'en' | 'ru' | 'ua'>(getInitialLanguage());
   
@@ -32,8 +38,6 @@ const ClientDashboard = () => {
   const [showSplash, setShowSplash] = useState(true);
   const [splashRemoved, setSplashRemoved] = useState(false);
   const splashRef = useRef<HTMLDivElement>(null);
-  const dataLoadedRef = useRef<string | null>(null); // Отслеживаем, для какого user уже загружены данные
-  const isLoadingRef = useRef(false); // Предотвращаем параллельные загрузки
 
   // Сохраняем имена пары для предотвращения "прыжка" при загрузке
   const getSavedCoupleNames = (): { name1: string; name2: string } | null => {
@@ -41,8 +45,11 @@ const ClientDashboard = () => {
       const saved = localStorage.getItem('couple_names');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed.name1 && parsed.name2) {
-          return parsed;
+        // Проверяем, что есть хотя бы одно непустое имя (после trim)
+        const name1 = (parsed.name1 || '').trim();
+        const name2 = (parsed.name2 || '').trim();
+        if (name1 || name2) {
+          return { name1, name2 };
         }
       }
     } catch (error) {
@@ -51,7 +58,27 @@ const ClientDashboard = () => {
     return null;
   };
 
-  const [savedCoupleNames, setSavedCoupleNames] = useState<{ name1: string; name2: string } | null>(getSavedCoupleNames());
+  // Вычисляем сохраненные имена из localStorage или из загруженных данных
+  const savedCoupleNames = useMemo(() => {
+    // Сначала проверяем localStorage
+    const saved = getSavedCoupleNames();
+    if (saved) return saved;
+    
+    // Если есть загруженные данные, используем их и сохраняем в localStorage
+    if (wedding) {
+      const coupleNames = {
+        name1: (wedding.couple_name_1_en || '').trim(),
+        name2: (wedding.couple_name_2_en || '').trim(),
+      };
+      // Сохраняем только если есть хотя бы одно имя
+      if (coupleNames.name1 || coupleNames.name2) {
+        localStorage.setItem('couple_names', JSON.stringify(coupleNames));
+        return coupleNames;
+      }
+    }
+    
+    return null;
+  }, [wedding]);
 
   // Скрытие заглушки при прокрутке
   useEffect(() => {
@@ -214,77 +241,13 @@ const ClientDashboard = () => {
   }, []);
 
 
-  const loadWeddingData = useCallback(async (forceRefresh: boolean = false) => {
-    if (!user?.id) return;
-    
-    // Если данные уже загружены для этого user и не требуется принудительное обновление, пропускаем
-    if (!forceRefresh && dataLoadedRef.current === user.id && wedding) {
-      return;
-    }
-    
-    // Предотвращаем параллельные загрузки
-    if (isLoadingRef.current) {
-      return;
-    }
-
-    isLoadingRef.current = true;
-    
-    // Устанавливаем loading только если данных еще нет
-    if (!wedding) {
-      setLoading(true);
-    }
-    setError(null);
-
-    try {
-      // Загружаем свадьбу клиента (используем кеш, если не принудительное обновление)
-      const weddingData = await weddingService.getClientWedding(user.id, !forceRefresh);
-      
-      if (!weddingData) {
-        setError('У вас пока нет активной свадьбы. Обратитесь к организатору.');
-        setLoading(false);
-        return;
-      }
-
-      setWedding(weddingData);
-
-      // Сохраняем имена пары в localStorage для предотвращения "прыжка" при перезагрузке
-      if (weddingData.couple_name_1_en && weddingData.couple_name_2_en) {
-        const coupleNames = {
-          name1: weddingData.couple_name_1_en,
-          name2: weddingData.couple_name_2_en,
-        };
-        localStorage.setItem('couple_names', JSON.stringify(coupleNames));
-        setSavedCoupleNames(coupleNames);
-      }
-
-      // Загружаем задания (используем кеш, если не принудительное обновление)
-      const tasksData = await taskService.getWeddingTasks(weddingData.id, !forceRefresh);
-      setTasks(tasksData);
-
-      // Загружаем документы (используем кеш, если не принудительное обновление)
-      const documentsData = await documentService.getWeddingDocuments(weddingData.id, !forceRefresh);
-      setDocuments(documentsData);
-      
-      // Отмечаем, что данные загружены для этого user
-      dataLoadedRef.current = user.id;
-    } catch (err) {
-      console.error('Error loading wedding data:', err);
-      setError('Ошибка при загрузке данных. Попробуйте обновить страницу.');
-    } finally {
-      setLoading(false);
-      isLoadingRef.current = false;
-    }
-  }, [user?.id, wedding]);
-
+  // Проверяем, есть ли у пользователя свадьба
   useEffect(() => {
-    // Загружаем данные только если:
-    // 1. Есть user.id
-    // 2. Данные еще не загружены для этого user
-    // 3. Не идет уже загрузка
-    if (user?.id && dataLoadedRef.current !== user.id && !isLoadingRef.current) {
-      loadWeddingData();
+    if (!weddingLoading && !wedding && user?.id) {
+      // Если свадьба не найдена, показываем сообщение об ошибке
+      // Это обрабатывается через weddingError в компоненте
     }
-  }, [user?.id, loadWeddingData]); // Используем user?.id вместо user, чтобы избежать лишних перезагрузок
+  }, [wedding, weddingLoading, user?.id]);
 
 
 
@@ -293,10 +256,10 @@ const ClientDashboard = () => {
     
     const previousStatus = tasks.find(t => t.id === taskId)?.status || 'pending';
     
-    // Обновляем статус задачи локально для мгновенного отклика
-    setTasks(prevTasks => 
-      prevTasks.map(task => 
-        task.id === taskId 
+    // Оптимистичное обновление через React Query
+    queryClient.setQueryData<Task[]>(['tasks', wedding.id], (oldTasks = []) =>
+      oldTasks.map(task =>
+        task.id === taskId
           ? { ...task, status: completed ? 'completed' : 'pending' }
           : task
       )
@@ -310,8 +273,8 @@ const ClientDashboard = () => {
       
       // Обновляем задачу с актуальными данными с сервера (включая updated_at)
       if (updatedTask) {
-        setTasks(prevTasks => 
-          prevTasks.map(task => 
+        queryClient.setQueryData<Task[]>(['tasks', wedding.id], (oldTasks = []) =>
+          oldTasks.map(task =>
             task.id === taskId ? updatedTask : task
           )
         );
@@ -319,9 +282,9 @@ const ClientDashboard = () => {
     } catch (error) {
       console.error('Error updating task:', error);
       // В случае ошибки возвращаем предыдущее состояние
-      setTasks(prevTasks => 
-        prevTasks.map(task => 
-          task.id === taskId 
+      queryClient.setQueryData<Task[]>(['tasks', wedding.id], (oldTasks = []) =>
+        oldTasks.map(task =>
+          task.id === taskId
             ? { ...task, status: previousStatus }
             : task
         )
@@ -334,9 +297,9 @@ const ClientDashboard = () => {
     <div className="relative">
       {/* Заглушка - первая секция */}
       {/* Показываем заглушку сразу, если есть сохраненные имена или идет загрузка, или данные уже загружены */}
-      {(loading || wedding || savedCoupleNames) && (
+      {(weddingLoading || wedding || savedCoupleNames) && (
         <SplashScreen
-          wedding={wedding}
+          wedding={wedding ?? null}
           savedCoupleNames={savedCoupleNames}
           showSplash={showSplash}
           splashRemoved={splashRemoved}
@@ -347,7 +310,7 @@ const ClientDashboard = () => {
       )}
 
       {/* Основной контент - вторая секция */}
-      {wedding && !loading && (
+      {wedding && !weddingLoading && (
       <div className="relative min-h-screen lg:h-screen flex flex-col overflow-x-hidden lg:overflow-y-auto">
         {/* Header внутри контента - появляется вместе с ним */}
         <Header
@@ -358,9 +321,12 @@ const ClientDashboard = () => {
           weddingId={wedding?.id}
           initialNotes={wedding?.notes || ''}
           onNotesChange={(newNotes) => {
-            // Обновляем локальное состояние свадьбы
+            // Обновляем данные в React Query кеше
             if (wedding) {
-              setWedding({ ...wedding, notes: newNotes });
+              queryClient.setQueryData(['wedding', user?.id], {
+                ...wedding,
+                notes: newNotes,
+              });
             }
           }}
         />
@@ -369,9 +335,11 @@ const ClientDashboard = () => {
           <div className="lg:hidden min-h-[calc(100vh-60px)] sm:min-h-[calc(100vh-70px)] md:min-h-[calc(100vh-80px)] flex flex-col">
             <div>
               <WelcomeSection wedding={wedding} currentLanguage={currentLanguage} />
-              {error && (
+              {(error || (!wedding && !weddingLoading && user?.id)) && (
                 <div className="mb-8 bg-red-50 border border-red-200 rounded-lg p-4">
-                  <p className="text-red-800 font-forum">{error}</p>
+                  <p className="text-red-800 font-forum">
+                    {error || 'У вас пока нет активной свадьбы. Обратитесь к организатору.'}
+                  </p>
                 </div>
               )}
             </div>
@@ -407,7 +375,7 @@ const ClientDashboard = () => {
               {/* Задания - начинаются с новой страницы на мобильной версии */}
               <div className="flex flex-col lg:flex-row border-b border-[#00000033] flex-1 min-h-0">
                 {/* Задания */}
-                <div className='border-r-0 lg:border-r border-b lg:border-b-0 border-[#00000033] lg:min-w-3/7 pl-4 md:pl-8 lg:pl-12 xl:pl-[60px] self-stretch overflow-hidden flex flex-col'>
+                <div className='border-r-0 lg:border-r border-b lg:border-b-0 border-[#00000033] lg:min-w-3/7 pl-4 md:pl-8 lg:pl-[30px] xl:pl-[30px] min-[1500px]:pl-[60px] self-stretch overflow-hidden flex flex-col'>
                   <div className='py-2 lg:max-[1599px]:py-2 min-[1300px]:max-[1599px]:py-3 min-[1600px]:py-4 pr-4 max-[1599px]:pr-4 md:max-[1599px]:pr-6 lg:max-[1599px]:pr-8 min-[1300px]:max-[1599px]:pr-10'>
                     {(() => {
                       const titleText = getTranslation(currentLanguage).dashboard.tasks;
@@ -441,7 +409,7 @@ const ClientDashboard = () => {
 
                 {/* Документы */}
                 <div className='w-full flex flex-col min-h-0'>
-                  <div className='pt-3 sm:pt-3 md:pt-2 lg:max-[1599px]:pt-2 min-[1300px]:max-[1599px]:pt-3 min-[1600px]:pt-4 px-3 sm:px-4 md:px-8 lg:px-12 xl:px-[60px] shrink-0'>
+                  <div className='pt-3 sm:pt-3 md:pt-2 lg:max-[1599px]:pt-2 min-[1300px]:max-[1599px]:pt-3 min-[1600px]:pt-4 px-3 sm:px-4 md:px-8 lg:px-[30px] xl:px-[30px] min-[1500px]:px-[60px] shrink-0'>
                     {(() => {
                       const titleText = getTranslation(currentLanguage).dashboard.documents;
                       return (

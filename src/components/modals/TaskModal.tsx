@@ -6,7 +6,7 @@ import { getInitialLanguage } from '../../utils/languageUtils';
 interface TaskModalProps {
   task: Task | null;
   onClose: () => void;
-  onSave: (data: Omit<Task, 'id' | 'created_at' | 'updated_at'>) => void;
+  onSave: (data: Omit<Task, 'id' | 'created_at' | 'updated_at' | 'wedding_id'>) => void;
 }
 
 const TaskModal = ({ task, onClose, onSave }: TaskModalProps) => {
@@ -42,8 +42,8 @@ const TaskModal = ({ task, onClose, onSave }: TaskModalProps) => {
     const mainLinkText = formData.link_text_en?.trim() || formData.link_text_ru?.trim() || formData.link_text_ua?.trim() || formData.link_text?.trim() || '';
     
     // Подготавливаем данные, убирая пустые опциональные поля
-    const taskData: Omit<Task, 'id' | 'created_at' | 'updated_at'> = {
-      wedding_id: '', // Будет добавлено в родительском компоненте
+    // wedding_id не включаем - он будет добавлен в родительском компоненте (для заданий свадеб) или будет null (для заданий организатора)
+    const taskData: Omit<Task, 'id' | 'created_at' | 'updated_at' | 'wedding_id'> = {
       title: mainTitle,
       status: formData.status,
       ...(formData.title_en?.trim() && { title_en: formData.title_en.trim() }),
@@ -61,8 +61,8 @@ const TaskModal = ({ task, onClose, onSave }: TaskModalProps) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#FBF9F5] border border-[#00000033] rounded-lg max-w-lg w-full">
+    <div className="fixed inset-0 bg-black/20 backdrop-blur-md flex items-center justify-center z-50 p-4" style={{ animation: 'modal-backdrop-fade-in 0.3s ease-out forwards' }}>
+      <div className="bg-[#FBF9F5] border border-[#00000033] rounded-lg max-w-lg w-full" style={{ animation: 'modal-content-scale-in 0.3s ease-out forwards' }}>
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-[32px] max-[1599px]:text-[24px] font-forum font-bold text-black">

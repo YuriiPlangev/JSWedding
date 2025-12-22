@@ -129,7 +129,7 @@ const Header = ({ onLogout, currentLanguage, onLanguageChange, chatLink, wedding
 
   return (
     <header className="w-full bg-[#eae6db] border-b border-[#00000033] relative z-50" >
-      <div className="px-3 sm:px-4 md:px-8 lg:px-12 xl:px-[60px]">
+      <div className="px-3 sm:px-4 md:px-8 lg:px-[30px] xl:px-[30px] min-[1500px]:px-[60px]">
         <div className="flex justify-between items-stretch">
           {/* Left side - Logo and text */}
           <div className="flex items-center gap-2 sm:gap-3 md:gap-4 lg:gap-2 pl-2 sm:pl-3 md:pl-4 lg:pl-0 pr-2 sm:pr-3 md:pr-4 lg:pr-0 py-2 sm:py-2.5 md:py-3 lg:py-0">

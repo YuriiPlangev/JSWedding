@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import type { Wedding, Task, Document, User, Presentation, PresentationSection } from '../types';
+import type { Wedding, Task, TaskGroup, Document, User, Presentation, PresentationSection } from '../types';
 import { getCache, setCache, invalidateCache } from '../utils/cache';
 
 // Сервис для работы со свадьбами
@@ -421,6 +421,206 @@ export const taskService = {
       console.error('Error updating tasks order:', error);
       return false;
     }
+  },
+
+  // Получить все блоки заданий организатора
+  async getOrganizerTaskGroups(organizerId: string, useCache: boolean = true): Promise<TaskGroup[]> {
+    const cacheKey = `organizer_task_groups_${organizerId}`;
+
+    if (useCache) {
+      const cached = getCache<TaskGroup[]>(cacheKey);
+      if (cached) {
+        return cached;
+      }
+    }
+
+    const { data, error } = await supabase
+      .from('task_groups')
+      .select('*')
+      .eq('organizer_id', organizerId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching task groups:', error);
+      return [];
+    }
+
+    setCache(cacheKey, data || [], 5 * 60 * 1000);
+    return data || [];
+  },
+
+  // Создать блок заданий
+  async createTaskGroup(group: Omit<TaskGroup, 'id' | 'created_at' | 'updated_at'>): Promise<TaskGroup | null> {
+    const { data, error } = await supabase
+      .from('task_groups')
+      .insert(group)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating task group:', error);
+      return null;
+    }
+
+    invalidateCache(`organizer_task_groups_${group.organizer_id}`);
+    return data;
+  },
+
+  // Обновить блок заданий
+  async updateTaskGroup(groupId: string, updates: Partial<TaskGroup>): Promise<TaskGroup | null> {
+    const { data, error } = await supabase
+      .from('task_groups')
+      .update(updates)
+      .eq('id', groupId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating task group:', error);
+      return null;
+    }
+
+    if (data) {
+      invalidateCache(`organizer_task_groups_${data.organizer_id}`);
+    }
+    return data;
+  },
+
+  // Удалить блок заданий
+  async deleteTaskGroup(groupId: string): Promise<boolean> {
+    // Сначала получаем группу, чтобы инвалидировать кеш
+    const { data: group } = await supabase
+      .from('task_groups')
+      .select('organizer_id')
+      .eq('id', groupId)
+      .single();
+
+    const { error } = await supabase
+      .from('task_groups')
+      .delete()
+      .eq('id', groupId);
+
+    if (error) {
+      console.error('Error deleting task group:', error);
+      return false;
+    }
+
+    if (group) {
+      invalidateCache(`organizer_task_groups_${group.organizer_id}`);
+    }
+    return true;
+  },
+
+  // Получить все задания организатора по блокам
+  async getOrganizerTasksByGroups(organizerId: string, useCache: boolean = true): Promise<{ group: TaskGroup; tasks: Task[] }[]> {
+    const cacheKey = `organizer_tasks_by_groups_${organizerId}`;
+
+    if (useCache) {
+      const cached = getCache<{ group: TaskGroup; tasks: Task[] }[]>(cacheKey);
+      if (cached) {
+        return cached;
+      }
+    }
+
+    // Получаем все блоки
+    const groups = await taskService.getOrganizerTaskGroups(organizerId, useCache);
+    
+    // Получаем все задания организатора
+    const { data: tasks, error } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('organizer_id', organizerId)
+      .is('wedding_id', null)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching organizer tasks:', error);
+      return [];
+    }
+
+    // Группируем задания по блокам
+    const result = groups.map(group => ({
+      group,
+      tasks: (tasks || []).filter(task => task.task_group_id === group.id)
+    }));
+
+    setCache(cacheKey, result, 3 * 60 * 1000);
+    return result;
+  },
+
+  // Создать задание организатора
+  async createOrganizerTask(task: Omit<Task, 'id' | 'created_at' | 'updated_at' | 'wedding_id'>): Promise<Task | null> {
+    const { data, error } = await supabase
+      .from('tasks')
+      .insert({
+        ...task,
+        wedding_id: null,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating organizer task:', error);
+      return null;
+    }
+
+    // Инвалидируем кеш
+    if (data.organizer_id) {
+      invalidateCache(`organizer_tasks_by_groups_${data.organizer_id}`);
+    }
+
+    return data;
+  },
+
+  // Обновить задание организатора
+  async updateOrganizerTask(taskId: string, updates: Partial<Task>): Promise<Task | null> {
+    const { data, error } = await supabase
+      .from('tasks')
+      .update(updates)
+      .eq('id', taskId)
+      .is('wedding_id', null)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating organizer task:', error);
+      return null;
+    }
+
+    // Инвалидируем кеш
+    if (data?.organizer_id) {
+      invalidateCache(`organizer_tasks_by_groups_${data.organizer_id}`);
+    }
+
+    return data;
+  },
+
+  // Удалить задание организатора
+  async deleteOrganizerTask(taskId: string): Promise<boolean> {
+    // Получаем задание для инвалидации кеша
+    const { data: task } = await supabase
+      .from('tasks')
+      .select('organizer_id')
+      .eq('id', taskId)
+      .single();
+
+    const { error } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('id', taskId)
+      .is('wedding_id', null);
+
+    if (error) {
+      console.error('Error deleting organizer task:', error);
+      return false;
+    }
+
+    // Инвалидируем кеш
+    if (task?.organizer_id) {
+      invalidateCache(`organizer_tasks_by_groups_${task.organizer_id}`);
+    }
+
+    return true;
   },
 };
 

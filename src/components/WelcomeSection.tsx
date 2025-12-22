@@ -10,7 +10,7 @@ const WelcomeSection = ({ wedding, currentLanguage }: WelcomeSectionProps) => {
   const t = getTranslation(currentLanguage);
 
   return (
-    <div className="border-b border-[#00000033] py-8 sm:py-10 md:py-12 max-[1599px]:py-8 md:max-[1599px]:py-10 lg:max-[1599px]:py-3 min-[1300px]:max-[1599px]:py-4 px-3 sm:px-4 md:px-8 lg:px-12 xl:px-[60px]">
+    <div className="border-b border-[#00000033] py-8 sm:py-10 md:py-12 max-[1599px]:py-8 md:max-[1599px]:py-10 lg:max-[1599px]:py-3 min-[1300px]:max-[1599px]:py-4 px-3 sm:px-4 md:px-8 lg:px-[30px] xl:px-[30px] min-[1500px]:px-[60px]">
       <h2 
         className="text-[18px] sm:text-[22px] md:text-[26px] lg:text-[30px] max-[1599px]:text-[22px] lg:max-[1599px]:text-[20px] min-[1300px]:max-[1599px]:text-[24px] font-forum leading-tight text-center lg:text-left"
       >

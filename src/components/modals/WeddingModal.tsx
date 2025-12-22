@@ -8,9 +8,10 @@ interface WeddingModalProps {
   clients: User[];
   onClose: () => void;
   onSave: (data: Omit<Wedding, 'id' | 'created_at' | 'updated_at'>) => void;
+  onDelete?: (weddingId: string) => void;
 }
 
-const WeddingModal = ({ wedding, clients, onClose, onSave }: WeddingModalProps) => {
+const WeddingModal = ({ wedding, clients, onClose, onSave, onDelete }: WeddingModalProps) => {
   const currentLanguage = getInitialLanguage();
   const t = getTranslation(currentLanguage);
 
@@ -34,6 +35,7 @@ const WeddingModal = ({ wedding, clients, onClose, onSave }: WeddingModalProps) 
   };
 
   const [formData, setFormData] = useState({
+    project_name: wedding?.project_name || '',
     client_id: wedding?.client_id || '',
     coupleNamesEn: getCoupleNamesEn(),
     wedding_date: wedding?.wedding_date || '',
@@ -85,6 +87,7 @@ const WeddingModal = ({ wedding, clients, onClose, onSave }: WeddingModalProps) 
 
     // Создаем объект без служебных полей
     const weddingData: Omit<Wedding, 'id' | 'created_at' | 'updated_at'> = {
+      project_name: formData.project_name || undefined,
       client_id: formData.client_id,
       organizer_id: wedding?.organizer_id || '', // Будет заменен в handleSaveWedding при создании
       couple_name_1_en,
@@ -108,12 +111,12 @@ const WeddingModal = ({ wedding, clients, onClose, onSave }: WeddingModalProps) 
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#FBF9F5] border border-[#00000033] rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/20 backdrop-blur-md flex items-center justify-center z-50 p-4" style={{ animation: 'modal-backdrop-fade-in 0.3s ease-out forwards' }}>
+      <div className="bg-[#FBF9F5] border border-[#00000033] rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto" style={{ animation: 'modal-content-scale-in 0.3s ease-out forwards' }}>
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-[32px] max-[1599px]:text-[24px] font-forum font-bold text-black">
-              {wedding ? t.organizer.editProject : t.organizer.addProject}
+              {wedding ? 'Редактировать ивент' : 'Добавить ивент'}
             </h2>
             <button onClick={onClose} className="text-[#00000080] hover:text-black transition-colors cursor-pointer text-2xl font-light">
               ✕
@@ -147,6 +150,19 @@ const WeddingModal = ({ wedding, clients, onClose, onSave }: WeddingModalProps) 
                   </p>
                 </div>
               )}
+            </div>
+
+            <div>
+              <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
+                Название проекта
+              </label>
+              <input
+                type="text"
+                value={formData.project_name}
+                onChange={(e) => setFormData({ ...formData, project_name: e.target.value })}
+                placeholder="Введите название проекта (только для организатора)"
+                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
+              />
             </div>
 
             <div>
@@ -289,20 +305,36 @@ const WeddingModal = ({ wedding, clients, onClose, onSave }: WeddingModalProps) 
               </p>
             </div>
 
-            <div className="flex justify-end gap-4 mt-6">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 border border-[#00000033] text-black rounded-lg hover:bg-gray-50 transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum"
-              >
-                {t.common.cancel}
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum"
-              >
-                {t.common.save}
-              </button>
+            <div className="flex justify-between items-center gap-4 mt-6">
+              {wedding && onDelete && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm('Вы уверены, что хотите удалить этот проект?')) {
+                      onDelete(wedding.id);
+                      onClose();
+                    }
+                  }}
+                  className="px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum"
+                >
+                  {t.common.delete}
+                </button>
+              )}
+              <div className="flex justify-end gap-4 ml-auto">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2 border border-[#00000033] text-black rounded-lg hover:bg-gray-50 transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum"
+                >
+                  {t.common.cancel}
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum"
+                >
+                  {t.common.save}
+                </button>
+              </div>
             </div>
           </form>
         </div>

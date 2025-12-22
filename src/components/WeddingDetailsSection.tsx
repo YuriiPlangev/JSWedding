@@ -57,8 +57,8 @@ const WeddingDetailsSection = ({ wedding, currentLanguage }: WeddingDetailsSecti
   };
 
   return (
-    <div className='border-b border-[#00000033] flex flex-col lg:flex-row pl-0 sm:pl-0 md:pl-8 md:max-lg:pl-0 lg:pl-12 xl:pl-[60px] shrink-0'>
-      <div className='border-r-0 lg:border-r border-[#00000033] border-b lg:border-b-0 py-8 sm:py-10 md:py-8 md:max-lg:py-6 lg:py-12 max-[1599px]:py-8 md:max-[1599px]:py-10 lg:max-[1599px]:py-2 min-[1300px]:max-[1599px]:py-3 min-[1600px]:py-4 px-3 sm:px-4 pr-3 sm:pr-4 max-[1599px]:pr-4 md:max-[1599px]:pr-6 lg:max-[1599px]:pr-8 min-[1300px]:max-[1599px]:pr-10'>
+    <div className='border-b border-[#00000033] flex flex-col lg:flex-row pl-0 sm:pl-0 md:pl-8 md:max-lg:pl-0 lg:pl-[30px] xl:pl-[30px] min-[1500px]:pl-[60px] shrink-0'>
+      <div className='border-r-0 lg:border-r border-[#00000033] border-b lg:border-b-0 py-8 sm:py-10 md:py-8 md:max-lg:py-6 lg:py-12 max-[1599px]:py-8 md:max-[1599px]:py-10 lg:max-[1599px]:py-2 min-[1300px]:max-[1599px]:py-3 min-[1600px]:py-4 pl-0 pr-3 sm:pr-4 max-[1599px]:pr-4 md:max-[1599px]:pr-6 lg:max-[1599px]:pr-8 min-[1300px]:max-[1599px]:pr-10'>
         <h2 
           className='text-[26px] sm:text-[30px] md:text-[28px] md:max-lg:text-[24px] lg:text-[48px] max-[1599px]:text-[34px] lg:max-[1599px]:text-[30px] min-[1300px]:max-[1599px]:text-[36px] font-forum leading-tight text-center lg:text-left'
         >
@@ -71,7 +71,7 @@ const WeddingDetailsSection = ({ wedding, currentLanguage }: WeddingDetailsSecti
         </p>
       </div>
       <div className='flex items-start lg:items-center flex-1'>
-        <div className='w-full pl-0 pr-1 sm:pr-2 md:pl-8 md:pr-8 md:max-lg:pl-0 md:max-lg:pr-0 md:max-lg:flex md:max-lg:justify-center lg:px-8 xl:px-[60px] py-8 sm:py-10 md:py-8 md:max-lg:py-6 lg:py-2 max-[1599px]:lg:py-2 min-[1300px]:max-[1599px]:lg:py-3 min-[1600px]:lg:py-4'>
+        <div className='w-full pl-0 pr-1 sm:pr-2 md:pl-8 md:pr-8 md:max-lg:pl-0 md:max-lg:pr-0 md:max-lg:flex md:max-lg:justify-center lg:px-[30px] xl:px-[30px] min-[1500px]:px-[60px] py-8 sm:py-10 md:py-8 md:max-lg:py-6 lg:py-2 max-[1599px]:lg:py-2 min-[1300px]:max-[1599px]:lg:py-3 min-[1600px]:lg:py-4'>
           {/* Мобильная версия: Все элементы в одну колонку */}
           <div className='lg:hidden'>
             <div className='w-full'>
@@ -133,8 +133,8 @@ const WeddingDetailsSection = ({ wedding, currentLanguage }: WeddingDetailsSecti
             </div>
           </div>
 
-          {/* Десктопная версия: как было раньше - 4 элемента в ряд */}
-          <div className='hidden lg:block md:max-lg:flex md:max-lg:justify-center'>
+          {/* Десктопная версия: как было раньше - 5 элементов в ряд */}
+          <div className='hidden lg:block'>
             <ul className='grid grid-cols-5 gap-x-4 sm:gap-x-6 md:gap-x-6 md:max-lg:gap-x-4 lg:gap-x-8 gap-y-4 sm:gap-y-5 md:gap-y-4 md:max-lg:gap-y-3 lg:gap-y-6 md:max-lg:mx-auto'>
               <li className='flex flex-col justify-start items-center text-center'>
                 <p 
