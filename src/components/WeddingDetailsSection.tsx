@@ -70,8 +70,8 @@ const WeddingDetailsSection = ({ wedding, currentLanguage }: WeddingDetailsSecti
           {t.dashboard.keyDetails}
         </p>
       </div>
-      <div className='flex items-start flex-1'>
-        <div className='w-full pl-0 pr-1 sm:pr-2 md:pl-8 md:pr-8 lg:px-8 xl:px-[60px] pt-0 pb-4 sm:pt-0 sm:pb-5 md:py-6 max-[1599px]:py-4 lg:max-[1599px]:py-3 min-[1300px]:max-[1599px]:py-4'>
+      <div className='flex items-start lg:items-center flex-1'>
+        <div className='w-full pl-0 pr-1 sm:pr-2 md:pl-8 md:pr-8 lg:px-8 xl:px-[60px] py-8 sm:py-10 md:py-12 lg:py-2 max-[1599px]:lg:py-2 min-[1300px]:max-[1599px]:lg:py-3 min-[1600px]:lg:py-4'>
           {/* Мобильная версия: Все элементы в одну колонку */}
           <div className='lg:hidden'>
             <div className='w-full'>
@@ -136,7 +136,7 @@ const WeddingDetailsSection = ({ wedding, currentLanguage }: WeddingDetailsSecti
           {/* Десктопная версия: как было раньше - 4 элемента в ряд */}
           <div className='hidden lg:block'>
             <ul className='grid grid-cols-5 gap-x-4 sm:gap-x-6 md:gap-x-8 gap-y-4 sm:gap-y-5 md:gap-y-6'>
-              <li className='flex flex-col justify-start items-start text-left'>
+              <li className='flex flex-col justify-start items-center text-center'>
                 <p 
                   className='text-[12px] sm:text-[14px] md:text-[16px] max-[1599px]:text-[14px] lg:max-[1599px]:text-[13px] min-[1300px]:max-[1599px]:text-[14px] text-[#00000080] font-forum font-light mb-1 sm:mb-1.5'
                 >
@@ -144,7 +144,7 @@ const WeddingDetailsSection = ({ wedding, currentLanguage }: WeddingDetailsSecti
                 </p>
                 <p className='text-[16px] sm:text-[18px] md:text-[20px] lg:text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-bold leading-tight'>{formatDate(wedding.wedding_date)}</p>
               </li>
-              <li className='flex flex-col justify-start items-start text-left'>
+              <li className='flex flex-col justify-start items-center text-center'>
                 <p 
                   className='text-[12px] sm:text-[14px] md:text-[16px] max-[1599px]:text-[14px] lg:max-[1599px]:text-[13px] min-[1300px]:max-[1599px]:text-[14px] text-[#00000080] font-forum font-light mb-1 sm:mb-1.5'
                 >
@@ -154,7 +154,7 @@ const WeddingDetailsSection = ({ wedding, currentLanguage }: WeddingDetailsSecti
                   {getCountryDisplay()}
                 </p>
               </li>
-              <li className='flex flex-col justify-start items-start text-left'>
+              <li className='flex flex-col justify-start items-center text-center'>
                 <p 
                   className='text-[12px] sm:text-[14px] md:text-[16px] max-[1599px]:text-[14px] lg:max-[1599px]:text-[13px] min-[1300px]:max-[1599px]:text-[14px] text-[#00000080] font-forum font-light mb-1 sm:mb-1.5'
                 >
@@ -162,7 +162,7 @@ const WeddingDetailsSection = ({ wedding, currentLanguage }: WeddingDetailsSecti
                 </p>
                 <p className='text-[16px] sm:text-[18px] md:text-[20px] lg:text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-bold leading-tight break-words'>{wedding.venue}</p>
               </li>
-              <li className='flex flex-col justify-start items-start text-left'>
+              <li className='flex flex-col justify-start items-center text-center'>
                 <p 
                   className='text-[12px] sm:text-[14px] md:text-[16px] max-[1599px]:text-[14px] lg:max-[1599px]:text-[13px] min-[1300px]:max-[1599px]:text-[14px] text-[#00000080] font-forum font-light mb-1 sm:mb-1.5'
                 >
@@ -170,7 +170,7 @@ const WeddingDetailsSection = ({ wedding, currentLanguage }: WeddingDetailsSecti
                 </p>
                 <p className='text-[16px] sm:text-[18px] md:text-[20px] lg:text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-bold leading-tight'>{wedding.guest_count}</p>
               </li>
-              <li className='flex flex-col justify-start items-start text-left'>
+              <li className='flex flex-col justify-start items-center text-center'>
                 <p className='text-[16px] sm:text-[18px] md:text-[20px] lg:text-[24px] max-[1599px]:text-[18px] lg:max-[1599px]:text-[17px] min-[1300px]:max-[1599px]:text-[19px] font-forum font-bold leading-tight mb-1 sm:mb-1.5'>
                   {calculateDaysUntilWedding(wedding.wedding_date)} {t.dashboard.days}
                 </p>

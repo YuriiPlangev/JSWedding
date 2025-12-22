@@ -417,13 +417,13 @@ const Presentation = ({ presentation, currentLanguage = 'ua' }: PresentationProp
                     }
                   }}
                 />
-                {/* Иконка полноэкранного режима */}
+                {/* Иконка полноэкранного режима - только на мобильной версии */}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     handleImageClick(index);
                   }}
-                  className="absolute top-2 right-2 sm:top-3 sm:right-3 md:top-4 md:right-4 z-10 bg-[#eae6db] border border-[#00000033] hover:bg-[#00000005] rounded p-1.5 sm:p-2 transition-all cursor-pointer"
+                  className="lg:hidden absolute top-2 right-2 sm:top-3 sm:right-3 md:top-4 md:right-4 z-10 bg-[#eae6db] border border-[#00000033] hover:bg-[#00000005] rounded p-1.5 sm:p-2 transition-all cursor-pointer"
                   aria-label="Open fullscreen"
                 >
                   <svg
