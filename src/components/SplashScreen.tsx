@@ -71,7 +71,7 @@ const SplashScreen = ({ wedding, savedCoupleNames, showSplash, splashRemoved, on
             <p 
               className="text-[18px] sm:text-[23px] md:text-[28px] lg:text-[23px] max-[1599px]:lg:text-[23px] min-[1600px]:lg:text-[36px] xl:text-[38px] max-[1599px]:xl:text-[30px] min-[1600px]:xl:text-[47px] text-black px-4 leading-[1.2] mt-6 md:mt-8 lg:mt-6 xl:mt-8 font-branch"
             >
-              Welcome to your wedding organization space!
+              Welcome to your event organization space!
             </p>
           </>
         )}
