@@ -3,8 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { weddingService, taskService, documentService, clientService, presentationService } from '../services/weddingService';
 import type { Wedding, Task, TaskGroup, Document, User, Presentation } from '../types';
-import { getTranslation } from '../utils/translations';
-import { getInitialLanguage } from '../utils/languageUtils';
 import { WeddingModal, TaskModal, OrganizerTaskModal, DocumentModal, PresentationModal, ClientModal } from '../components/modals';
 
 type ViewMode = 'weddings' | 'tasks' | 'wedding-details';
@@ -60,9 +58,6 @@ const OrganizerDashboard = () => {
     }
   });
   
-  // Получаем язык из localStorage или используем русский по умолчанию
-  const currentLanguage = getInitialLanguage();
-  const t = getTranslation(currentLanguage);
 
   // Состояния для модальных окон
   const [showWeddingModal, setShowWeddingModal] = useState(false);
@@ -80,7 +75,7 @@ const OrganizerDashboard = () => {
   const [draggedDocumentId, setDraggedDocumentId] = useState<string | null>(null);
 
   // Компонент страницы заданий
-  const TasksPage = ({ user, currentLanguage, t }: { user: User | null; currentLanguage: string; t: any }) => {
+  const TasksPage = ({ user }: { user: User | null }) => {
     const [taskGroups, setTaskGroups] = useState<{ group: TaskGroup; tasks: Task[] }[]>([]);
     const [loadingTasks, setLoadingTasks] = useState(true);
     const [showOrganizerTaskModal, setShowOrganizerTaskModal] = useState(false);
@@ -147,11 +142,12 @@ const OrganizerDashboard = () => {
       }
     }, [showTaskGroupModal, editingTaskGroup]);
 
-    const loadOrganizerTasks = useCallback(async () => {
+    const loadOrganizerTasks = useCallback(async (useCache: boolean = false) => {
       if (!user?.id) return;
       setLoadingTasks(true);
       try {
-        const groupsWithTasks = await taskService.getOrganizerTasksByGroups(user.id);
+        // При загрузке страницы не используем кеш, чтобы получить актуальные данные
+        const groupsWithTasks = await taskService.getOrganizerTasksByGroups(user.id, useCache);
         setTaskGroups(groupsWithTasks);
       } catch (err) {
         console.error('Error loading organizer tasks:', err);
@@ -160,9 +156,16 @@ const OrganizerDashboard = () => {
       }
     }, [user?.id]);
 
+    // Используем ref для отслеживания, был ли уже загружен user.id для заданий
+    const loadedTasksUserIdRef = useRef<string | null>(null);
+    
     useEffect(() => {
-      loadOrganizerTasks();
-    }, [loadOrganizerTasks]);
+      // Загружаем задания только один раз при монтировании или при изменении user.id
+      if (user?.id && loadedTasksUserIdRef.current !== user.id) {
+        loadedTasksUserIdRef.current = user.id;
+        loadOrganizerTasks();
+      }
+    }, [user?.id, loadOrganizerTasks]);
 
     const handleCreateGroup = () => {
       setEditingTaskGroup(null);
@@ -179,11 +182,32 @@ const OrganizerDashboard = () => {
 
       try {
         if (editingTaskGroup) {
+          // Оптимистичное обновление: сразу обновляем цвет в локальном состоянии
+          setTaskGroups(prevGroups => 
+            prevGroups.map(({ group, tasks }) => 
+              group.id === editingTaskGroup.id
+                ? { group: { ...group, ...groupData }, tasks }
+                : { group, tasks }
+            )
+          );
+
           const result = await taskService.updateTaskGroup(editingTaskGroup.id, groupData);
           if (!result) {
+            // Если сохранение не удалось, откатываем изменения
+            await loadOrganizerTasks();
             setError('Не удалось обновить блок заданий');
             return;
           }
+
+          // После успешного сохранения обновляем локальное состояние данными с сервера
+          // Это гарантирует, что мы используем актуальные данные из БД
+          setTaskGroups(prevGroups => 
+            prevGroups.map(({ group, tasks }) => 
+              group.id === editingTaskGroup.id
+                ? { group: { ...group, ...result }, tasks }
+                : { group, tasks }
+            )
+          );
         } else {
           const result = await taskService.createTaskGroup({
             ...groupData,
@@ -193,13 +217,16 @@ const OrganizerDashboard = () => {
             setError('Не удалось создать блок заданий');
             return;
           }
+          // Для нового блока нужно перезагрузить данные, чтобы получить ID
+          await loadOrganizerTasks();
         }
 
         setShowTaskGroupModal(false);
         setEditingTaskGroup(null);
-        await loadOrganizerTasks();
       } catch (err) {
         console.error('Error saving task group:', err);
+        // При ошибке перезагружаем данные для отката изменений
+        await loadOrganizerTasks();
         setError('Ошибка при сохранении блока заданий');
       }
     };
@@ -262,7 +289,7 @@ const OrganizerDashboard = () => {
         if (editingOrganizerTask) {
           const result = await taskService.updateOrganizerTask(editingOrganizerTask.id, taskData);
           if (!result) {
-            setError(t.organizer.updateError);
+            setError('Не удалось обновить задание');
             return;
           }
         } else {
@@ -272,7 +299,7 @@ const OrganizerDashboard = () => {
             task_group_id: selectedGroupId,
           });
           if (!result) {
-            setError(t.organizer.createError);
+            setError('Не удалось создать задание');
             return;
           }
         }
@@ -283,7 +310,7 @@ const OrganizerDashboard = () => {
         await loadOrganizerTasks();
       } catch (err) {
         console.error('Error saving task:', err);
-        setError(t.organizer.saveError);
+        setError('Ошибка при сохранении задания');
       }
     };
 
@@ -338,10 +365,8 @@ const OrganizerDashboard = () => {
     };
 
     const getTaskTitle = (task: Task) => {
-      if (currentLanguage === 'en' && task.title_en) return task.title_en;
-      if (currentLanguage === 'ua' && task.title_ua) return task.title_ua;
-      if (currentLanguage === 'ru' && task.title_ru) return task.title_ru;
-      return task.title;
+      if (task.title_ru) return task.title_ru;
+      return task.title || task.title_en || task.title_ua || '';
     };
 
     if (loadingTasks) {
@@ -765,22 +790,27 @@ const OrganizerDashboard = () => {
       setClients(clientsData);
     } catch (err) {
       console.error('Error loading data:', err);
-      const currentLang = getInitialLanguage();
-      const translations = getTranslation(currentLang);
-      setError(translations.organizer.loadError);
+      setError('Ошибка при загрузке данных');
     } finally {
       setLoading(false);
     }
   }, [user?.id]);
 
+  // Используем ref для отслеживания, был ли уже загружен user.id
+  const loadedUserIdRef = useRef<string | null>(null);
+  
   useEffect(() => {
     if (user?.id && user.role === 'organizer') {
-      loadData();
+      // Загружаем данные только один раз при монтировании или при изменении user.id
+      if (loadedUserIdRef.current !== user.id) {
+        loadedUserIdRef.current = user.id;
+        loadData();
+      }
     } else if (user && user.role !== 'organizer') {
       // Если пользователь не организатор, перенаправляем
       navigate('/dashboard', { replace: true });
     }
-  }, [user, navigate, loadData]);
+  }, [user?.id, user?.role, navigate, loadData]);
 
   // Восстанавливаем открытые вкладки после загрузки данных
   const hasRestoredTabsRef = useRef(false);
@@ -820,9 +850,7 @@ const OrganizerDashboard = () => {
     try {
       const wedding = await weddingService.getWeddingById(weddingId);
       if (!wedding) {
-        const currentLang = getInitialLanguage();
-        const translations = getTranslation(currentLang);
-        setError(translations.organizer.loadError);
+        setError('Ошибка при загрузке данных');
         setLoading(false);
         return;
       }
@@ -843,11 +871,7 @@ const OrganizerDashboard = () => {
       setSelectedWedding(weddingData);
 
       // Добавляем вкладку, если её еще нет
-      const coupleName = currentLanguage === 'en' && wedding.couple_name_1_en && wedding.couple_name_2_en
-        ? `${wedding.couple_name_1_en} & ${wedding.couple_name_2_en}`
-        : currentLanguage === 'ua' && wedding.couple_name_1_ru && wedding.couple_name_2_ru
-        ? `${wedding.couple_name_1_ru} & ${wedding.couple_name_2_ru}`
-        : `${wedding.couple_name_1_ru || wedding.couple_name_1_en || ''} & ${wedding.couple_name_2_ru || wedding.couple_name_2_en || ''}`;
+      const coupleName = `${wedding.couple_name_1_ru || wedding.couple_name_1_en || ''} & ${wedding.couple_name_2_ru || wedding.couple_name_2_en || ''}`;
 
       setOpenTabs(prevTabs => {
         // Проверяем, есть ли уже такая вкладка
@@ -873,9 +897,7 @@ const OrganizerDashboard = () => {
       setViewMode('wedding-details');
     } catch (err) {
       console.error('Error loading wedding details:', err);
-      const currentLang = getInitialLanguage();
-      const translations = getTranslation(currentLang);
-      setError(translations.organizer.loadError);
+      setError('Ошибка при загрузке данных');
     } finally {
       setLoading(false);
     }
@@ -927,8 +949,19 @@ const OrganizerDashboard = () => {
     setShowWeddingModal(true);
   };
 
-  const handleEditWedding = (wedding: Wedding) => {
-    setEditingWedding(wedding);
+  const handleEditWedding = async (wedding: Wedding) => {
+    // Загружаем актуальные данные свадьбы из БД перед открытием модалки
+    try {
+      const updatedWedding = await weddingService.getWeddingById(wedding.id);
+      if (updatedWedding) {
+        setEditingWedding(updatedWedding);
+      } else {
+        setEditingWedding(wedding); // Fallback на переданные данные
+      }
+    } catch (err) {
+      console.error('Error loading wedding for edit:', err);
+      setEditingWedding(wedding); // Fallback на переданные данные
+    }
     setShowWeddingModal(true);
   };
 
@@ -1088,11 +1121,7 @@ const OrganizerDashboard = () => {
         }
 
         // Обновляем название вкладки, если свадьба открыта
-        const coupleName = currentLanguage === 'en' && weddingData.couple_name_1_en && weddingData.couple_name_2_en
-          ? `${weddingData.couple_name_1_en} & ${weddingData.couple_name_2_en}`
-          : currentLanguage === 'ua' && weddingData.couple_name_1_ru && weddingData.couple_name_2_ru
-          ? `${weddingData.couple_name_1_ru} & ${weddingData.couple_name_2_ru}`
-          : `${weddingData.couple_name_1_ru || weddingData.couple_name_1_en || ''} & ${weddingData.couple_name_2_ru || weddingData.couple_name_2_en || ''}`;
+        const coupleName = `${weddingData.couple_name_1_ru || weddingData.couple_name_1_en || ''} & ${weddingData.couple_name_2_ru || weddingData.couple_name_2_en || ''}`;
 
         setOpenTabs(prevTabs => {
           const updatedTabs = prevTabs.map(tab => 
@@ -1179,7 +1208,7 @@ const OrganizerDashboard = () => {
       if (editingTask) {
         const result = await taskService.updateTask(editingTask.id, taskToSave, selectedWedding.id);
         if (!result) {
-          setError(t.organizer.updateError);
+          setError('Не удалось обновить задание');
           return;
         }
       } else {
@@ -1197,7 +1226,7 @@ const OrganizerDashboard = () => {
         
         const result = await taskService.createTask(taskToSave);
         if (!result) {
-          setError(t.organizer.createError);
+          setError('Не удалось создать задание');
           return;
         }
       }
@@ -1207,16 +1236,14 @@ const OrganizerDashboard = () => {
       await loadWeddingDetails(selectedWedding.id);
     } catch (err) {
       console.error('Error saving task:', err);
-      const currentLang = getInitialLanguage();
-      const translations = getTranslation(currentLang);
-      setError(translations.organizer.saveError);
+      setError('Ошибка при сохранении задания');
     }
   };
 
   const handleDeleteTask = async (taskId: string) => {
     if (!selectedWedding) return;
 
-    if (!confirm(t.organizer.deleteTaskConfirm)) {
+    if (!confirm('Вы уверены, что хотите удалить это задание?')) {
       return;
     }
 
@@ -1225,11 +1252,11 @@ const OrganizerDashboard = () => {
       if (success) {
         await loadWeddingDetails(selectedWedding.id);
       } else {
-        setError(t.organizer.deleteError + ' ' + t.organizer.tasks.toLowerCase());
+        setError('Не удалось удалить задание');
       }
     } catch (err) {
       console.error('Error deleting task:', err);
-      setError(t.organizer.deleteError + ' ' + t.organizer.tasks.toLowerCase());
+      setError('Ошибка при удалении задания');
     }
   };
 
@@ -1382,7 +1409,7 @@ const OrganizerDashboard = () => {
   const handleDeleteDocument = async (document: Document) => {
     if (!selectedWedding) return;
 
-    if (!confirm(t.organizer.deleteDocumentConfirm)) {
+    if (!confirm('Вы уверены, что хотите удалить этот документ?')) {
       return;
     }
 
@@ -1395,11 +1422,11 @@ const OrganizerDashboard = () => {
       if (success) {
         await loadWeddingDetails(selectedWedding.id);
       } else {
-        setError(t.organizer.deleteError + ' ' + t.organizer.documents.toLowerCase());
+        setError('Не удалось удалить документ');
       }
     } catch (err) {
       console.error('Error deleting document:', err);
-      setError(t.organizer.deleteError + ' ' + t.organizer.documents.toLowerCase());
+      setError('Ошибка при удалении документа');
     }
   };
 
@@ -1407,7 +1434,7 @@ const OrganizerDashboard = () => {
   const handleDeletePresentation = async () => {
     if (!selectedWedding) return;
 
-    if (!confirm(t.organizer.deletePresentationConfirm)) {
+    if (!confirm('Вы уверены, что хотите удалить эту презентацию?')) {
       return;
     }
 
@@ -1416,11 +1443,11 @@ const OrganizerDashboard = () => {
       if (success) {
         await loadWeddingDetails(selectedWedding.id);
       } else {
-        setError(t.organizer.deleteError + ' ' + t.organizer.presentation.toLowerCase());
+        setError('Не удалось удалить презентацию');
       }
     } catch (err) {
       console.error('Error deleting presentation:', err);
-      setError(t.organizer.deleteError + ' ' + t.organizer.presentation.toLowerCase());
+      setError('Ошибка при удалении презентации');
     }
   };
 
@@ -1459,21 +1486,13 @@ const OrganizerDashboard = () => {
         });
       }
 
-      // Формируем название презентации в зависимости от языка
-      const coupleName1 = currentLanguage === 'en' && selectedWedding.couple_name_1_en 
-        ? selectedWedding.couple_name_1_en 
-        : currentLanguage === 'ua' && selectedWedding.couple_name_1_ru 
-        ? selectedWedding.couple_name_1_ru 
-        : selectedWedding.couple_name_1_ru || selectedWedding.couple_name_1_en || '';
-      const coupleName2 = currentLanguage === 'en' && selectedWedding.couple_name_2_en 
-        ? selectedWedding.couple_name_2_en 
-        : currentLanguage === 'ua' && selectedWedding.couple_name_2_ru 
-        ? selectedWedding.couple_name_2_ru 
-        : selectedWedding.couple_name_2_ru || selectedWedding.couple_name_2_en || '';
+      // Формируем название презентации
+      const coupleName1 = selectedWedding.couple_name_1_ru || selectedWedding.couple_name_1_en || '';
+      const coupleName2 = selectedWedding.couple_name_2_ru || selectedWedding.couple_name_2_en || '';
       
       const presentation: Presentation = {
         type: 'wedding',
-        title: `${t.organizer.weddingPresentation}: ${coupleName1} & ${coupleName2}`,
+        title: `Презентация свадьбы: ${coupleName1} & ${coupleName2}`,
         sections,
       };
 
@@ -1482,11 +1501,11 @@ const OrganizerDashboard = () => {
         await loadWeddingDetails(selectedWedding.id);
         setShowPresentationModal(false);
       } else {
-        setError(t.organizer.loadError);
+        setError('Ошибка при загрузке данных');
       }
     } catch (err) {
       console.error('Error uploading presentation:', err);
-      setError(t.organizer.loadError);
+      setError('Ошибка при загрузке данных');
     } finally {
       setUploadingPresentation(false);
     }
@@ -1526,7 +1545,7 @@ const OrganizerDashboard = () => {
       }
 
       if (!result) {
-        setError(t.organizer.saveError);
+        setError('Ошибка при сохранении документа');
         return;
       }
 
@@ -1535,9 +1554,7 @@ const OrganizerDashboard = () => {
       await loadWeddingDetails(selectedWedding.id);
     } catch (err) {
       console.error('Error saving document:', err);
-      const currentLang = getInitialLanguage();
-      const translations = getTranslation(currentLang);
-      setError(translations.organizer.saveError);
+      setError('Ошибка при сохранении документа');
     }
   };
 
@@ -1671,8 +1688,6 @@ const OrganizerDashboard = () => {
         {viewMode === 'tasks' && (
           <TasksPage
             user={user}
-            currentLanguage={currentLanguage}
-            t={t}
           />
         )}
 
@@ -1731,10 +1746,7 @@ const OrganizerDashboard = () => {
 
                   // Функция для получения страны
                   const getCountryDisplay = () => {
-                    if (currentLanguage === 'en' && wedding.country_en) return wedding.country_en;
-                    if (currentLanguage === 'ru' && wedding.country_ru) return wedding.country_ru;
-                    if (currentLanguage === 'ua' && wedding.country_ua) return wedding.country_ua;
-                    return wedding.country || wedding.country_en || wedding.country_ru || wedding.country_ua || '';
+                    return wedding.country_ru || wedding.country || wedding.country_en || wedding.country_ua || '';
                   };
 
                   return (
@@ -1753,7 +1765,7 @@ const OrganizerDashboard = () => {
                           <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                             <div>
                               <p className="text-[12px] sm:text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080] mb-1">
-                                {t.organizer.weddingDate}
+                                Дата свадьбы
                               </p>
                               <p className="text-[16px] sm:text-[18px] max-[1599px]:text-[17px] font-forum font-bold text-black">
                                 {formatDate(wedding.wedding_date)}
@@ -1771,7 +1783,7 @@ const OrganizerDashboard = () => {
                             
                             <div>
                               <p className="text-[12px] sm:text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080] mb-1">
-                                {t.organizer.place}
+                                Место
                               </p>
                               <p className="text-[16px] sm:text-[18px] max-[1599px]:text-[17px] font-forum font-bold text-black break-words">
                                 {wedding.venue}
@@ -1780,7 +1792,7 @@ const OrganizerDashboard = () => {
                             
                             <div>
                               <p className="text-[12px] sm:text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080] mb-1">
-                                {t.organizer.guestCount}
+                                Количество гостей
                               </p>
                               <p className="text-[16px] sm:text-[18px] max-[1599px]:text-[17px] font-forum font-bold text-black">
                                 {wedding.guest_count}
@@ -1792,7 +1804,7 @@ const OrganizerDashboard = () => {
                                 {calculateDaysUntilWedding(wedding.wedding_date)} дней
                               </p>
                               <p className="text-[12px] sm:text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080]">
-                                до свадьбы
+                                до ивента
                               </p>
                             </div>
                           </div>
@@ -1843,11 +1855,7 @@ const OrganizerDashboard = () => {
                   Вернуться к ивентам
                 </button>
                 <h2 className="text-[28px] sm:text-[32px] md:text-[36px] lg:text-[54px] max-[1599px]:text-[40px] lg:max-[1599px]:text-[36px] min-[1300px]:max-[1599px]:text-[42px] font-forum leading-tight text-black break-words">
-                  {currentLanguage === 'en' && selectedWedding.couple_name_1_en && selectedWedding.couple_name_2_en
-                    ? `${selectedWedding.couple_name_1_en} & ${selectedWedding.couple_name_2_en}`
-                    : currentLanguage === 'ua' && selectedWedding.couple_name_1_ru && selectedWedding.couple_name_2_ru
-                    ? `${selectedWedding.couple_name_1_ru} & ${selectedWedding.couple_name_2_ru}`
-                    : `${selectedWedding.couple_name_1_ru || selectedWedding.couple_name_1_en || ''} & ${selectedWedding.couple_name_2_ru || selectedWedding.couple_name_2_en || ''}`}
+                  {`${selectedWedding.couple_name_1_ru || selectedWedding.couple_name_1_en || ''} & ${selectedWedding.couple_name_2_ru || selectedWedding.couple_name_2_en || ''}`}
                 </h2>
               </div>
               <button
@@ -1865,31 +1873,28 @@ const OrganizerDashboard = () => {
               <h3 className="text-[20px] sm:text-[22px] md:text-[26px] max-[1599px]:text-[22px] font-forum font-bold text-black mb-3 sm:mb-4">Информация об ивенте</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <p className="text-[14px] sm:text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">{t.organizer.weddingDate}</p>
+                  <p className="text-[14px] sm:text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">Дата свадьбы</p>
                   <p className="text-[18px] sm:text-[20px] max-[1599px]:text-[18px] font-forum font-bold text-black mt-1 break-words">
-                    {new Date(selectedWedding.wedding_date).toLocaleDateString(currentLanguage === 'en' ? 'en-US' : currentLanguage === 'ua' ? 'uk-UA' : 'ru-RU')}
+                    {new Date(selectedWedding.wedding_date).toLocaleDateString('ru-RU')}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[14px] sm:text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">{t.organizer.country}</p>
+                  <p className="text-[14px] sm:text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">Страна</p>
                   <p className="text-[18px] sm:text-[20px] max-[1599px]:text-[18px] font-forum font-bold text-black mt-1 break-words">
-                    {currentLanguage === 'en' && selectedWedding.country_en ? selectedWedding.country_en :
-                     currentLanguage === 'ru' && selectedWedding.country_ru ? selectedWedding.country_ru :
-                     currentLanguage === 'ua' && selectedWedding.country_ua ? selectedWedding.country_ua :
-                     selectedWedding.country || selectedWedding.country_en || selectedWedding.country_ru || selectedWedding.country_ua || ''}
+                    {selectedWedding.country_ru || selectedWedding.country || selectedWedding.country_en || selectedWedding.country_ua || ''}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[14px] sm:text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">{t.organizer.place}</p>
+                  <p className="text-[14px] sm:text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">Место</p>
                   <p className="text-[18px] sm:text-[20px] max-[1599px]:text-[18px] font-forum font-bold text-black mt-1 break-words">{selectedWedding.venue}</p>
                 </div>
                 <div>
-                  <p className="text-[14px] sm:text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">{t.organizer.guestCount}</p>
+                  <p className="text-[14px] sm:text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">Количество гостей</p>
                   <p className="text-[18px] sm:text-[20px] max-[1599px]:text-[18px] font-forum font-bold text-black mt-1">{selectedWedding.guest_count}</p>
                 </div>
                 {selectedWedding.client && (
                   <div>
-                    <p className="text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">{t.organizer.client}</p>
+                    <p className="text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">Клиент</p>
                     <p className="text-[20px] max-[1599px]:text-[18px] font-forum font-bold text-black mt-1">{selectedWedding.client.name}</p>
                     <p className="text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080] mt-1">{selectedWedding.client.email}</p>
                   </div>
@@ -1913,7 +1918,7 @@ const OrganizerDashboard = () => {
             <div className="bg-white border border-[#00000033] rounded-lg p-6 mb-6">
               <div className="flex justify-between items-center mb-4">
                 <div>
-                  <h3 className="text-[26px] max-[1599px]:text-[22px] font-forum font-bold text-black">{t.organizer.tasks}</h3>
+                  <h3 className="text-[26px] max-[1599px]:text-[22px] font-forum font-bold text-black">Задания</h3>
                   <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000060] mt-1">
                     Перетащите элементы для изменения порядка
                   </p>
@@ -1922,7 +1927,7 @@ const OrganizerDashboard = () => {
                   onClick={handleCreateTask}
                   className="px-4 md:px-6 py-2 md:py-3 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[18px] max-[1599px]:text-[16px] font-forum"
                 >
-                  + {t.organizer.addTask}
+                  + Добавить задание
                 </button>
               </div>
               {selectedWedding.tasks && selectedWedding.tasks.length > 0 ? (
@@ -1953,32 +1958,23 @@ const OrganizerDashboard = () => {
                             }`}
                           >
                             {task.status === 'completed'
-                              ? t.organizer.taskStatus.completed
+                              ? 'Выполнено'
                               : task.status === 'in_progress'
-                              ? t.organizer.taskStatus.inProgress
-                              : t.organizer.taskStatus.pending}
+                              ? 'В процессе'
+                              : 'Ожидает'}
                           </span>
                           {task.due_date && (
                             <span className="text-[14px] font-forum font-light text-[#00000080]">
-                              {t.organizer.dueDate}: {new Date(task.due_date).toLocaleDateString(currentLanguage === 'en' ? 'en-US' : currentLanguage === 'ua' ? 'uk-UA' : 'ru-RU')}
+                              Срок: {new Date(task.due_date).toLocaleDateString('ru-RU')}
                             </span>
                           )}
                         </div>
                         <h4 className="text-[20px] max-[1599px]:text-[18px] font-forum font-bold text-black mt-2">
-                          {currentLanguage === 'en' && task.title_en ? task.title_en :
-                           currentLanguage === 'ru' && task.title_ru ? task.title_ru :
-                           currentLanguage === 'ua' && task.title_ua ? task.title_ua :
-                           task.title || task.title_en || task.title_ru || task.title_ua || ''}
+                          {task.title_ru || task.title || task.title_en || task.title_ua || ''}
                         </h4>
                         {task.link && (() => {
-                          // Выбираем текст ссылки в зависимости от текущего языка
-                          const linkText = currentLanguage === 'ua' && task.link_text_ua 
-                            ? task.link_text_ua 
-                            : currentLanguage === 'ru' && task.link_text_ru 
-                            ? task.link_text_ru 
-                            : currentLanguage === 'en' && task.link_text_en 
-                            ? task.link_text_en 
-                            : task.link_text;
+                          // Выбираем текст ссылки (приоритет русскому)
+                          const linkText = task.link_text_ru || task.link_text || task.link_text_en || task.link_text_ua;
                           
                           return linkText ? (
                             <a
@@ -1998,13 +1994,13 @@ const OrganizerDashboard = () => {
                           onClick={() => handleEditTask(task)}
                           className="px-3 py-1 bg-white border border-[#00000033] text-black rounded hover:bg-gray-50 transition-colors cursor-pointer text-[16px] font-forum"
                         >
-                          {t.common.edit}
+                          Редактировать
                         </button>
                         <button
                           onClick={() => handleDeleteTask(task.id)}
                           className="px-3 py-1 bg-white border border-red-300 text-red-600 rounded hover:bg-red-50 transition-colors cursor-pointer text-[16px] font-forum"
                         >
-                          {t.common.delete}
+                          Удалить
                         </button>
                       </div>
                     </div>
@@ -2019,7 +2015,7 @@ const OrganizerDashboard = () => {
             <div className="bg-white border border-[#00000033] rounded-lg p-6 mb-6">
               <div className="flex justify-between items-center mb-4">
                 <div>
-                  <h3 className="text-[26px] max-[1599px]:text-[22px] font-forum font-bold text-black">{t.organizer.documents}</h3>
+                  <h3 className="text-[26px] max-[1599px]:text-[22px] font-forum font-bold text-black">Документы</h3>
                   <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000060] mt-1">
                     Перетащите элементы для изменения порядка (закрепленные и незакрепленные отдельно)
                   </p>
@@ -2028,7 +2024,7 @@ const OrganizerDashboard = () => {
                   onClick={handleCreateDocument}
                   className="px-4 md:px-6 py-2 md:py-3 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[18px] max-[1599px]:text-[16px] font-forum"
                 >
-                  + {t.organizer.addDocument}
+                  + Добавить документ
                 </button>
               </div>
               {selectedWedding.documents && selectedWedding.documents.length > 0 ? (
@@ -2050,14 +2046,11 @@ const OrganizerDashboard = () => {
                         <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <h4 className="text-[20px] max-[1599px]:text-[18px] font-forum font-bold text-black">
-                            {currentLanguage === 'en' && doc.name_en ? doc.name_en :
-                             currentLanguage === 'ru' && doc.name_ru ? doc.name_ru :
-                             currentLanguage === 'ua' && doc.name_ua ? doc.name_ua :
-                             doc.name || doc.name_en || doc.name_ru || doc.name_ua || ''}
+                            {doc.name_ru || doc.name || doc.name_en || doc.name_ua || ''}
                           </h4>
                           {doc.pinned && (
                             <span className="px-2 py-1 text-[14px] font-forum bg-yellow-100 text-yellow-800 rounded">
-                              {t.organizer.pinned}
+                              Закреплено
                             </span>
                           )}
                         </div>
@@ -2068,7 +2061,7 @@ const OrganizerDashboard = () => {
                             rel="noopener noreferrer"
                             className="text-[16px] max-[1599px]:text-[15px] font-forum text-black hover:underline mt-1 inline-block cursor-pointer"
                           >
-                            {t.organizer.openLink}
+                            Открыть ссылку
                           </a>
                         )}
                         </div>
@@ -2078,20 +2071,20 @@ const OrganizerDashboard = () => {
                           onClick={() => handleEditDocument(doc)}
                           className="px-3 py-1 bg-white border border-[#00000033] text-black rounded hover:bg-gray-50 transition-colors cursor-pointer text-[16px] font-forum"
                         >
-                          {t.common.edit}
+                          Редактировать
                         </button>
                         <button
                           onClick={() => handleDeleteDocument(doc)}
                           className="px-3 py-1 bg-white border border-red-300 text-red-600 rounded hover:bg-red-50 transition-colors cursor-pointer text-[16px] font-forum"
                         >
-                          {t.common.delete}
+                          Удалить
                         </button>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-[18px] font-forum font-light text-[#00000080]">{t.organizer.noDocuments}</p>
+                <p className="text-[18px] font-forum font-light text-[#00000080]">Нет документов</p>
               )}
             </div>
 
@@ -2105,7 +2098,7 @@ const OrganizerDashboard = () => {
                       onClick={handleDeletePresentation}
                       className="px-4 md:px-6 py-2 md:py-3 bg-white border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors cursor-pointer text-[18px] max-[1599px]:text-[16px] font-forum"
                     >
-                      {t.organizer.deletePresentation}
+                      Удалить презентацию
                     </button>
                   )}
                   <button
@@ -2121,12 +2114,12 @@ const OrganizerDashboard = () => {
               <div className="space-y-2">
                 <p className="text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">
                   {selectedWedding.presentation && selectedWedding.presentation.type === 'wedding' 
-                    ? `${t.organizer.type}: ${t.organizer.weddingPresentation} - "${selectedWedding.presentation.title}"`
-                    : `${t.organizer.type}: ${t.organizer.defaultCompanyPresentation}`}
+                    ? `Тип: Презентация свадьбы - "${selectedWedding.presentation.title}"`
+                    : `Тип: Стандартная презентация компании`}
                 </p>
                 {selectedWedding.presentation && selectedWedding.presentation.sections && (
                   <p className="text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">
-                    {t.organizer.sections}: {selectedWedding.presentation.sections.length}
+                    Секций: {selectedWedding.presentation.sections.length}
                   </p>
                 )}
               </div>

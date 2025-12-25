@@ -36,45 +36,74 @@ const SplashScreen = ({ wedding, savedCoupleNames, showSplash, splashRemoved, on
       }}
     >
       <div className="text-center -mt-16">
-        {/* Если есть кастомный полный текст, показываем только его */}
-        {wedding?.splash_welcome_text_en ? (
-          <div>
+        {/* Имена пары - ВСЕГДА показываем отдельно, НИКОГДА не используем splash_welcome_text_en для h1 */}
+        {(() => {
+          // ВАЖНО: Берем имена ТОЛЬКО из couple_name_1_en и couple_name_2_en
+          // НИКОГДА не используем splash_welcome_text_en для h1, даже если имена пустые
+          // Поддерживаем случай с одним именем (корпоратив)
+          
+          // Явно берем имена ТОЛЬКО из этих полей, игнорируя splash_welcome_text_en
+          // ВАЖНО: Приоритет wedding данных над savedCoupleNames
+          // Это гарантирует, что мы используем актуальные данные из базы, а не старые из localStorage
+          // ЯВНО проверяем, что мы НЕ используем splash_welcome_text_en
+          const name1Raw = wedding?.couple_name_1_en || savedCoupleNames?.name1 || '';
+          const name2Raw = wedding?.couple_name_2_en || savedCoupleNames?.name2 || '';
+          const name1 = name1Raw.trim();
+          const name2 = name2Raw.trim();
+          
+          // КРИТИЧЕСКАЯ ПРОВЕРКА: убеждаемся, что name1 НЕ равен splash_welcome_text_en
+          // Если они равны, значит где-то произошла ошибка, и мы должны использовать пустую строку
+          if (name1 === wedding?.splash_welcome_text_en?.trim()) {
+            // Используем пустую строку вместо неправильного значения
+            const correctedName1 = '';
+            const correctedName2 = name2;
+            
+            if (!correctedName1 && !correctedName2) {
+              return null;
+            }
+            
+            return (
+              <h1 
+                key="couple-names-h1"
+                className="text-[36px] sm:text-[54px] md:text-[72px] lg:text-[58px] max-[1599px]:lg:text-[58px] min-[1600px]:lg:text-[90px] xl:text-[90px] max-[1599px]:xl:text-[76px] min-[1600px]:xl:text-[117px] font-sloop text-black px-4 leading-[1.1]"
+              >
+                {correctedName1}
+                {correctedName1 && correctedName2 && <span className='font-sloop'> & </span>}
+                {correctedName2}
+              </h1>
+            );
+          }
+          
+          const hasName1 = name1 !== '';
+          const hasName2 = name2 !== '';
+          
+          // Если имен нет, не показываем h1 вообще (не используем splash_welcome_text_en как fallback)
+          if (!hasName1 && !hasName2) {
+            return null;
+          }
+          
+          // ВАЖНО: h1 содержит ТОЛЬКО имена из couple_name_1_en и couple_name_2_en
+          // НИКОГДА не используем splash_welcome_text_en для h1
+          // Поддерживаем случай с одним именем (корпоратив) - показываем только name1
+          
+          return (
             <h1 
+              key="couple-names-h1"
               className="text-[36px] sm:text-[54px] md:text-[72px] lg:text-[58px] max-[1599px]:lg:text-[58px] min-[1600px]:lg:text-[90px] xl:text-[90px] max-[1599px]:xl:text-[76px] min-[1600px]:xl:text-[117px] font-sloop text-black px-4 leading-[1.1]"
             >
-              {wedding.splash_welcome_text_en}
+              {hasName1 && name1}
+              {hasName1 && hasName2 && <span className='font-sloop'> & </span>}
+              {hasName2 && name2}
             </h1>
-          </div>
-        ) : (
-          <>
-            {/* Имена пары - показываем сохраненные имена сразу, чтобы избежать "прыжка" */}
-            {(() => {
-              const name1 = wedding?.couple_name_1_en || savedCoupleNames?.name1 || '';
-              const name2 = wedding?.couple_name_2_en || savedCoupleNames?.name2 || '';
-              const hasName1 = name1.trim() !== '';
-              const hasName2 = name2.trim() !== '';
-              const hasBothNames = hasName1 && hasName2;
-              
-              if (!hasName1 && !hasName2) {
-                return null;
-              }
-              
-              return (
-                <h1 
-                  className="text-[36px] sm:text-[54px] md:text-[72px] lg:text-[58px] max-[1599px]:lg:text-[58px] min-[1600px]:lg:text-[90px] xl:text-[90px] max-[1599px]:xl:text-[76px] min-[1600px]:xl:text-[117px] font-sloop text-black px-4 leading-[1.1]"
-                >
-                  {hasName1 && name1}{hasBothNames && <span className='font-sloop'> & </span>}{hasName2 && name2}
-                </h1>
-              );
-            })()}
-            {/* Приветственный текст */}
-            <p 
-              className="text-[18px] sm:text-[23px] md:text-[28px] lg:text-[23px] max-[1599px]:lg:text-[23px] min-[1600px]:lg:text-[36px] xl:text-[38px] max-[1599px]:xl:text-[30px] min-[1600px]:xl:text-[47px] text-black px-4 leading-[1.2] mt-6 md:mt-8 lg:mt-6 xl:mt-8 font-branch"
-            >
-              Welcome to your event organization space!
-            </p>
-          </>
-        )}
+          );
+        })()}
+        {/* Приветственный текст - используем ТОЛЬКО splash_welcome_text_en для нижнего текста, НЕ для имен */}
+        <p 
+          key="splash-welcome-text-p"
+          className="text-[18px] sm:text-[23px] md:text-[28px] lg:text-[23px] max-[1599px]:lg:text-[23px] min-[1600px]:lg:text-[36px] xl:text-[38px] max-[1599px]:xl:text-[30px] min-[1600px]:xl:text-[47px] text-black px-4 leading-[1.2] mt-6 md:mt-8 lg:mt-6 xl:mt-8 font-branch"
+        >
+          {wedding?.splash_welcome_text_en || 'Welcome to your event organization space!'}
+        </p>
       </div>
       
       {/* Scroll down indicator */}

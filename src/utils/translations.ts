@@ -99,6 +99,7 @@ export interface Translations {
     tasks: string;
     addTask: string;
     editTask: string;
+    taskText: string;
     deleteTask: string;
     deleteTaskConfirm: string;
     taskStatus: {
@@ -249,6 +250,7 @@ const translations: Record<Language, Translations> = {
       tasks: 'Tasks',
       addTask: 'Add Task',
       editTask: 'Edit Task',
+      taskText: 'Task Text',
       deleteTask: 'Delete Task',
       deleteTaskConfirm: 'Are you sure you want to delete this task?',
       taskStatus: {
@@ -295,8 +297,8 @@ const translations: Record<Language, Translations> = {
       countryUa: 'Country (UA)',
       fullWelcomeTextEn: 'Full Welcome Text in Main Content (EN)',
       fullWelcomeTextEnHint: 'If not filled, format will be used: Name1 & Name2, Welcome to your wedding organization space!',
-      splashWelcomeTextEn: 'Full Welcome Text in Splash Screen (EN)',
-      splashWelcomeTextEnHint: 'If not filled, standard text will be used: Welcome to your wedding organization space!',
+      splashWelcomeTextEn: 'Welcome Text in Splash Screen (EN)',
+      splashWelcomeTextEnHint: 'Text displayed below the couple names. If not filled, standard text will be used: Welcome to your wedding organization space!',
       chatLink: 'Chat Link',
       overview: 'Overview',
       viewAll: 'View all →',
@@ -388,7 +390,7 @@ const translations: Record<Language, Translations> = {
       deleteProject: 'Удалить проект',
       deleteProjectConfirm: 'Вы уверены, что хотите удалить этот проект? Это действие нельзя отменить.',
       projectInfo: 'Информация о проекте',
-      weddingDate: 'Дата свадьбы',
+      weddingDate: 'Дата ивента',
       country: 'Страна',
       place: 'Место',
       guestCount: 'Количество гостей',
@@ -397,6 +399,7 @@ const translations: Record<Language, Translations> = {
       tasks: 'Задачи',
       addTask: 'Добавить задачу',
       editTask: 'Редактировать задачу',
+      taskText: 'Текст задачи',
       deleteTask: 'Удалить задачу',
       deleteTaskConfirm: 'Вы уверены, что хотите удалить эту задачу?',
       taskStatus: {
@@ -443,8 +446,8 @@ const translations: Record<Language, Translations> = {
       countryUa: 'Страна (UA)',
       fullWelcomeTextEn: 'Полный текст приветствия в основном контенте (EN)',
       fullWelcomeTextEnHint: 'Если не заполнено, будет использоваться формат: Имя1 & Имя2, Welcome to your wedding organization space!',
-      splashWelcomeTextEn: 'Полный текст приветствия в заглушке (EN)',
-      splashWelcomeTextEnHint: 'Если не заполнено, будет использоваться стандартный текст: Welcome to your wedding organization space!',
+      splashWelcomeTextEn: 'Текст приветствия в заглушке (EN)',
+      splashWelcomeTextEnHint: 'Текст, который отображается под именами пары. Если не заполнено, будет использоваться стандартный текст: Welcome to your wedding organization space!',
       chatLink: 'Ссылка на чат',
       overview: 'Обзор',
       viewAll: 'Смотреть все →',
@@ -545,6 +548,7 @@ const translations: Record<Language, Translations> = {
       tasks: 'Завдання',
       addTask: 'Додати завдання',
       editTask: 'Редагувати завдання',
+      taskText: 'Текст завдання',
       deleteTask: 'Видалити завдання',
       deleteTaskConfirm: 'Ви впевнені, що хочете видалити це завдання?',
       taskStatus: {
@@ -591,8 +595,8 @@ const translations: Record<Language, Translations> = {
       countryUa: 'Країна (UA)',
       fullWelcomeTextEn: 'Повний текст привітання в основному контенті (EN)',
       fullWelcomeTextEnHint: 'Якщо не заповнено, буде використано формат: Ім\'я1 & Ім\'я2, Welcome to your wedding organization space!',
-      splashWelcomeTextEn: 'Повний текст привітання в заглушці (EN)',
-      splashWelcomeTextEnHint: 'Якщо не заповнено, буде використано стандартний текст: Welcome to your wedding organization space!',
+      splashWelcomeTextEn: 'Текст привітання в заглушці (EN)',
+      splashWelcomeTextEnHint: 'Текст, який відображається під іменами пари. Якщо не заповнено, буде використано стандартний текст: Welcome to your wedding organization space!',
       chatLink: 'Посилання на чат',
       overview: 'Огляд',
       viewAll: 'Переглянути все →',

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Wedding, User } from '../../types';
 import { getTranslation } from '../../utils/translations';
 import { getInitialLanguage } from '../../utils/languageUtils';
@@ -17,8 +17,15 @@ const WeddingModal = ({ wedding, clients, onClose, onSave, onDelete }: WeddingMo
 
   // Вычисляем имена пары для отображения в одном поле
   const getCoupleNamesEn = () => {
-    if (wedding?.couple_name_1_en && wedding?.couple_name_2_en) {
-      return `${wedding.couple_name_1_en} & ${wedding.couple_name_2_en}`;
+    // Приоритет английским именам, если они есть и не пустые
+    const name1 = (wedding?.couple_name_1_en?.trim() || wedding?.couple_name_1_ru?.trim() || '');
+    const name2 = (wedding?.couple_name_2_en?.trim() || wedding?.couple_name_2_ru?.trim() || '');
+    
+    if (name1 && name2) {
+      return `${name1} & ${name2}`;
+    }
+    if (name1) {
+      return name1;
     }
     return '';
   };
@@ -47,10 +54,63 @@ const WeddingModal = ({ wedding, clients, onClose, onSave, onDelete }: WeddingMo
     guest_count: wedding?.guest_count || 0,
     chat_link: wedding?.chat_link || '',
     welcome_message_en: wedding?.welcome_message_en || '',
-    splash_welcome_text_en: wedding?.splash_welcome_text_en || '',
+    splash_welcome_text_en: wedding?.splash_welcome_text_en || 'Welcome to your wedding organization space!',
     full_welcome_text_en: getDefaultFullWelcomeText(),
     full_welcome_text_was_set: !!wedding?.full_welcome_text_en, // Отслеживаем, было ли значение установлено пользователем
   });
+
+  // Синхронизируем форму с данными свадьбы при изменении пропса wedding
+  useEffect(() => {
+    if (wedding) {
+      // Приоритет английским именам, если они есть и не пустые, иначе используем русские
+      const name1 = (wedding.couple_name_1_en?.trim() || wedding.couple_name_1_ru?.trim() || '');
+      const name2 = (wedding.couple_name_2_en?.trim() || wedding.couple_name_2_ru?.trim() || '');
+      const coupleNames = (name1 && name2) ? `${name1} & ${name2}` : (name1 ? name1 : '');
+      
+      const defaultFullWelcomeText = wedding.full_welcome_text_en?.trim()
+        ? wedding.full_welcome_text_en
+        : (name1 && name2
+          ? `${name1} & ${name2}, Welcome to your wedding organization space!`
+          : '');
+
+      setFormData({
+        project_name: wedding.project_name || '',
+        client_id: wedding.client_id || '',
+        coupleNamesEn: coupleNames,
+        wedding_date: wedding.wedding_date || '',
+        country: wedding.country || '',
+        country_en: wedding.country_en || '',
+        country_ru: wedding.country_ru || '',
+        country_ua: wedding.country_ua || '',
+        venue: wedding.venue || '',
+        guest_count: wedding.guest_count || 0,
+        chat_link: wedding.chat_link || '',
+        welcome_message_en: wedding.welcome_message_en || '',
+        splash_welcome_text_en: wedding.splash_welcome_text_en || 'Welcome to your wedding organization space!',
+        full_welcome_text_en: defaultFullWelcomeText,
+        full_welcome_text_was_set: !!wedding.full_welcome_text_en?.trim(),
+      });
+    } else {
+      // Если wedding null, сбрасываем форму
+      setFormData({
+        project_name: '',
+        client_id: '',
+        coupleNamesEn: '',
+        wedding_date: '',
+        country: '',
+        country_en: '',
+        country_ru: '',
+        country_ua: '',
+        venue: '',
+        guest_count: 0,
+        chat_link: '',
+        welcome_message_en: '',
+        splash_welcome_text_en: 'Welcome to your wedding organization space!',
+        full_welcome_text_en: '',
+        full_welcome_text_was_set: false,
+      });
+    }
+  }, [wedding]);
 
   // Обновляем Full Welcome Text при изменении имен пары, только если пользователь еще не установил его вручную
   const handleCoupleNamesChange = (value: string) => {
@@ -81,17 +141,17 @@ const WeddingModal = ({ wedding, clients, onClose, onSave, onDelete }: WeddingMo
     
     // Парсим имена пары из одной строки
     const coupleNames = formData.coupleNamesEn.trim();
-    const names = coupleNames.split('&').map(name => name.trim());
+    const names = coupleNames.split('&').map(name => name.trim()).filter(Boolean);
     const couple_name_1_en = names[0] || '';
     const couple_name_2_en = names[1] || '';
 
     // Создаем объект без служебных полей
     const weddingData: Omit<Wedding, 'id' | 'created_at' | 'updated_at'> = {
-      project_name: formData.project_name || undefined,
+      project_name: formData.project_name.trim() || undefined,
       client_id: formData.client_id,
       organizer_id: wedding?.organizer_id || '', // Будет заменен в handleSaveWedding при создании
-      couple_name_1_en,
-      couple_name_2_en,
+      couple_name_1_en: couple_name_1_en || '',
+      couple_name_2_en: couple_name_2_en || '',
       couple_name_1_ru: wedding?.couple_name_1_ru || '',
       couple_name_2_ru: wedding?.couple_name_2_ru || '',
       wedding_date: formData.wedding_date,
@@ -101,10 +161,10 @@ const WeddingModal = ({ wedding, clients, onClose, onSave, onDelete }: WeddingMo
       country_ua: formData.country_ua,
       venue: formData.venue,
       guest_count: formData.guest_count,
-      chat_link: formData.chat_link || undefined,
-      welcome_message_en: formData.welcome_message_en || undefined,
-      splash_welcome_text_en: formData.splash_welcome_text_en || undefined,
-      full_welcome_text_en: formData.full_welcome_text_en || undefined,
+      chat_link: formData.chat_link.trim() || undefined,
+      welcome_message_en: formData.welcome_message_en.trim() || undefined,
+      splash_welcome_text_en: formData.splash_welcome_text_en.trim() || undefined,
+      full_welcome_text_en: formData.full_welcome_text_en.trim() || undefined,
     };
     
     onSave(weddingData);
@@ -146,7 +206,7 @@ const WeddingModal = ({ wedding, clients, onClose, onSave, onDelete }: WeddingMo
               ) : (
                 <div className="w-full px-3 py-2 border border-[#00000033] rounded-lg bg-gray-50">
                   <p className="text-[14px] font-forum text-[#00000080]">
-                    Список клиентов пуст. Создайте клиента перед добавлением свадьбы.
+                    Список клиентов пуст. Создайте клиента перед добавлением ивента.
                   </p>
                 </div>
               )}
@@ -175,7 +235,7 @@ const WeddingModal = ({ wedding, clients, onClose, onSave, onDelete }: WeddingMo
                 value={formData.coupleNamesEn}
                 onChange={(e) => handleCoupleNamesChange(e.target.value)}
                 className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
-                placeholder="Konstantin & Diana"
+                placeholder="Name 1 & Name 2"
               />
               <p className="text-[12px] max-[1599px]:text-[11px] font-forum font-light text-[#00000060] mt-1">
                 Введите имена пары на английском в одну строку через & (например: Konstantin & Diana)
@@ -282,7 +342,7 @@ const WeddingModal = ({ wedding, clients, onClose, onSave, onDelete }: WeddingMo
                 value={formData.full_welcome_text_en}
                 onChange={(e) => handleFullWelcomeTextChange(e.target.value)}
                 className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white min-h-[100px] resize-y"
-                placeholder="Konstantin & Diana, Welcome to your wedding organization space!"
+                placeholder="Name 1 & Name 2, Welcome to your wedding organization space!"
               />
               <p className="text-[12px] max-[1599px]:text-[11px] font-forum font-light text-[#00000060] mt-1">
                 {t.organizer.fullWelcomeTextEnHint}
@@ -297,7 +357,6 @@ const WeddingModal = ({ wedding, clients, onClose, onSave, onDelete }: WeddingMo
                 type="text"
                 value={formData.splash_welcome_text_en}
                 onChange={(e) => setFormData({ ...formData, splash_welcome_text_en: e.target.value })}
-                placeholder="Welcome to your wedding organization space!"
                 className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
               />
               <p className="text-[12px] max-[1599px]:text-[11px] font-forum font-light text-[#00000060] mt-1">

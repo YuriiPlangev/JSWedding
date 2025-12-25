@@ -37,12 +37,10 @@ BEGIN
   END IF;
   
   -- Проверяем обязательные поля
-  IF wedding_data->>'couple_name_1_en' IS NULL AND wedding_data->>'couple_name_1_ru' IS NULL THEN
+  -- Требуем только первое имя, второе может быть пустым
+  IF (wedding_data->>'couple_name_1_en' IS NULL OR wedding_data->>'couple_name_1_en' = '') 
+     AND (wedding_data->>'couple_name_1_ru' IS NULL OR wedding_data->>'couple_name_1_ru' = '') THEN
     RAISE EXCEPTION 'couple_name_1_en or couple_name_1_ru is required';
-  END IF;
-  
-  IF wedding_data->>'couple_name_2_en' IS NULL AND wedding_data->>'couple_name_2_ru' IS NULL THEN
-    RAISE EXCEPTION 'couple_name_2_en or couple_name_2_ru is required';
   END IF;
   
   IF wedding_data->>'venue' IS NULL OR wedding_data->>'venue' = '' THEN
@@ -53,6 +51,7 @@ BEGIN
   INSERT INTO weddings (
     client_id,
     organizer_id,
+    project_name,
     couple_name_1_en,
     couple_name_1_ru,
     couple_name_2_en,
@@ -72,10 +71,11 @@ BEGIN
   VALUES (
     (wedding_data->>'client_id')::UUID,
     (wedding_data->>'organizer_id')::UUID,
+    NULLIF(wedding_data->>'project_name', ''),
     COALESCE(NULLIF(wedding_data->>'couple_name_1_en', ''), NULLIF(wedding_data->>'couple_name_1_ru', '')),
     COALESCE(NULLIF(wedding_data->>'couple_name_1_ru', ''), NULLIF(wedding_data->>'couple_name_1_en', '')),
-    COALESCE(NULLIF(wedding_data->>'couple_name_2_en', ''), NULLIF(wedding_data->>'couple_name_2_ru', '')),
-    COALESCE(NULLIF(wedding_data->>'couple_name_2_ru', ''), NULLIF(wedding_data->>'couple_name_2_en', '')),
+    NULLIF(wedding_data->>'couple_name_2_en', ''),
+    NULLIF(wedding_data->>'couple_name_2_ru', ''),
     (wedding_data->>'wedding_date')::DATE,
     COALESCE(NULLIF(wedding_data->>'country', ''), NULLIF(wedding_data->>'country_ru', ''), NULLIF(wedding_data->>'country_en', ''), ''),
     NULLIF(wedding_data->>'country_en', ''),

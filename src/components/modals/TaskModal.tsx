@@ -23,7 +23,6 @@ const TaskModal = ({ task, onClose, onSave }: TaskModalProps) => {
     link_text_en: task?.link_text_en || '',
     link_text_ru: task?.link_text_ru || '',
     link_text_ua: task?.link_text_ua || '',
-    due_date: task?.due_date || '',
     status: (task?.status || 'pending') as 'pending' | 'in_progress' | 'completed',
   });
 
@@ -52,7 +51,6 @@ const TaskModal = ({ task, onClose, onSave }: TaskModalProps) => {
       ...(formData.title_en?.trim() && { title_en: formData.title_en.trim() }),
       ...(formData.title_ru?.trim() && { title_ru: formData.title_ru.trim() }),
       ...(formData.title_ua?.trim() && { title_ua: formData.title_ua.trim() }),
-      ...(formData.due_date && formData.due_date.trim() && { due_date: formData.due_date }),
       ...(formData.link && formData.link.trim() && { link: formData.link.trim() }),
       ...(mainLinkText && { link_text: mainLinkText }),
       ...(formData.link_text_en?.trim() && { link_text_en: formData.link_text_en.trim() }),
@@ -80,7 +78,7 @@ const TaskModal = ({ task, onClose, onSave }: TaskModalProps) => {
             <div className="grid grid-cols-3 gap-4">
               <div>
                 <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
-                  {t.organizer.documentName} (EN) *
+                  {t.organizer.taskText} (EN) *
                 </label>
                 <input
                   type="text"
@@ -91,7 +89,7 @@ const TaskModal = ({ task, onClose, onSave }: TaskModalProps) => {
               </div>
               <div>
                 <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
-                  {t.organizer.documentName} (RU) *
+                  {t.organizer.taskText} (RU) *
                 </label>
                 <input
                   type="text"
@@ -102,7 +100,7 @@ const TaskModal = ({ task, onClose, onSave }: TaskModalProps) => {
               </div>
               <div>
                 <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
-                  {t.organizer.documentName} (UA) *
+                  {t.organizer.taskText} (UA) *
                 </label>
                 <input
                   type="text"
@@ -126,18 +124,6 @@ const TaskModal = ({ task, onClose, onSave }: TaskModalProps) => {
                 <option value="in_progress">{t.organizer.taskStatus.inProgress}</option>
                 <option value="completed">{t.organizer.taskStatus.completed}</option>
               </select>
-            </div>
-
-            <div>
-              <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
-                {t.organizer.dueDate}
-              </label>
-              <input
-                type="date"
-                value={formData.due_date}
-                onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white cursor-pointer"
-              />
             </div>
 
             <div>

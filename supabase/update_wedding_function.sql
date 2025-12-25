@@ -47,6 +47,7 @@ BEGIN
   -- Используем CASE WHEN для правильной обработки NULL значений (если поле присутствует в JSON, обновляем его, иначе оставляем старое значение)
   UPDATE weddings
   SET
+    project_name = CASE WHEN updates ? 'project_name' THEN NULLIF(updates->>'project_name', '')::TEXT ELSE project_name END,
     couple_name_1_en = CASE WHEN updates ? 'couple_name_1_en' THEN (updates->>'couple_name_1_en')::TEXT ELSE couple_name_1_en END,
     couple_name_2_en = CASE WHEN updates ? 'couple_name_2_en' THEN (updates->>'couple_name_2_en')::TEXT ELSE couple_name_2_en END,
     couple_name_1_ru = CASE WHEN updates ? 'couple_name_1_ru' THEN (updates->>'couple_name_1_ru')::TEXT ELSE couple_name_1_ru END,

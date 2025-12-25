@@ -462,12 +462,19 @@ export const taskService = {
       return null;
     }
 
-    invalidateCache(`organizer_task_groups_${group.organizer_id}`);
+    if (data) {
+      // Инвалидируем кеш для групп и для групп с заданиями
+      invalidateCache(`organizer_task_groups_${data.organizer_id}`);
+      invalidateCache(`organizer_tasks_by_groups_${data.organizer_id}`);
+    }
     return data;
   },
 
   // Обновить блок заданий
   async updateTaskGroup(groupId: string, updates: Partial<TaskGroup>): Promise<TaskGroup | null> {
+    // Логируем обновления для отладки
+    console.log('[updateTaskGroup] Updating:', { groupId, updates });
+    
     const { data, error } = await supabase
       .from('task_groups')
       .update(updates)
@@ -476,12 +483,16 @@ export const taskService = {
       .single();
 
     if (error) {
-      console.error('Error updating task group:', error);
+      console.error('[updateTaskGroup] Error:', error);
       return null;
     }
 
+    console.log('[updateTaskGroup] Success:', data);
+
     if (data) {
+      // Инвалидируем кеш для групп и для групп с заданиями
       invalidateCache(`organizer_task_groups_${data.organizer_id}`);
+      invalidateCache(`organizer_tasks_by_groups_${data.organizer_id}`);
     }
     return data;
   },
