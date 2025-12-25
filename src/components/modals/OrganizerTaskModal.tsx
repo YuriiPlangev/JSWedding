@@ -54,7 +54,7 @@ const OrganizerTaskModal = ({ task, onClose, onSave }: OrganizerTaskModalProps) 
               <textarea
                 value={formData.title_ru}
                 onChange={(e) => setFormData({ ...formData, title_ru: e.target.value })}
-                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white min-h-[100px] resize-y"
+                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white min-h-[100px] resize-y placeholder:text-[#00000060]"
                 placeholder="Введите текст задания"
                 required
               />

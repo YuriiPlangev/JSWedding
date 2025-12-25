@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { weddingService, taskService, documentService, clientService, presentationService } from '../services/weddingService';
 import type { Wedding, Task, TaskGroup, Document, User, Presentation } from '../types';
 import { WeddingModal, TaskModal, OrganizerTaskModal, DocumentModal, PresentationModal, ClientModal } from '../components/modals';
+import logoV3 from '../assets/logoV3.svg';
 
 type ViewMode = 'weddings' | 'tasks' | 'wedding-details';
 
@@ -25,7 +26,18 @@ const OrganizerDashboard = () => {
   const [weddings, setWeddings] = useState<Wedding[]>([]);
   const [clients, setClients] = useState<User[]>([]);
   const [selectedWedding, setSelectedWedding] = useState<SelectedWedding | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>('tasks');
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    // Восстанавливаем viewMode из localStorage при загрузке
+    try {
+      const saved = localStorage.getItem('organizer_viewMode');
+      if (saved && (saved === 'tasks' || saved === 'weddings' || saved === 'wedding-details')) {
+        return saved as ViewMode;
+      }
+    } catch {
+      // Игнорируем ошибки
+    }
+    return 'tasks';
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // Функции для работы с localStorage
@@ -84,6 +96,17 @@ const OrganizerDashboard = () => {
     const [editingTaskGroup, setEditingTaskGroup] = useState<TaskGroup | null>(null);
     const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
     const [showGroupMenu, setShowGroupMenu] = useState<string | null>(null);
+    
+    // Состояния для drag and drop блоков задач
+    const [draggedGroupId, setDraggedGroupId] = useState<string | null>(null);
+    
+    // Состояния для раскрытия/сворачивания секций "Выполнено"
+    const [expandedCompletedSections, setExpandedCompletedSections] = useState<Set<string>>(new Set());
+    
+    // Состояния для inline создания задач
+    const [creatingTaskGroupId, setCreatingTaskGroupId] = useState<string | null>(null);
+    const [newTaskText, setNewTaskText] = useState('');
+    const newTaskInputRef = useRef<HTMLInputElement | null>(null);
     
     // Состояния для цветового пикера
     const [colorPickerHue, setColorPickerHue] = useState(0);
@@ -158,12 +181,12 @@ const OrganizerDashboard = () => {
 
     // Используем ref для отслеживания, был ли уже загружен user.id для заданий
     const loadedTasksUserIdRef = useRef<string | null>(null);
-    
+
     useEffect(() => {
       // Загружаем задания только один раз при монтировании или при изменении user.id
       if (user?.id && loadedTasksUserIdRef.current !== user.id) {
         loadedTasksUserIdRef.current = user.id;
-        loadOrganizerTasks();
+      loadOrganizerTasks();
       }
     }, [user?.id, loadOrganizerTasks]);
 
@@ -271,9 +294,9 @@ const OrganizerDashboard = () => {
     };
 
     const handleCreateTask = (groupId: string) => {
-      setEditingOrganizerTask(null);
-      setSelectedGroupId(groupId);
-      setShowOrganizerTaskModal(true);
+      setCreatingTaskGroupId(groupId);
+      setNewTaskText('');
+      // Фокус на input будет установлен через useEffect
     };
 
     const handleEditTask = (task: Task) => {
@@ -312,6 +335,160 @@ const OrganizerDashboard = () => {
         console.error('Error saving task:', err);
         setError('Ошибка при сохранении задания');
       }
+    };
+
+    // Функция для сохранения inline задачи
+    const handleSaveInlineTask = async (groupId: string, e?: React.MouseEvent | React.KeyboardEvent) => {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      
+      if (!user?.id || !newTaskText.trim()) return;
+
+      const taskText = newTaskText.trim();
+      
+      // Оптимистичное обновление: сразу добавляем задачу в UI
+      const optimisticTask: Task = {
+        id: `temp-${Date.now()}`, // Временный ID
+        wedding_id: null,
+        organizer_id: user.id,
+        task_group_id: groupId,
+        title: taskText,
+        title_ru: taskText,
+        status: 'pending',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      // Сразу обновляем локальное состояние
+      setTaskGroups(prevGroups =>
+        prevGroups.map(({ group, tasks }) =>
+          group.id === groupId
+            ? { group, tasks: [...tasks, optimisticTask] }
+            : { group, tasks }
+        )
+      );
+
+      // Очищаем текст и оставляем input открытым для следующей задачи
+      setNewTaskText('');
+      
+      // Возвращаем фокус на input сразу
+      setTimeout(() => {
+        if (creatingTaskGroupId === groupId && newTaskInputRef.current) {
+          newTaskInputRef.current.focus();
+        }
+      }, 0);
+
+      // Сохраняем на сервере в фоне
+      try {
+        const result = await taskService.createOrganizerTask({
+          title: taskText,
+          title_ru: taskText,
+          status: 'pending',
+          organizer_id: user.id,
+          task_group_id: groupId,
+        });
+
+        if (!result) {
+          // Если сохранение не удалось, удаляем оптимистично добавленную задачу
+          setTaskGroups(prevGroups =>
+            prevGroups.map(({ group, tasks }) =>
+              group.id === groupId
+                ? { group, tasks: tasks.filter(t => t.id !== optimisticTask.id) }
+                : { group, tasks }
+            )
+          );
+          setError('Не удалось создать задание');
+          return;
+        }
+
+        // Заменяем временную задачу на реальную с сервера
+        setTaskGroups(prevGroups =>
+          prevGroups.map(({ group, tasks }) =>
+            group.id === groupId
+              ? { 
+                  group, 
+                  tasks: tasks.map(t => t.id === optimisticTask.id ? result : t)
+                }
+              : { group, tasks }
+          )
+        );
+      } catch (err) {
+        console.error('Error saving inline task:', err);
+        // Удаляем оптимистично добавленную задачу при ошибке
+        setTaskGroups(prevGroups =>
+          prevGroups.map(({ group, tasks }) =>
+            group.id === groupId
+              ? { group, tasks: tasks.filter(t => t.id !== optimisticTask.id) }
+              : { group, tasks }
+          )
+        );
+        setError('Ошибка при сохранении задания');
+      }
+    };
+
+    // Автофокус на input при создании новой задачи
+    useEffect(() => {
+      if (creatingTaskGroupId && newTaskInputRef.current) {
+        // Небольшая задержка для корректной работы после перерендера
+        setTimeout(() => {
+          newTaskInputRef.current?.focus();
+        }, 0);
+      }
+    }, [creatingTaskGroupId]);
+
+    // Обработчики drag and drop для блоков задач
+    const handleGroupDragStart = (e: React.DragEvent, groupId: string) => {
+      // Предотвращаем перетаскивание, если клик был на кнопке или другом интерактивном элементе
+      const target = e.target as HTMLElement;
+      if (target.closest('button') || target.closest('input') || target.closest('textarea')) {
+        e.preventDefault();
+        return;
+      }
+      
+      setDraggedGroupId(groupId);
+      e.dataTransfer.effectAllowed = 'move';
+      // Добавляем визуальную обратную связь
+      e.dataTransfer.setData('text/plain', groupId);
+    };
+
+    const handleGroupDragOver = (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      e.dataTransfer.dropEffect = 'move';
+    };
+
+    const handleGroupDrop = async (e: React.DragEvent, targetGroupId: string) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      if (!draggedGroupId || draggedGroupId === targetGroupId) {
+        setDraggedGroupId(null);
+        return;
+      }
+
+      const draggedIndex = taskGroups.findIndex(g => g.group.id === draggedGroupId);
+      const targetIndex = taskGroups.findIndex(g => g.group.id === targetGroupId);
+
+      if (draggedIndex === -1 || targetIndex === -1) {
+        setDraggedGroupId(null);
+        return;
+      }
+
+      // Оптимистичное обновление: сразу меняем порядок в UI
+      const newGroups = [...taskGroups];
+      const [draggedGroup] = newGroups.splice(draggedIndex, 1);
+      newGroups.splice(targetIndex, 0, draggedGroup);
+      setTaskGroups(newGroups);
+
+      // Сохраняем новый порядок в БД (пока просто обновляем локальное состояние)
+      // В будущем можно добавить поле order в таблицу task_groups
+      setDraggedGroupId(null);
+    };
+
+    const handleGroupDragEnd = () => {
+      setDraggedGroupId(null);
     };
 
     const handleToggleTask = async (taskId: string, completed: boolean) => {
@@ -379,29 +556,22 @@ const OrganizerDashboard = () => {
 
     return (
       <div className="h-full flex flex-col">
-        <div className="flex justify-end mb-4 flex-shrink-0">
-          <button
-            onClick={handleCreateGroup}
-            className="px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 md:py-3 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[14px] sm:text-[16px] md:text-[18px] max-[1599px]:text-[16px] font-forum"
-          >
-            + Создать
-          </button>
-        </div>
-
         {/* Блоки заданий в Kanban-стиле */}
         {taskGroups.length > 0 ? (
-          <div className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4">
+          <div className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 items-start">
             {taskGroups.map(({ group, tasks }) => {
               // Разделяем задания на активные и выполненные
+              // Выполненные задачи попадают в архив только после перезагрузки страницы
               const activeTasks = tasks.filter(t => {
                 if (t.status !== 'completed') return true;
-                // Выполненные задания остаются в активных до перезагрузки
+                // Выполненные задачи остаются в активных, если они были отмечены после загрузки страницы
                 return !initiallyCompletedTaskIds.has(t.id);
               });
 
               const completedTasks = tasks.filter(t => 
                 t.status === 'completed' && initiallyCompletedTaskIds.has(t.id)
               );
+              const isCompletedExpanded = expandedCompletedSections.has(group.id);
 
               const backgroundColor = group.color || '#ffffff';
               const isMenuOpen = showGroupMenu === group.id;
@@ -409,7 +579,14 @@ const OrganizerDashboard = () => {
               return (
                 <div 
                   key={group.id} 
-                  className="flex-shrink-0 w-[280px] sm:w-[320px] border border-[#00000033] rounded-lg flex flex-col"
+                  draggable
+                  onDragStart={(e) => handleGroupDragStart(e, group.id)}
+                  onDragOver={handleGroupDragOver}
+                  onDrop={(e) => handleGroupDrop(e, group.id)}
+                  onDragEnd={handleGroupDragEnd}
+                  className={`flex-shrink-0 w-[280px] sm:w-[320px] border border-[#00000033] rounded-lg flex flex-col transition-opacity ${
+                    draggedGroupId === group.id ? 'opacity-50 cursor-grabbing' : 'cursor-grab hover:shadow-md'
+                  }`}
                   style={{ 
                     backgroundColor,
                     maxHeight: 'calc(100vh - 200px)',
@@ -427,6 +604,8 @@ const OrganizerDashboard = () => {
                           e.stopPropagation();
                           setShowGroupMenu(isMenuOpen ? null : group.id);
                         }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onDragStart={(e) => e.stopPropagation()}
                         className="p-1 text-[#00000080] hover:text-black transition-colors cursor-pointer"
                         aria-label="Меню"
                       >
@@ -488,7 +667,7 @@ const OrganizerDashboard = () => {
                                   onClick={() => handleToggleTask(task.id, !isCompleted)}
                                   className={`mt-0.5 flex-shrink-0 w-5 h-5 border-2 rounded-full flex items-center justify-center transition-colors ${
                                     isCompleted 
-                                      ? 'border-green-500 bg-green-500' 
+                                      ? 'border-green-500 bg-green-500 hover:bg-green-600' 
                                       : 'border-[#00000080] hover:border-black bg-white'
                                   }`}
                                   aria-label={isCompleted ? "Отметить невыполненным" : "Отметить выполненным"}
@@ -522,9 +701,88 @@ const OrganizerDashboard = () => {
                       </>
                     )}
 
-                    {/* Выполненные задания (показываются внизу) */}
+                    {/* Inline input для создания новой задачи - показывается под активными задачами */}
+                    {creatingTaskGroupId === group.id && (
+                      <div className="space-y-2 mt-2">
+                        <input
+                          ref={newTaskInputRef}
+                          type="text"
+                          value={newTaskText}
+                          onChange={(e) => setNewTaskText(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleSaveInlineTask(group.id, e);
+                            } else if (e.key === 'Escape') {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setCreatingTaskGroupId(null);
+                              setNewTaskText('');
+                            }
+                          }}
+                          placeholder="Введите текст задания..."
+                          className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white text-[14px] max-[1599px]:text-[13px]"
+                          autoFocus
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              handleSaveInlineTask(group.id, e);
+                            }}
+                            disabled={!newTaskText.trim()}
+                            className="px-3 py-1.5 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[14px] max-[1599px]:text-[13px] font-forum disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Сохранить
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setCreatingTaskGroupId(null);
+                              setNewTaskText('');
+                            }}
+                            className="px-3 py-1.5 border border-[#00000033] text-black rounded-lg hover:bg-gray-50 transition-colors cursor-pointer text-[14px] max-[1599px]:text-[13px] font-forum"
+                          >
+                            Отмена
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Секция "Выполнено" (архив) */}
                     {completedTasks.length > 0 && (
-                      <>
+                      <div className="mt-4 pt-4 border-t border-[#00000033] flex-shrink-0">
+                        <button
+                          onClick={() => {
+                            setExpandedCompletedSections(prev => {
+                              const newSet = new Set(prev);
+                              if (newSet.has(group.id)) {
+                                newSet.delete(group.id);
+                              } else {
+                                newSet.add(group.id);
+                              }
+                              return newSet;
+                            });
+                          }}
+                          className="w-full flex items-center justify-between text-[14px] max-[1599px]:text-[13px] font-forum text-[#00000080] hover:text-black transition-colors cursor-pointer mb-2"
+                        >
+                          <span className="font-bold">Выполнено ({completedTasks.length})</span>
+                          <svg 
+                            width="16" 
+                            height="16" 
+                            viewBox="0 0 16 16" 
+                            fill="none" 
+                            xmlns="http://www.w3.org/2000/svg"
+                            className={`transition-transform ${isCompletedExpanded ? 'rotate-180' : ''}`}
+                          >
+                            <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </button>
+                        {isCompletedExpanded && (
+                          <div className="space-y-2 max-h-[150px] overflow-y-auto pr-1">
                         {completedTasks.map((task) => (
                           <div
                             key={task.id}
@@ -557,7 +815,9 @@ const OrganizerDashboard = () => {
                             </div>
                           </div>
                         ))}
-                      </>
+                          </div>
+                        )}
+                      </div>
                     )}
 
                     {activeTasks.length === 0 && completedTasks.length === 0 && (
@@ -579,6 +839,13 @@ const OrganizerDashboard = () => {
                 </div>
               );
             })}
+            {/* Кнопка создания нового блока в конце списка */}
+            <button
+              onClick={handleCreateGroup}
+              className="flex-shrink-0 w-[200px] sm:w-[240px] h-[80px] border border-[#00000033] rounded-lg bg-white hover:bg-gray-50 transition-colors cursor-pointer flex items-center justify-center text-[12px] max-[1599px]:text-[11px] font-forum text-[#00000080] hover:text-black border-dashed"
+            >
+              + Создать
+            </button>
           </div>
         ) : (
           <div className="bg-white border border-[#00000033] rounded-lg p-8 text-center">
@@ -798,24 +1065,37 @@ const OrganizerDashboard = () => {
 
   // Используем ref для отслеживания, был ли уже загружен user.id
   const loadedUserIdRef = useRef<string | null>(null);
-  
+
   useEffect(() => {
     if (user?.id && user.role === 'organizer') {
       // Загружаем данные только один раз при монтировании или при изменении user.id
       if (loadedUserIdRef.current !== user.id) {
         loadedUserIdRef.current = user.id;
-        loadData();
+      loadData();
       }
     } else if (user && user.role !== 'organizer') {
       // Если пользователь не организатор, перенаправляем
+      // Но только если он не находится уже на правильной странице
+      if (window.location.pathname !== '/dashboard' && window.location.pathname !== '/client') {
       navigate('/dashboard', { replace: true });
     }
+    }
   }, [user?.id, user?.role, navigate, loadData]);
+
+  // Сохраняем viewMode в localStorage при изменении
+  useEffect(() => {
+    try {
+      localStorage.setItem('organizer_viewMode', viewMode);
+    } catch (error) {
+      console.error('Error saving viewMode to localStorage:', error);
+    }
+  }, [viewMode]);
 
   // Восстанавливаем открытые вкладки после загрузки данных
   const hasRestoredTabsRef = useRef(false);
   useEffect(() => {
-    if (weddings.length > 0 && openTabs.length > 0 && !selectedWedding && !hasRestoredTabsRef.current) {
+    // Восстанавливаем состояние только один раз после загрузки свадеб
+    if (weddings.length > 0 && !selectedWedding && !hasRestoredTabsRef.current) {
       hasRestoredTabsRef.current = true;
       
       // Проверяем, какие вкладки все еще существуют (не были удалены)
@@ -829,21 +1109,36 @@ const OrganizerDashboard = () => {
         saveTabsToStorage(validTabs);
       }
 
-      // Восстанавливаем последнюю активную вкладку
-      if (lastActiveTabId && validTabs.some(tab => tab.weddingId === lastActiveTabId)) {
-        const activeTab = validTabs.find(tab => tab.weddingId === lastActiveTabId);
-        if (activeTab) {
-          loadWeddingDetails(activeTab.weddingId);
+      // Приоритет 1: Восстанавливаем последнюю активную вкладку по lastActiveTabId
+      if (lastActiveTabId) {
+        const weddingExists = weddings.some(w => w.id === lastActiveTabId);
+        if (weddingExists) {
+          // Загружаем детали свадьбы напрямую, даже если нет открытых вкладок
+          loadWeddingDetails(lastActiveTabId);
+          return;
         }
-        } else if (validTabs.length > 0) {
-        // Если последняя активная вкладка не найдена, открываем первую
+      }
+
+      // Приоритет 2: Если есть валидные вкладки, открываем первую
+      if (validTabs.length > 0) {
         loadWeddingDetails(validTabs[0].weddingId);
-      } else {
-        // Если нет открытых вкладок, переключаемся на ивенты
+        return;
+      }
+
+      // Приоритет 3: Если нет вкладок и нет lastActiveTabId, проверяем сохраненный viewMode
+      const savedViewMode = localStorage.getItem('organizer_viewMode');
+      if (savedViewMode && savedViewMode !== 'wedding-details') {
+        // Если viewMode не 'wedding-details', просто устанавливаем его
+        // (viewMode уже восстановлен из localStorage при инициализации, но на всякий случай)
+        if (savedViewMode === 'tasks' || savedViewMode === 'weddings') {
+          setViewMode(savedViewMode as ViewMode);
+        }
+      } else if (savedViewMode === 'wedding-details' && !lastActiveTabId) {
+        // Если viewMode был 'wedding-details', но нет lastActiveTabId, переключаемся на ивенты
         setViewMode('weddings');
       }
     }
-  }, [weddings.length]); // Запускаем только когда загружены свадьбы
+  }, [weddings.length, lastActiveTabId, selectedWedding]); // Добавляем selectedWedding для проверки
 
   const loadWeddingDetails = async (weddingId: string) => {
     setLoading(true);
@@ -1580,9 +1875,17 @@ const OrganizerDashboard = () => {
       <header className="bg-[#eae6db] border-b border-[#00000033] flex-shrink-0">
         <div className="px-3 sm:px-4 md:px-8 lg:px-12 xl:px-[60px] py-3 sm:py-4 md:py-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <img 
+                src={logoV3} 
+                alt="logo" 
+                className="h-10 sm:h-12 md:h-14 lg:h-12 max-[1599px]:lg:h-11 min-[1600px]:lg:h-14 w-auto flex-shrink-0"
+                style={{ display: 'block' }}
+              />
             <div>
               <h1 className="text-[24px] sm:text-[28px] md:text-[32px] lg:text-[36px] max-[1599px]:text-[28px] lg:max-[1599px]:text-[26px] min-[1300px]:max-[1599px]:text-[30px] font-forum leading-tight text-black">Панель организатора</h1>
               <p className="text-[14px] sm:text-[16px] md:text-[18px] max-[1599px]:text-[16px] lg:max-[1599px]:text-[15px] min-[1300px]:max-[1599px]:text-[16px] font-forum font-light text-[#00000080] leading-tight mt-1">Добро пожаловать, {user?.name}</p>
+              </div>
             </div>
             <button
               onClick={logout}
@@ -1693,27 +1996,38 @@ const OrganizerDashboard = () => {
 
         {viewMode === 'weddings' && (
           <div className="h-full flex flex-col">
-            <div className="flex flex-col sm:flex-row justify-end items-start sm:items-center gap-3 sm:gap-0 mb-4 sm:mb-5 md:mb-6 flex-shrink-0">
-              <div className="flex flex-col sm:flex-row gap-3">
-                <button
-                  onClick={handleCreateClient}
-                  className="px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 md:py-3 bg-white border border-[#00000033] text-black rounded-lg hover:bg-gray-50 transition-colors cursor-pointer text-[14px] sm:text-[16px] md:text-[18px] max-[1599px]:text-[16px] font-forum w-full sm:w-auto"
-                >
-                  + Создать клиента
-                </button>
-                <button
-                  onClick={handleCreateWedding}
-                  className="px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 md:py-3 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[14px] sm:text-[16px] md:text-[18px] max-[1599px]:text-[16px] font-forum w-full sm:w-auto"
-                >
-                  + Добавить ивент
-                </button>
-              </div>
+            {/* Кнопки над списком ивентов слева сверху */}
+            <div className="flex gap-2 mb-4 flex-shrink-0">
+              <button
+                onClick={handleCreateClient}
+                className="px-2 py-1.5 bg-white border border-[#00000033] text-black rounded-lg hover:bg-gray-50 transition-colors cursor-pointer text-[12px] max-[1599px]:text-[11px] font-forum"
+                title="Создать клиента"
+              >
+                + Клиент
+              </button>
+              <button
+                onClick={handleCreateWedding}
+                className="px-2 py-1.5 bg-white border border-[#00000033] text-black rounded-lg hover:bg-gray-50 transition-colors cursor-pointer text-[12px] max-[1599px]:text-[11px] font-forum"
+                title="Добавить ивент"
+              >
+                + Ивент
+              </button>
             </div>
 
             {weddings.length > 0 ? (
               <div className="flex-1 overflow-y-auto">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
-                {weddings.map((wedding) => {
+                {[...weddings].sort((a, b) => {
+                  // Сортируем по дате: ближайший ивент первым
+                  const dateA = a.wedding_date ? new Date(a.wedding_date).getTime() : 0;
+                  const dateB = b.wedding_date ? new Date(b.wedding_date).getTime() : 0;
+                  // Если дата отсутствует, помещаем в конец
+                  if (!dateA && !dateB) return 0;
+                  if (!dateA) return 1;
+                  if (!dateB) return -1;
+                  // Сортируем по возрастанию (ближайший первым)
+                  return dateA - dateB;
+                }).map((wedding) => {
                   // Функция для форматирования даты
                   const formatDate = (dateString: string) => {
                     const date = new Date(dateString);
@@ -1757,7 +2071,7 @@ const OrganizerDashboard = () => {
                     >
                       <div className="flex justify-between items-start mb-4">
                         <div className="flex-1 min-w-0">
-                          <h3 className="text-[18px] sm:text-[20px] md:text-[22px] max-[1599px]:text-[20px] font-forum font-bold text-black mb-3 break-words">
+                          <h3 className="text-[18px] sm:text-[20px] md:text-[22px] max-[1599px]:text-[20px] font-forum font-bold text-black mb-3 break-words" style={{ fontWeight: 'bold' }}>
                             {wedding.project_name || `${wedding.couple_name_1_ru || wedding.couple_name_1_en || ''} & ${wedding.couple_name_2_ru || wedding.couple_name_2_en || ''}`}
                           </h3>
                           
@@ -1854,8 +2168,8 @@ const OrganizerDashboard = () => {
                 >
                   Вернуться к ивентам
                 </button>
-                <h2 className="text-[28px] sm:text-[32px] md:text-[36px] lg:text-[54px] max-[1599px]:text-[40px] lg:max-[1599px]:text-[36px] min-[1300px]:max-[1599px]:text-[42px] font-forum leading-tight text-black break-words">
-                  {`${selectedWedding.couple_name_1_ru || selectedWedding.couple_name_1_en || ''} & ${selectedWedding.couple_name_2_ru || selectedWedding.couple_name_2_en || ''}`}
+                <h2 className="text-[28px] sm:text-[32px] md:text-[36px] lg:text-[54px] max-[1599px]:text-[40px] lg:max-[1599px]:text-[36px] min-[1300px]:max-[1599px]:text-[42px] font-forum font-bold leading-tight text-black break-words">
+                  {selectedWedding.project_name || 'Без названия'}
                 </h2>
               </div>
               <button
@@ -1876,6 +2190,20 @@ const OrganizerDashboard = () => {
                   <p className="text-[14px] sm:text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">Дата свадьбы</p>
                   <p className="text-[18px] sm:text-[20px] max-[1599px]:text-[18px] font-forum font-bold text-black mt-1 break-words">
                     {new Date(selectedWedding.wedding_date).toLocaleDateString('ru-RU')}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[14px] sm:text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">Дней до свадьбы</p>
+                  <p className="text-[18px] sm:text-[20px] max-[1599px]:text-[18px] font-forum font-bold text-black mt-1 break-words">
+                    {(() => {
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      const wedding = new Date(selectedWedding.wedding_date);
+                      wedding.setHours(0, 0, 0, 0);
+                      const diffTime = wedding.getTime() - today.getTime();
+                      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                      return diffDays > 0 ? diffDays : (diffDays === 0 ? 0 : 'Прошло');
+                    })()}
                   </p>
                 </div>
                 <div>

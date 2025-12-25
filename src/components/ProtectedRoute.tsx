@@ -11,9 +11,14 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
   const { isAuthenticated, user, loading } = useAuth();
   const location = useLocation();
 
-  // Пока идет загрузка сессии или пользователя, не делаем редирект
+  // Пока идет загрузка сессии или пользователя, показываем загрузку, но не делаем редирект
+  // Это позволяет сохранить текущий URL при перезагрузке страницы
   if (loading || (isAuthenticated && !user)) {
-    return null;
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-600">Загрузка...</div>
+      </div>
+    );
   }
 
   if (!isAuthenticated) {
@@ -32,8 +37,17 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
 
   if (requiredRole && user?.role !== requiredRole) {
     // Перенаправляем на правильную страницу в зависимости от роли
+    // НО только если пользователь не находится уже на правильной странице
     if (user?.role === 'organizer') {
+      // Если пользователь уже на /organizer, не делаем редирект
+      if (location.pathname === '/organizer') {
+        return <>{children}</>;
+      }
       return <Navigate to="/organizer" replace />;
+    }
+    // Если пользователь уже на /dashboard, не делаем редирект
+    if (location.pathname === '/dashboard') {
+      return <>{children}</>;
     }
     return <Navigate to="/dashboard" replace />;
   }

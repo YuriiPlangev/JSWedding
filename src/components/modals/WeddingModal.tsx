@@ -221,25 +221,8 @@ const WeddingModal = ({ wedding, clients, onClose, onSave, onDelete }: WeddingMo
                 value={formData.project_name}
                 onChange={(e) => setFormData({ ...formData, project_name: e.target.value })}
                 placeholder="Введите название проекта (только для организатора)"
-                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
+                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white placeholder:text-[#00000060]"
               />
-            </div>
-
-            <div>
-              <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
-                Имена пары (EN) *
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.coupleNamesEn}
-                onChange={(e) => handleCoupleNamesChange(e.target.value)}
-                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
-                placeholder="Name 1 & Name 2"
-              />
-              <p className="text-[12px] max-[1599px]:text-[11px] font-forum font-light text-[#00000060] mt-1">
-                Введите имена пары на английском в одну строку через & (например: Konstantin & Diana)
-              </p>
             </div>
 
             <div>
@@ -330,22 +313,24 @@ const WeddingModal = ({ wedding, clients, onClose, onSave, onDelete }: WeddingMo
                 value={formData.chat_link}
                 onChange={(e) => setFormData({ ...formData, chat_link: e.target.value })}
                 placeholder="https://t.me/..."
-                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
+                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white placeholder:text-[#00000060]"
               />
             </div>
 
             <div>
               <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
-                {t.organizer.fullWelcomeTextEn}
+                Имена пары (EN) *
               </label>
-              <textarea
-                value={formData.full_welcome_text_en}
-                onChange={(e) => handleFullWelcomeTextChange(e.target.value)}
-                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white min-h-[100px] resize-y"
-                placeholder="Name 1 & Name 2, Welcome to your wedding organization space!"
+              <input
+                type="text"
+                required
+                value={formData.coupleNamesEn}
+                onChange={(e) => handleCoupleNamesChange(e.target.value)}
+                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white placeholder:text-[#00000060]"
+                placeholder="Name 1 & Name 2"
               />
               <p className="text-[12px] max-[1599px]:text-[11px] font-forum font-light text-[#00000060] mt-1">
-                {t.organizer.fullWelcomeTextEnHint}
+                Введите имена пары на английском в одну строку через & (например: Konstantin & Diana)
               </p>
             </div>
 
@@ -361,6 +346,22 @@ const WeddingModal = ({ wedding, clients, onClose, onSave, onDelete }: WeddingMo
               />
               <p className="text-[12px] max-[1599px]:text-[11px] font-forum font-light text-[#00000060] mt-1">
                 {t.organizer.splashWelcomeTextEnHint}
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
+                {t.organizer.fullWelcomeTextEn}
+              </label>
+              <input
+                type="text"
+                value={formData.full_welcome_text_en}
+                onChange={(e) => handleFullWelcomeTextChange(e.target.value)}
+                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white placeholder:text-[#00000060]"
+                placeholder="Name 1 & Name 2, Welcome to your wedding organization space!"
+              />
+              <p className="text-[12px] max-[1599px]:text-[11px] font-forum font-light text-[#00000060] mt-1">
+                {t.organizer.fullWelcomeTextEnHint}
               </p>
             </div>
 

@@ -128,7 +128,7 @@ const DocumentModal = ({ document, weddingId, onClose, onSave }: DocumentModalPr
                 value={formData.link}
                 onChange={handleLinkChange}
                 placeholder="https://docs.google.com/..."
-                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
+                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white placeholder:text-[#00000060]"
               />
               <p className="text-[12px] font-forum font-light text-[#00000080] mt-1">
                 Укажите ссылку на документ в Google Docs, Google Sheets, Google Drive или другой сервис

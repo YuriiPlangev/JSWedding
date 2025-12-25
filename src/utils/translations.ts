@@ -392,7 +392,7 @@ const translations: Record<Language, Translations> = {
       projectInfo: 'Информация о проекте',
       weddingDate: 'Дата ивента',
       country: 'Страна',
-      place: 'Место',
+      place: 'Локация',
       guestCount: 'Количество гостей',
       client: 'Клиент',
       clientNotes: 'Заметки клиента',

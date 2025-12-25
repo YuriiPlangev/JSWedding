@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { useNavigate, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import bgImg from '../assets/firstScreen.JPG';
 import secondScreen from '../assets/bgJSSS.jpg';
@@ -20,6 +20,7 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const { login, isAuthenticated, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   
   const firstSectionRef = useRef<HTMLDivElement>(null);
   const secondSectionRef = useRef<HTMLDivElement>(null);
@@ -30,9 +31,11 @@ const LoginPage = () => {
 
 
   // Если пользователь уже залогинен, редиректим в зависимости от роли
+  // НО только если он находится на странице логина
   useEffect(() => {
     // Ждем полной загрузки пользователя (не только сессии, но и профиля)
-    if (!authLoading && isAuthenticated && user && user.role) {
+    // И проверяем, что пользователь находится на странице логина
+    if (!authLoading && isAuthenticated && user && user.role && window.location.pathname === '/login') {
       if (user.role === 'organizer') {
         navigate('/organizer', { replace: true });
       } else {
@@ -182,7 +185,8 @@ const LoginPage = () => {
   }, []);
 
   // Если пользователь уже залогинен, редиректим в зависимости от роли
-  if (isAuthenticated && user) {
+  // НО только если он находится на странице логина (не при перезагрузке других страниц)
+  if (isAuthenticated && user && location.pathname === '/login') {
     if (user.role === 'organizer') {
       return <Navigate to="/organizer" replace />;
     }

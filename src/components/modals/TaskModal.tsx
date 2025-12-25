@@ -135,7 +135,7 @@ const TaskModal = ({ task, onClose, onSave }: TaskModalProps) => {
                 value={formData.link}
                 onChange={(e) => setFormData({ ...formData, link: e.target.value })}
                 placeholder="https://example.com"
-                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
+                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white placeholder:text-[#00000060]"
               />
             </div>
 
@@ -153,7 +153,7 @@ const TaskModal = ({ task, onClose, onSave }: TaskModalProps) => {
                     value={formData.link_text_en}
                     onChange={(e) => setFormData({ ...formData, link_text_en: e.target.value, link_text: e.target.value })}
                     placeholder={t.organizer.linkText}
-                    className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
+                    className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white placeholder:text-[#00000060]"
                   />
                 </div>
                 <div>
@@ -165,7 +165,7 @@ const TaskModal = ({ task, onClose, onSave }: TaskModalProps) => {
                     value={formData.link_text_ru}
                     onChange={(e) => setFormData({ ...formData, link_text_ru: e.target.value })}
                     placeholder={t.organizer.linkText}
-                    className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
+                    className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white placeholder:text-[#00000060]"
                   />
                 </div>
                 <div>
@@ -177,7 +177,7 @@ const TaskModal = ({ task, onClose, onSave }: TaskModalProps) => {
                     value={formData.link_text_ua}
                     onChange={(e) => setFormData({ ...formData, link_text_ua: e.target.value })}
                     placeholder={t.organizer.linkText}
-                    className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
+                    className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white placeholder:text-[#00000060]"
                   />
                 </div>
               </div>
