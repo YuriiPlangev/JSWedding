@@ -7,9 +7,10 @@ interface TaskModalProps {
   task: Task | null;
   onClose: () => void;
   onSave: (data: Omit<Task, 'id' | 'created_at' | 'updated_at' | 'wedding_id'>) => void;
+  showPriority?: boolean; // Показывать ли поле срочности (для главного организатора)
 }
 
-const TaskModal = ({ task, onClose, onSave }: TaskModalProps) => {
+const TaskModal = ({ task, onClose, onSave, showPriority = false }: TaskModalProps) => {
   const currentLanguage = getInitialLanguage();
   const t = getTranslation(currentLanguage);
 
@@ -24,6 +25,7 @@ const TaskModal = ({ task, onClose, onSave }: TaskModalProps) => {
     link_text_ru: task?.link_text_ru || '',
     link_text_ua: task?.link_text_ua || '',
     status: (task?.status || 'pending') as 'pending' | 'in_progress' | 'completed',
+    priority: (task?.priority || 'medium') as 'low' | 'medium' | 'high',
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -56,6 +58,7 @@ const TaskModal = ({ task, onClose, onSave }: TaskModalProps) => {
       ...(formData.link_text_en?.trim() && { link_text_en: formData.link_text_en.trim() }),
       ...(formData.link_text_ru?.trim() && { link_text_ru: formData.link_text_ru.trim() }),
       ...(formData.link_text_ua?.trim() && { link_text_ua: formData.link_text_ua.trim() }),
+      ...(showPriority && { priority: formData.priority }),
     };
     
     onSave(taskData);
@@ -125,6 +128,23 @@ const TaskModal = ({ task, onClose, onSave }: TaskModalProps) => {
                 <option value="completed">{t.organizer.taskStatus.completed}</option>
               </select>
             </div>
+
+            {showPriority && (
+              <div>
+                <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
+                  Срочность
+                </label>
+                <select
+                  value={formData.priority}
+                  onChange={(e) => setFormData({ ...formData, priority: e.target.value as 'low' | 'medium' | 'high' })}
+                  className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum cursor-pointer bg-white"
+                >
+                  <option value="low">Низкая</option>
+                  <option value="medium">Средняя</option>
+                  <option value="high">Высокая</option>
+                </select>
+              </div>
+            )}
 
             <div>
               <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">

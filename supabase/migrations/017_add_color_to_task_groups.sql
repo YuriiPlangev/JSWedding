@@ -2,3 +2,5 @@
 ALTER TABLE task_groups 
   ADD COLUMN IF NOT EXISTS color TEXT;
 
+
+

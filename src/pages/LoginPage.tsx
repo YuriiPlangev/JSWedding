@@ -36,7 +36,9 @@ const LoginPage = () => {
     // Ждем полной загрузки пользователя (не только сессии, но и профиля)
     // И проверяем, что пользователь находится на странице логина
     if (!authLoading && isAuthenticated && user && user.role && window.location.pathname === '/login') {
-      if (user.role === 'organizer') {
+      if (user.role === 'main_organizer') {
+        navigate('/main-organizer', { replace: true });
+      } else if (user.role === 'organizer') {
         navigate('/organizer', { replace: true });
       } else {
         navigate('/dashboard', { replace: true });
@@ -187,6 +189,9 @@ const LoginPage = () => {
   // Если пользователь уже залогинен, редиректим в зависимости от роли
   // НО только если он находится на странице логина (не при перезагрузке других страниц)
   if (isAuthenticated && user && location.pathname === '/login') {
+    if (user.role === 'main_organizer') {
+      return <Navigate to="/main-organizer" replace />;
+    }
     if (user.role === 'organizer') {
       return <Navigate to="/organizer" replace />;
     }

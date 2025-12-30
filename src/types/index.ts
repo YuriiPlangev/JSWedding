@@ -1,5 +1,5 @@
 // Типы пользователей
-export type UserRole = 'client' | 'organizer';
+export type UserRole = 'client' | 'organizer' | 'main_organizer';
 
 export interface User {
   id: string;
@@ -74,6 +74,7 @@ export interface Task {
   link_text_ua?: string; // Текст ссылки на украинском
   due_date?: string;
   status: 'pending' | 'in_progress' | 'completed';
+  priority?: 'low' | 'medium' | 'high'; // Срочность задания
   order?: number; // Порядок отображения
   created_at: string;
   updated_at: string;

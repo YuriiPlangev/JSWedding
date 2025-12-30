@@ -6,3 +6,5 @@ ALTER TABLE task_groups
   DROP COLUMN IF EXISTS name_ru,
   DROP COLUMN IF EXISTS name_ua;
 
+
+

@@ -51,8 +51,47 @@ export const weddingService = {
     return data || [];
   },
 
-  // Получить свадьбу по ID (для организатора)
-  async getWeddingById(weddingId: string): Promise<Wedding | null> {
+  // Получить все свадьбы (для главного организатора)
+  async getAllWeddings(): Promise<Wedding[]> {
+    try {
+      // Используем функцию с SECURITY DEFINER для обхода RLS
+      const { data, error } = await supabase.rpc('get_all_weddings');
+
+      if (error) {
+        console.error('Error fetching all weddings:', error);
+        return [];
+      }
+
+      return (data || []) as Wedding[];
+    } catch (err) {
+      console.error('Error in getAllWeddings:', err);
+      return [];
+    }
+  },
+
+  // Получить свадьбу по ID (для организатора или главного организатора)
+  async getWeddingById(weddingId: string, useRpcForMainOrganizer: boolean = false): Promise<Wedding | null> {
+    // Если нужно использовать RPC функцию (для главного организатора)
+    if (useRpcForMainOrganizer) {
+      try {
+        const { data, error } = await supabase.rpc('get_wedding_by_id', {
+          wedding_id: weddingId
+        });
+
+        if (error) {
+          console.error('Error fetching wedding by ID (RPC):', error);
+          return null;
+        }
+
+        // Функция возвращает массив, берем первый элемент
+        return Array.isArray(data) && data.length > 0 ? (data[0] as Wedding) : null;
+      } catch (err) {
+        console.error('Error in getWeddingById (RPC):', err);
+        return null;
+      }
+    }
+
+    // Обычный запрос для организаторов (RLS работает)
     const { data, error } = await supabase
       .from('weddings')
       .select('*')
@@ -280,7 +319,7 @@ export const weddingService = {
 // Сервис для работы с заданиями
 export const taskService = {
   // Получить все задания для свадьбы
-  async getWeddingTasks(weddingId: string, useCache: boolean = true): Promise<Task[]> {
+  async getWeddingTasks(weddingId: string, useCache: boolean = true, useRpc: boolean = false): Promise<Task[]> {
     const cacheKey = `tasks_${weddingId}`;
 
     // Проверяем кеш
@@ -288,6 +327,30 @@ export const taskService = {
       const cached = getCache<Task[]>(cacheKey);
       if (cached) {
         return cached;
+      }
+    }
+
+    // Если нужно использовать RPC функцию (для главного организатора)
+    if (useRpc) {
+      try {
+        const { data, error } = await supabase.rpc('get_wedding_tasks', {
+          p_wedding_id: weddingId
+        });
+
+        if (error) {
+          console.error('Error fetching tasks by RPC:', error);
+          return [];
+        }
+
+        const tasks = (data || []) as Task[];
+
+        // Сохраняем в кеш на 3 минуты
+        setCache(cacheKey, tasks, 3 * 60 * 1000);
+
+        return tasks;
+      } catch (err) {
+        console.error('Error in getWeddingTasks (RPC):', err);
+        return [];
       }
     }
 
@@ -523,11 +586,11 @@ export const taskService = {
   },
 
   // Получить все задания организатора по блокам
-  async getOrganizerTasksByGroups(organizerId: string, useCache: boolean = true): Promise<{ group: TaskGroup; tasks: Task[] }[]> {
+  async getOrganizerTasksByGroups(organizerId: string, useCache: boolean = true): Promise<{ group: TaskGroup | null; tasks: Task[]; isUnsorted?: boolean }[]> {
     const cacheKey = `organizer_tasks_by_groups_${organizerId}`;
 
     if (useCache) {
-      const cached = getCache<{ group: TaskGroup; tasks: Task[] }[]>(cacheKey);
+      const cached = getCache<{ group: TaskGroup | null; tasks: Task[]; isUnsorted?: boolean }[]>(cacheKey);
       if (cached) {
         return cached;
       }
@@ -540,7 +603,6 @@ export const taskService = {
     const { data: tasks, error } = await supabase
       .from('tasks')
       .select('*')
-      .eq('organizer_id', organizerId)
       .is('wedding_id', null)
       .order('created_at', { ascending: false });
 
@@ -549,11 +611,38 @@ export const taskService = {
       return [];
     }
 
+    // Задания с task_group_id = null (несортированные)
+    // Включаем задания, которые принадлежат этому организатору ИЛИ созданы главным организатором (organizer_id = null)
+    const unsortedTasks = (tasks || []).filter(task => 
+      task.task_group_id === null && 
+      (task.organizer_id === organizerId || task.organizer_id === null)
+    );
+
+
     // Группируем задания по блокам
-    const result = groups.map(group => ({
+    // Включаем задания, которые принадлежат этому организатору ИЛИ созданы главным организатором (organizer_id = null)
+    const groupedTasks = groups.map(group => ({
       group,
-      tasks: (tasks || []).filter(task => task.task_group_id === group.id)
+      tasks: (tasks || []).filter(task => 
+        task.task_group_id === group.id && 
+        (task.organizer_id === organizerId || task.organizer_id === null)
+      ),
+      isUnsorted: false as const
     }));
+
+    // Добавляем блок несортированных задач в начало, если есть такие задания
+    // Несортированные задачи - это все задания с task_group_id = null (независимо от organizer_id)
+    const result: { group: TaskGroup | null; tasks: Task[]; isUnsorted?: boolean }[] = [];
+    
+    if (unsortedTasks.length > 0) {
+      result.push({
+        group: null,
+        tasks: unsortedTasks,
+        isUnsorted: true
+      });
+    }
+
+    result.push(...groupedTasks);
 
     setCache(cacheKey, result, 3 * 60 * 1000);
     return result;
@@ -577,7 +666,21 @@ export const taskService = {
 
     // Инвалидируем кеш
     if (data.organizer_id) {
+      // Если задание для конкретного организатора, инвалидируем только его кеш
       invalidateCache(`organizer_tasks_by_groups_${data.organizer_id}`);
+    } else {
+      // Если organizer_id = null, задание видно всем организаторам - нужно инвалидировать кеш для всех
+      // Получаем всех организаторов и main_organizer и инвалидируем их кеши
+      const { data: organizers } = await supabase
+        .from('profiles')
+        .select('id')
+        .in('role', ['organizer', 'main_organizer']);
+      
+      if (organizers) {
+        organizers.forEach(org => {
+          invalidateCache(`organizer_tasks_by_groups_${org.id}`);
+        });
+      }
     }
 
     return data;
@@ -600,7 +703,20 @@ export const taskService = {
 
     // Инвалидируем кеш
     if (data?.organizer_id) {
+      // Если задание для конкретного организатора, инвалидируем только его кеш
       invalidateCache(`organizer_tasks_by_groups_${data.organizer_id}`);
+    } else {
+      // Если organizer_id = null, задание видно всем организаторам - нужно инвалидировать кеш для всех
+      const { data: organizers } = await supabase
+        .from('profiles')
+        .select('id')
+        .in('role', ['organizer', 'main_organizer']);
+      
+      if (organizers) {
+        organizers.forEach(org => {
+          invalidateCache(`organizer_tasks_by_groups_${org.id}`);
+        });
+      }
     }
 
     return data;
@@ -628,7 +744,20 @@ export const taskService = {
 
     // Инвалидируем кеш
     if (task?.organizer_id) {
+      // Если задание для конкретного организатора, инвалидируем только его кеш
       invalidateCache(`organizer_tasks_by_groups_${task.organizer_id}`);
+    } else {
+      // Если organizer_id = null, задание видно всем организаторам - нужно инвалидировать кеш для всех
+      const { data: organizers } = await supabase
+        .from('profiles')
+        .select('id')
+        .in('role', ['organizer', 'main_organizer']);
+      
+      if (organizers) {
+        organizers.forEach(org => {
+          invalidateCache(`organizer_tasks_by_groups_${org.id}`);
+        });
+      }
     }
 
     return true;
@@ -690,7 +819,7 @@ function generateDownloadUrl(link: string): string | null {
 // Сервис для работы с документами
 export const documentService = {
   // Получить все документы для свадьбы
-  async getWeddingDocuments(weddingId: string, useCache: boolean = true): Promise<Document[]> {
+  async getWeddingDocuments(weddingId: string, useCache: boolean = true, useRpc: boolean = false): Promise<Document[]> {
     const cacheKey = `documents_${weddingId}`;
 
     // Проверяем кеш
@@ -698,6 +827,42 @@ export const documentService = {
       const cached = getCache<Document[]>(cacheKey);
       if (cached) {
         return cached;
+      }
+    }
+
+    // Если нужно использовать RPC функцию (для главного организатора)
+    if (useRpc) {
+      try {
+        const { data, error } = await supabase.rpc('get_wedding_documents', {
+          p_wedding_id: weddingId
+        });
+
+        if (error) {
+          console.error('Error fetching documents by RPC:', error);
+          return [];
+        }
+
+        const documents = (data || []) as Document[];
+
+        // Генерируем URL для скачивания для каждого документа на основе ссылки
+        const documentsWithUrls = documents.map((doc) => {
+          // Если есть ссылка, генерируем URL для скачивания
+          if (doc.link) {
+            return {
+              ...doc,
+              download_url: generateDownloadUrl(doc.link),
+            };
+          }
+          return doc;
+        });
+
+        // Сохраняем в кеш на 5 минут
+        setCache(cacheKey, documentsWithUrls, 5 * 60 * 1000);
+
+        return documentsWithUrls;
+      } catch (err) {
+        console.error('Error in getWeddingDocuments (RPC):', err);
+        return [];
       }
     }
 

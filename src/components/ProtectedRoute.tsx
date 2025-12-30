@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 
 interface ProtectedRouteProps {
   children: ReactNode;
-  requiredRole?: 'client' | 'organizer';
+  requiredRole?: 'client' | 'organizer' | 'main_organizer';
 }
 
 const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
@@ -25,12 +25,15 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
     return <Navigate to="/login" replace />;
   }
 
-  // Если пользователь загружен и это организатор, но он на странице без requiredRole="organizer"
-  // и находится на /dashboard или /client, перенаправляем на /organizer
-  if (user && user.role === 'organizer' && !requiredRole) {
+  // Если пользователь загружен и это организатор или главный организатор, но он на странице без requiredRole
+  // и находится на /dashboard или /client, перенаправляем на соответствующую страницу
+  if (user && (user.role === 'organizer' || user.role === 'main_organizer') && !requiredRole) {
     // Проверяем, не пытается ли организатор попасть на страницу клиента
     // Это обрабатывается в AppRoutes, но добавим дополнительную защиту
     if (location.pathname === '/dashboard' || location.pathname === '/client') {
+      if (user.role === 'main_organizer') {
+        return <Navigate to="/main-organizer" replace />;
+      }
       return <Navigate to="/organizer" replace />;
     }
   }
@@ -38,6 +41,12 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
   if (requiredRole && user?.role !== requiredRole) {
     // Перенаправляем на правильную страницу в зависимости от роли
     // НО только если пользователь не находится уже на правильной странице
+    if (user?.role === 'main_organizer') {
+      if (location.pathname === '/main-organizer') {
+        return <>{children}</>;
+      }
+      return <Navigate to="/main-organizer" replace />;
+    }
     if (user?.role === 'organizer') {
       // Если пользователь уже на /organizer, не делаем редирект
       if (location.pathname === '/organizer') {

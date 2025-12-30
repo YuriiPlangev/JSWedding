@@ -88,7 +88,7 @@ const OrganizerDashboard = () => {
 
   // Компонент страницы заданий
   const TasksPage = ({ user }: { user: User | null }) => {
-    const [taskGroups, setTaskGroups] = useState<{ group: TaskGroup; tasks: Task[] }[]>([]);
+    const [taskGroups, setTaskGroups] = useState<{ group: TaskGroup | null; tasks: Task[]; isUnsorted?: boolean }[]>([]);
     const [loadingTasks, setLoadingTasks] = useState(true);
     const [showOrganizerTaskModal, setShowOrganizerTaskModal] = useState(false);
     const [showTaskGroupModal, setShowTaskGroupModal] = useState(false);
@@ -100,6 +100,10 @@ const OrganizerDashboard = () => {
     // Состояния для drag and drop блоков задач
     const [draggedGroupId, setDraggedGroupId] = useState<string | null>(null);
     
+    // Состояния для drag and drop заданий между блоками
+    const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
+    const [draggedFromGroupId, setDraggedFromGroupId] = useState<string | null>(null);
+    
     // Состояния для раскрытия/сворачивания секций "Выполнено"
     const [expandedCompletedSections, setExpandedCompletedSections] = useState<Set<string>>(new Set());
     
@@ -107,6 +111,10 @@ const OrganizerDashboard = () => {
     const [creatingTaskGroupId, setCreatingTaskGroupId] = useState<string | null>(null);
     const [newTaskText, setNewTaskText] = useState('');
     const newTaskInputRef = useRef<HTMLInputElement | null>(null);
+    
+    // Состояния для inline редактирования задания
+    const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+    const [editingTaskText, setEditingTaskText] = useState<string>('');
     
     // Состояния для цветового пикера
     const [colorPickerHue, setColorPickerHue] = useState(0);
@@ -165,30 +173,58 @@ const OrganizerDashboard = () => {
       }
     }, [showTaskGroupModal, editingTaskGroup]);
 
-    const loadOrganizerTasks = useCallback(async (useCache: boolean = false) => {
+    const loadOrganizerTasks = useCallback(async (useCache: boolean = true, showLoading: boolean = false) => {
       if (!user?.id) return;
-      setLoadingTasks(true);
+      // Показываем загрузку только если явно запрошено И данных еще нет
+      if (showLoading && taskGroups.length === 0) {
+        setLoadingTasks(true);
+      }
       try {
-        // При загрузке страницы не используем кеш, чтобы получить актуальные данные
         const groupsWithTasks = await taskService.getOrganizerTasksByGroups(user.id, useCache);
         setTaskGroups(groupsWithTasks);
       } catch (err) {
         console.error('Error loading organizer tasks:', err);
       } finally {
-        setLoadingTasks(false);
+        if (showLoading) {
+          setLoadingTasks(false);
+        }
       }
-    }, [user?.id]);
+    }, [user?.id, taskGroups.length]);
 
     // Используем ref для отслеживания, был ли уже загружен user.id для заданий
     const loadedTasksUserIdRef = useRef<string | null>(null);
+    const isInitialLoadRef = useRef(true);
 
     useEffect(() => {
       // Загружаем задания только один раз при монтировании или при изменении user.id
       if (user?.id && loadedTasksUserIdRef.current !== user.id) {
         loadedTasksUserIdRef.current = user.id;
-      loadOrganizerTasks();
+        isInitialLoadRef.current = true;
+        // При первой загрузке показываем индикатор загрузки
+        loadOrganizerTasks(false, true);
       }
     }, [user?.id, loadOrganizerTasks]);
+
+    // Обработчик переключения вкладок - обновляем данные в фоне без показа загрузки
+    useEffect(() => {
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible' && user?.id && !isInitialLoadRef.current) {
+          // Обновляем данные в фоне, используя кеш для быстрого отображения
+          loadOrganizerTasks(true, false);
+        }
+      };
+
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      
+      // Отмечаем, что первая загрузка завершена
+      if (user?.id && taskGroups.length > 0) {
+        isInitialLoadRef.current = false;
+      }
+
+      return () => {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      };
+    }, [user?.id, taskGroups.length, loadOrganizerTasks]);
 
     const handleCreateGroup = () => {
       setEditingTaskGroup(null);
@@ -207,11 +243,12 @@ const OrganizerDashboard = () => {
         if (editingTaskGroup) {
           // Оптимистичное обновление: сразу обновляем цвет в локальном состоянии
           setTaskGroups(prevGroups => 
-            prevGroups.map(({ group, tasks }) => 
-              group.id === editingTaskGroup.id
-                ? { group: { ...group, ...groupData }, tasks }
-                : { group, tasks }
-            )
+            prevGroups.map(({ group, tasks, isUnsorted }) => {
+              if (group && group.id === editingTaskGroup.id) {
+                return { group: { ...group, ...groupData }, tasks, isUnsorted };
+              }
+              return { group, tasks, isUnsorted };
+            })
           );
 
           const result = await taskService.updateTaskGroup(editingTaskGroup.id, groupData);
@@ -225,11 +262,12 @@ const OrganizerDashboard = () => {
           // После успешного сохранения обновляем локальное состояние данными с сервера
           // Это гарантирует, что мы используем актуальные данные из БД
           setTaskGroups(prevGroups => 
-            prevGroups.map(({ group, tasks }) => 
-              group.id === editingTaskGroup.id
-                ? { group: { ...group, ...result }, tasks }
-                : { group, tasks }
-            )
+            prevGroups.map(({ group, tasks, isUnsorted }) => {
+              if (group && group.id === editingTaskGroup.id && result) {
+                return { group: result, tasks, isUnsorted };
+              }
+              return { group, tasks, isUnsorted };
+            })
           );
         } else {
           const result = await taskService.createTaskGroup({
@@ -289,7 +327,8 @@ const OrganizerDashboard = () => {
     }, [taskGroups.length, initiallyCompletedTaskIds.size]);
 
 
-    const getGroupName = (group: TaskGroup) => {
+    const getGroupName = (group: TaskGroup | null) => {
+      if (!group) return 'Несортированные задачи';
       return group.name;
     };
 
@@ -300,9 +339,122 @@ const OrganizerDashboard = () => {
     };
 
     const handleEditTask = (task: Task) => {
-      setEditingOrganizerTask(task);
-      setSelectedGroupId(task.task_group_id || null);
-      setShowOrganizerTaskModal(true);
+      setEditingTaskId(task.id);
+      setEditingTaskText(task.title_ru || task.title || task.title_en || task.title_ua || '');
+    };
+
+    const handleSaveInlineEditTask = async (taskId: string) => {
+      if (!user?.id || !editingTaskText.trim()) return;
+      
+      const group = taskGroups.find(g => g.tasks.some(t => t.id === taskId));
+      const task = group?.tasks.find(t => t.id === taskId);
+      if (!task) return;
+
+      try {
+        const taskData: Omit<Task, 'id' | 'created_at' | 'updated_at' | 'wedding_id' | 'organizer_id' | 'task_group_id'> = {
+          title: editingTaskText.trim(),
+          title_ru: editingTaskText.trim(),
+          status: task.status,
+          ...(task.title_en && { title_en: task.title_en }),
+          ...(task.title_ua && { title_ua: task.title_ua }),
+        };
+
+        const result = await taskService.updateOrganizerTask(taskId, taskData);
+        if (!result) {
+          setError('Не удалось обновить задание');
+          return;
+        }
+
+        setEditingTaskId(null);
+        setEditingTaskText('');
+        await loadOrganizerTasks();
+      } catch (err) {
+        console.error('Error updating task:', err);
+        setError('Ошибка при обновлении задания');
+      }
+    };
+
+    const handleCancelInlineEditTask = () => {
+      setEditingTaskId(null);
+      setEditingTaskText('');
+    };
+
+    const handleDeleteTask = async (taskId: string) => {
+      if (!confirm('Вы уверены, что хотите удалить это задание?')) {
+        return;
+      }
+
+      // Находим задание для сохранения его данных на случай отката
+      const groupWithTask = taskGroups.find(g => g.tasks.some(t => t.id === taskId));
+      const taskToDelete = groupWithTask?.tasks.find(t => t.id === taskId);
+      
+      if (!taskToDelete || !groupWithTask) return;
+
+      const groupId = groupWithTask.group?.id || null;
+
+      // Оптимистичное обновление - удаляем задание из локального состояния сразу
+      setTaskGroups(prevGroups =>
+        prevGroups.map(({ group, tasks, isUnsorted }) => {
+          const currentGroupId = group?.id || null;
+          const isCurrentUnsorted = isUnsorted || false;
+          const sourceIsUnsorted = groupWithTask.isUnsorted || false;
+          if ((groupId === null && isCurrentUnsorted && sourceIsUnsorted) || currentGroupId === groupId) {
+            return { group, tasks: tasks.filter(t => t.id !== taskId), isUnsorted };
+          }
+          return { group, tasks, isUnsorted };
+        })
+      );
+
+      // Закрываем режим редактирования, если оно было открыто
+      setEditingTaskId(null);
+      setEditingTaskText('');
+
+      try {
+        const success = await taskService.deleteOrganizerTask(taskId);
+        if (!success) {
+          // В случае ошибки возвращаем задание обратно
+          setTaskGroups(prevGroups =>
+            prevGroups.map(({ group, tasks, isUnsorted }) => {
+              const currentGroupId = group?.id || null;
+              const isCurrentUnsorted = isUnsorted || false;
+              const sourceIsUnsorted = groupWithTask.isUnsorted || false;
+              if ((groupId === null && isCurrentUnsorted && sourceIsUnsorted) || currentGroupId === groupId) {
+                return { 
+                  group, 
+                  tasks: [...tasks, taskToDelete].sort((a, b) => 
+                    new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                  ),
+                  isUnsorted
+                };
+              }
+              return { group, tasks, isUnsorted };
+            })
+          );
+          setError('Не удалось удалить задание');
+        }
+        // При успехе задание уже удалено из UI через оптимистичное обновление
+        // Не перезагружаем данные, чтобы не было мерцания
+      } catch (err) {
+        console.error('Error deleting task:', err);
+        // Возвращаем задание обратно при ошибке
+        setTaskGroups(prevGroups =>
+          prevGroups.map(({ group, tasks, isUnsorted }) => {
+            const currentGroupId = group?.id || null;
+            const isCurrentUnsorted = isUnsorted || false;
+            if ((groupId === null && isCurrentUnsorted) || currentGroupId === groupId) {
+              return { 
+                group, 
+                tasks: [...tasks, taskToDelete].sort((a, b) => 
+                  new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                ),
+                isUnsorted
+              };
+            }
+            return { group, tasks, isUnsorted };
+          })
+        );
+        setError('Ошибка при удалении задания');
+      }
     };
 
     const handleSaveTask = async (taskData: Omit<Task, 'id' | 'created_at' | 'updated_at' | 'wedding_id' | 'organizer_id' | 'task_group_id'>) => {
@@ -338,13 +490,13 @@ const OrganizerDashboard = () => {
     };
 
     // Функция для сохранения inline задачи
-    const handleSaveInlineTask = async (groupId: string, e?: React.MouseEvent | React.KeyboardEvent) => {
+    const handleSaveInlineTask = async (groupId: string | null, e?: React.MouseEvent | React.KeyboardEvent) => {
       if (e) {
         e.preventDefault();
         e.stopPropagation();
       }
       
-      if (!user?.id || !newTaskText.trim()) return;
+      if (!user?.id || !newTaskText.trim() || !groupId) return;
 
       const taskText = newTaskText.trim();
       
@@ -363,11 +515,13 @@ const OrganizerDashboard = () => {
 
       // Сразу обновляем локальное состояние
       setTaskGroups(prevGroups =>
-        prevGroups.map(({ group, tasks }) =>
-          group.id === groupId
-            ? { group, tasks: [...tasks, optimisticTask] }
-            : { group, tasks }
-        )
+        prevGroups.map(({ group, tasks, isUnsorted }) => {
+          const currentGroupId = group?.id || null;
+          if (currentGroupId === groupId) {
+            return { group, tasks: [...tasks, optimisticTask], isUnsorted };
+          }
+          return { group, tasks, isUnsorted };
+        })
       );
 
       // Очищаем текст и оставляем input открытым для следующей задачи
@@ -393,11 +547,13 @@ const OrganizerDashboard = () => {
         if (!result) {
           // Если сохранение не удалось, удаляем оптимистично добавленную задачу
           setTaskGroups(prevGroups =>
-            prevGroups.map(({ group, tasks }) =>
-              group.id === groupId
-                ? { group, tasks: tasks.filter(t => t.id !== optimisticTask.id) }
-                : { group, tasks }
-            )
+            prevGroups.map(({ group, tasks, isUnsorted }) => {
+              const currentGroupId = group?.id || null;
+              if (currentGroupId === groupId) {
+                return { group, tasks: tasks.filter(t => t.id !== optimisticTask.id), isUnsorted };
+              }
+              return { group, tasks, isUnsorted };
+            })
           );
           setError('Не удалось создать задание');
           return;
@@ -405,24 +561,29 @@ const OrganizerDashboard = () => {
 
         // Заменяем временную задачу на реальную с сервера
         setTaskGroups(prevGroups =>
-          prevGroups.map(({ group, tasks }) =>
-            group.id === groupId
-              ? { 
-                  group, 
-                  tasks: tasks.map(t => t.id === optimisticTask.id ? result : t)
-                }
-              : { group, tasks }
-          )
+          prevGroups.map(({ group, tasks, isUnsorted }) => {
+            const currentGroupId = group?.id || null;
+            if (currentGroupId === groupId) {
+              return { 
+                group, 
+                tasks: tasks.map(t => t.id === optimisticTask.id ? result : t),
+                isUnsorted
+              };
+            }
+            return { group, tasks, isUnsorted };
+          })
         );
       } catch (err) {
         console.error('Error saving inline task:', err);
         // Удаляем оптимистично добавленную задачу при ошибке
         setTaskGroups(prevGroups =>
-          prevGroups.map(({ group, tasks }) =>
-            group.id === groupId
-              ? { group, tasks: tasks.filter(t => t.id !== optimisticTask.id) }
-              : { group, tasks }
-          )
+          prevGroups.map(({ group, tasks, isUnsorted }) => {
+            const currentGroupId = group?.id || null;
+            if (currentGroupId === groupId) {
+              return { group, tasks: tasks.filter(t => t.id !== optimisticTask.id), isUnsorted };
+            }
+            return { group, tasks, isUnsorted };
+          })
         );
         setError('Ошибка при сохранении задания');
       }
@@ -459,7 +620,7 @@ const OrganizerDashboard = () => {
       e.dataTransfer.dropEffect = 'move';
     };
 
-    const handleGroupDrop = async (e: React.DragEvent, targetGroupId: string) => {
+    const handleGroupDrop = async (e: React.DragEvent, targetGroupId: string | null) => {
       e.preventDefault();
       e.stopPropagation();
       
@@ -468,8 +629,14 @@ const OrganizerDashboard = () => {
         return;
       }
 
-      const draggedIndex = taskGroups.findIndex(g => g.group.id === draggedGroupId);
-      const targetIndex = taskGroups.findIndex(g => g.group.id === targetGroupId);
+      // Не перетаскиваем несортированные блоки
+      if (!targetGroupId) {
+        setDraggedGroupId(null);
+        return;
+      }
+
+      const draggedIndex = taskGroups.findIndex(g => g.group?.id === draggedGroupId);
+      const targetIndex = taskGroups.findIndex(g => g.group?.id === targetGroupId);
 
       if (draggedIndex === -1 || targetIndex === -1) {
         setDraggedGroupId(null);
@@ -489,6 +656,120 @@ const OrganizerDashboard = () => {
 
     const handleGroupDragEnd = () => {
       setDraggedGroupId(null);
+    };
+
+    // Обработчики drag and drop для заданий между блоками
+    const handleTaskDragStart = (e: React.DragEvent, taskId: string, fromGroupId: string | null) => {
+      setDraggedTaskId(taskId);
+      setDraggedFromGroupId(fromGroupId);
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/html', taskId);
+      
+      // Создаем клон элемента для непрозрачного drag изображения
+      const target = e.currentTarget as HTMLElement;
+      const rect = target.getBoundingClientRect();
+      const clone = target.cloneNode(true) as HTMLElement;
+      
+      // Устанавливаем стили для клона
+      clone.style.position = 'absolute';
+      clone.style.top = '-9999px';
+      clone.style.left = '0';
+      clone.style.width = rect.width + 'px';
+      clone.style.height = rect.height + 'px';
+      clone.style.opacity = '1';
+      clone.style.pointerEvents = 'none';
+      
+      document.body.appendChild(clone);
+      
+      // Вычисляем смещение относительно позиции мыши
+      const offsetX = e.clientX - rect.left;
+      const offsetY = e.clientY - rect.top;
+      
+      // Устанавливаем клон как drag image
+      e.dataTransfer.setDragImage(clone, offsetX, offsetY);
+      
+      // Удаляем клон после небольшой задержки
+      requestAnimationFrame(() => {
+        if (document.body.contains(clone)) {
+          document.body.removeChild(clone);
+        }
+      });
+    };
+
+    const handleTaskDragOver = (e: React.DragEvent) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    };
+
+    const handleTaskDropOnGroup = async (e: React.DragEvent, targetGroupId: string | null) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      if (!draggedTaskId || draggedFromGroupId === targetGroupId) {
+        setDraggedTaskId(null);
+        setDraggedFromGroupId(null);
+        return;
+      }
+
+      if (!user?.id) return;
+
+      // Находим задание
+      const sourceGroup = taskGroups.find(g => 
+        (g.group?.id === draggedFromGroupId) || (g.isUnsorted && draggedFromGroupId === null)
+      );
+      const task = sourceGroup?.tasks.find(t => t.id === draggedTaskId);
+      
+      if (!task) {
+        setDraggedTaskId(null);
+        setDraggedFromGroupId(null);
+        return;
+      }
+
+      // Оптимистичное обновление: сразу перемещаем задание в UI
+      setTaskGroups(prevGroups => {
+        const newGroups = prevGroups.map(groupData => {
+          // Удаляем задание из исходного блока
+          if ((groupData.group?.id === draggedFromGroupId) || (groupData.isUnsorted && draggedFromGroupId === null)) {
+            return {
+              ...groupData,
+              tasks: groupData.tasks.filter(t => t.id !== draggedTaskId)
+            };
+          }
+          // Добавляем задание в целевой блок
+          if ((groupData.group?.id === targetGroupId) || (groupData.isUnsorted && targetGroupId === null)) {
+            return {
+              ...groupData,
+              tasks: [...groupData.tasks, { ...task, task_group_id: targetGroupId }]
+            };
+          }
+          return groupData;
+        });
+        return newGroups;
+      });
+
+      try {
+        // Обновляем task_group_id на сервере
+        const result = await taskService.updateOrganizerTask(draggedTaskId, {
+          task_group_id: targetGroupId
+        });
+        
+        if (!result) {
+          // В случае ошибки возвращаем задание обратно
+          await loadOrganizerTasks();
+        }
+      } catch (err) {
+        console.error('Error moving task:', err);
+        // Возвращаем задание обратно при ошибке
+        await loadOrganizerTasks();
+      }
+
+      setDraggedTaskId(null);
+      setDraggedFromGroupId(null);
+    };
+
+    const handleTaskDragEnd = () => {
+      setDraggedTaskId(null);
+      setDraggedFromGroupId(null);
     };
 
     const handleToggleTask = async (taskId: string, completed: boolean) => {
@@ -546,7 +827,8 @@ const OrganizerDashboard = () => {
       return task.title || task.title_en || task.title_ua || '';
     };
 
-    if (loadingTasks) {
+    // Показываем загрузку только если данных еще нет
+    if (loadingTasks && taskGroups.length === 0) {
       return (
         <div className="flex items-center justify-center py-12">
           <p className="text-[18px] font-forum font-light text-[#00000080]">Загрузка...</p>
@@ -559,7 +841,10 @@ const OrganizerDashboard = () => {
         {/* Блоки заданий в Kanban-стиле */}
         {taskGroups.length > 0 ? (
           <div className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 items-start">
-            {taskGroups.map(({ group, tasks }) => {
+            {taskGroups.map(({ group, tasks, isUnsorted }) => {
+              const groupId = group?.id || null;
+              const isUnsortedGroup = isUnsorted || false;
+              
               // Разделяем задания на активные и выполненные
               // Выполненные задачи попадают в архив только после перезагрузки страницы
               const activeTasks = tasks.filter(t => {
@@ -571,21 +856,39 @@ const OrganizerDashboard = () => {
               const completedTasks = tasks.filter(t => 
                 t.status === 'completed' && initiallyCompletedTaskIds.has(t.id)
               );
-              const isCompletedExpanded = expandedCompletedSections.has(group.id);
+              const isCompletedExpanded = groupId ? expandedCompletedSections.has(groupId) : false;
 
-              const backgroundColor = group.color || '#ffffff';
-              const isMenuOpen = showGroupMenu === group.id;
+              const backgroundColor = group?.color || '#f0f0f0';
+              const isMenuOpen = groupId ? showGroupMenu === groupId : false;
 
               return (
                 <div 
-                  key={group.id} 
-                  draggable
-                  onDragStart={(e) => handleGroupDragStart(e, group.id)}
-                  onDragOver={handleGroupDragOver}
-                  onDrop={(e) => handleGroupDrop(e, group.id)}
-                  onDragEnd={handleGroupDragEnd}
+                  key={groupId || 'unsorted'} 
+                  draggable={!isUnsortedGroup}
+                  onDragStart={!isUnsortedGroup && groupId ? (e) => handleGroupDragStart(e, groupId) : undefined}
+                  onDragOver={(e) => {
+                    if (draggedTaskId) {
+                      handleTaskDragOver(e);
+                    } else if (draggedGroupId) {
+                      handleGroupDragOver(e);
+                    }
+                  }}
+                  onDrop={(e) => {
+                    if (draggedTaskId) {
+                      handleTaskDropOnGroup(e, groupId);
+                    } else if (draggedGroupId && groupId) {
+                      handleGroupDrop(e, groupId);
+                    }
+                  }}
+                  onDragEnd={() => {
+                    if (draggedTaskId) {
+                      handleTaskDragEnd();
+                    } else if (draggedGroupId) {
+                      handleGroupDragEnd();
+                    }
+                  }}
                   className={`flex-shrink-0 w-[280px] sm:w-[320px] border border-[#00000033] rounded-lg flex flex-col transition-opacity ${
-                    draggedGroupId === group.id ? 'opacity-50 cursor-grabbing' : 'cursor-grab hover:shadow-md'
+                    !isUnsortedGroup && groupId && draggedGroupId === groupId ? 'opacity-50 cursor-grabbing' : 'cursor-default hover:shadow-md'
                   }`}
                   style={{ 
                     backgroundColor,
@@ -593,59 +896,61 @@ const OrganizerDashboard = () => {
                     height: 'auto'
                   }}
                 >
-                  {/* Заголовок блока с меню */}
+                  {/* Заголовок блока с меню (только для обычных блоков) */}
                   <div className="px-4 py-3 border-b border-[#00000033] flex-shrink-0 flex items-center justify-between relative">
                     <h3 className="text-[18px] sm:text-[20px] max-[1599px]:text-[18px] font-forum font-bold text-black">
                       {getGroupName(group)}
                     </h3>
-                    <div className="relative">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowGroupMenu(isMenuOpen ? null : group.id);
-                        }}
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onDragStart={(e) => e.stopPropagation()}
-                        className="p-1 text-[#00000080] hover:text-black transition-colors cursor-pointer"
-                        aria-label="Меню"
-                      >
-                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <circle cx="10" cy="4" r="1.5" fill="currentColor"/>
-                          <circle cx="10" cy="10" r="1.5" fill="currentColor"/>
-                          <circle cx="10" cy="16" r="1.5" fill="currentColor"/>
-                        </svg>
-                      </button>
-                      {isMenuOpen && (
-                        <>
-                          <div 
-                            className="fixed inset-0 z-10" 
-                            onClick={() => setShowGroupMenu(null)}
-                          />
-                          <div className="absolute right-0 top-8 bg-white border border-[#00000033] rounded-lg shadow-lg z-20 min-w-[120px]">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setShowGroupMenu(null);
-                                handleEditGroup(group);
-                              }}
-                              className="w-full px-4 py-2 text-left text-[14px] font-forum text-black hover:bg-gray-50 transition-colors cursor-pointer"
-                            >
-                              Редактировать
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setShowGroupMenu(null);
-                                handleDeleteGroup(group.id);
-                              }}
-                              className="w-full px-4 py-2 text-left text-[14px] font-forum text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
-                            >
-                              Удалить
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </div>
+                    {!isUnsortedGroup && groupId && (
+                      <div className="relative">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowGroupMenu(isMenuOpen ? null : groupId);
+                          }}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onDragStart={(e) => e.stopPropagation()}
+                          className="p-1 text-[#00000080] hover:text-black transition-colors cursor-pointer"
+                          aria-label="Меню"
+                        >
+                          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="10" cy="4" r="1.5" fill="currentColor"/>
+                            <circle cx="10" cy="10" r="1.5" fill="currentColor"/>
+                            <circle cx="10" cy="16" r="1.5" fill="currentColor"/>
+                          </svg>
+                        </button>
+                        {isMenuOpen && (
+                          <>
+                            <div 
+                              className="fixed inset-0 z-10" 
+                              onClick={() => setShowGroupMenu(null)}
+                            />
+                            <div className="absolute right-0 top-8 bg-white border border-[#00000033] rounded-lg shadow-lg z-20 min-w-[120px]">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setShowGroupMenu(null);
+                                  if (group) handleEditGroup(group);
+                                }}
+                                className="w-full px-4 py-2 text-left text-[14px] font-forum text-black hover:bg-gray-50 transition-colors cursor-pointer"
+                              >
+                                Редактировать
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setShowGroupMenu(null);
+                                  if (groupId) handleDeleteGroup(groupId);
+                                }}
+                                className="w-full px-4 py-2 text-left text-[14px] font-forum text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                              >
+                                Удалить
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Контент колонки с прокруткой */}
@@ -655,17 +960,24 @@ const OrganizerDashboard = () => {
                       <>
                         {activeTasks.map((task) => {
                           const isCompleted = task.status === 'completed';
+                          const isEditing = editingTaskId === task.id;
+                          const taskTitle = getTaskTitle(task);
+                          
                           return (
                             <div
                               key={task.id}
-                              className={`border border-[#00000033] rounded-lg p-3 bg-white hover:shadow-md transition ${
+                              draggable
+                              onDragStart={(e) => handleTaskDragStart(e, task.id, groupId)}
+                              onDragOver={handleTaskDragOver}
+                              onDragEnd={handleTaskDragEnd}
+                              className={`border border-[#00000033] rounded-lg p-3 bg-white hover:shadow-md transition cursor-move ${
                                 isCompleted ? 'opacity-60' : ''
                               }`}
                             >
-                              <div className="flex items-start gap-2">
+                              <div className="flex items-center gap-2">
                                 <button
                                   onClick={() => handleToggleTask(task.id, !isCompleted)}
-                                  className={`mt-0.5 flex-shrink-0 w-5 h-5 border-2 rounded-full flex items-center justify-center transition-colors ${
+                                  className={`flex-shrink-0 w-5 h-5 border-2 rounded-full flex items-center justify-center transition-colors ${
                                     isCompleted 
                                       ? 'border-green-500 bg-green-500 hover:bg-green-600' 
                                       : 'border-[#00000080] hover:border-black bg-white'
@@ -678,22 +990,73 @@ const OrganizerDashboard = () => {
                                     </svg>
                                   )}
                                 </button>
-                                <div className="flex-1 min-w-0">
-                                  <p className={`text-[14px] max-[1599px]:text-[13px] font-forum ${
-                                    isCompleted ? 'text-[#00000060] line-through' : 'text-black'
-                                  }`}>
-                                    {getTaskTitle(task)}
-                                  </p>
-                                </div>
-                                <button
-                                  onClick={() => handleEditTask(task)}
-                                  className="mt-0.5 p-1 text-[#00000080] hover:text-black transition-colors cursor-pointer flex-shrink-0"
-                                  aria-label="Редактировать"
-                                >
-                                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M11.333 2.00001C11.5084 1.82475 11.7163 1.68596 11.9447 1.59219C12.1731 1.49843 12.4173 1.45166 12.6637 1.45468C12.9101 1.4577 13.1531 1.51045 13.3787 1.60982C13.6043 1.70919 13.8078 1.85316 13.9773 2.03335C14.1469 2.21354 14.2792 2.42619 14.3668 2.65889C14.4544 2.89159 14.4954 3.13978 14.4873 3.38868C14.4792 3.63758 14.4222 3.88238 14.3197 4.10868C14.2172 4.33498 14.0714 4.53838 13.8913 4.70668L5.528 13.07L2 14L2.93 10.472L11.333 2.00001Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                  </svg>
-                                </button>
+                                
+                                {isEditing ? (
+                                  <div className="flex-1 flex items-center gap-2">
+                                    <input
+                                      type="text"
+                                      value={editingTaskText}
+                                      onChange={(e) => setEditingTaskText(e.target.value)}
+                                      onBlur={() => {
+                                        if (editingTaskText.trim()) {
+                                          handleSaveInlineEditTask(task.id);
+                                        } else {
+                                          handleCancelInlineEditTask();
+                                        }
+                                      }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          e.currentTarget.blur();
+                                        } else if (e.key === 'Escape') {
+                                          handleCancelInlineEditTask();
+                                        }
+                                      }}
+                                      autoFocus
+                                      className="flex-1 px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum text-[14px] max-[1599px]:text-[13px] bg-white"
+                                      onClick={(e) => e.stopPropagation()}
+                                    />
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteTask(task.id);
+                                      }}
+                                      className="p-1 text-red-600 hover:text-red-700 transition-colors cursor-pointer flex-shrink-0"
+                                      aria-label="Удалить"
+                                    >
+                                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M2 4H14M12.6667 4V13.3333C12.6667 14 12 14.6667 11.3333 14.6667H4.66667C4 14.6667 3.33333 14 3.33333 13.3333V4M5.33333 4V2.66667C5.33333 2 6 1.33333 6.66667 1.33333H9.33333C10 1.33333 10.6667 2 10.6667 2.66667V4M6.66667 7.33333V11.3333M9.33333 7.33333V11.3333" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                      </svg>
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <div className="flex-1 min-w-0">
+                                      <p 
+                                        className={`text-[14px] max-[1599px]:text-[13px] font-forum cursor-pointer ${
+                                          isCompleted ? 'text-[#00000060] line-through' : 'text-black'
+                                        }`}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleEditTask(task);
+                                        }}
+                                      >
+                                        {taskTitle}
+                                      </p>
+                                    </div>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEditTask(task);
+                                      }}
+                                      className="p-1 text-[#00000080] hover:text-black transition-colors cursor-pointer flex-shrink-0"
+                                      aria-label="Редактировать"
+                                    >
+                                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M11.333 2.00001C11.5084 1.82475 11.7163 1.68596 11.9447 1.59219C12.1731 1.49843 12.4173 1.45166 12.6637 1.45468C12.9101 1.4577 13.1531 1.51045 13.3787 1.60982C13.6043 1.70919 13.8078 1.85316 13.9773 2.03335C14.1469 2.21354 14.2792 2.42619 14.3668 2.65889C14.4544 2.89159 14.4954 3.13978 14.4873 3.38868C14.4792 3.63758 14.4222 3.88238 14.3197 4.10868C14.2172 4.33498 14.0714 4.53838 13.8913 4.70668L5.528 13.07L2 14L2.93 10.472L11.333 2.00001Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                      </svg>
+                                    </button>
+                                  </>
+                                )}
                               </div>
                             </div>
                           );
@@ -702,7 +1065,7 @@ const OrganizerDashboard = () => {
                     )}
 
                     {/* Inline input для создания новой задачи - показывается под активными задачами */}
-                    {creatingTaskGroupId === group.id && (
+                    {!isUnsortedGroup && groupId && creatingTaskGroupId === groupId && (
                       <div className="space-y-2 mt-2">
                         <input
                           ref={newTaskInputRef}
@@ -713,7 +1076,7 @@ const OrganizerDashboard = () => {
                             if (e.key === 'Enter' && !e.shiftKey) {
                               e.preventDefault();
                               e.stopPropagation();
-                              handleSaveInlineTask(group.id, e);
+                              handleSaveInlineTask(groupId, e);
                             } else if (e.key === 'Escape') {
                               e.preventDefault();
                               e.stopPropagation();
@@ -729,7 +1092,7 @@ const OrganizerDashboard = () => {
                           <button
                             type="button"
                             onClick={(e) => {
-                              handleSaveInlineTask(group.id, e);
+                              handleSaveInlineTask(groupId, e);
                             }}
                             disabled={!newTaskText.trim()}
                             className="px-3 py-1.5 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[14px] max-[1599px]:text-[13px] font-forum disabled:opacity-50 disabled:cursor-not-allowed"
@@ -757,12 +1120,13 @@ const OrganizerDashboard = () => {
                       <div className="mt-4 pt-4 border-t border-[#00000033] flex-shrink-0">
                         <button
                           onClick={() => {
+                            if (!groupId) return;
                             setExpandedCompletedSections(prev => {
                               const newSet = new Set(prev);
-                              if (newSet.has(group.id)) {
-                                newSet.delete(group.id);
+                              if (newSet.has(groupId)) {
+                                newSet.delete(groupId);
                               } else {
-                                newSet.add(group.id);
+                                newSet.add(groupId);
                               }
                               return newSet;
                             });
@@ -783,38 +1147,98 @@ const OrganizerDashboard = () => {
                         </button>
                         {isCompletedExpanded && (
                           <div className="space-y-2 max-h-[150px] overflow-y-auto pr-1">
-                        {completedTasks.map((task) => (
-                          <div
-                            key={task.id}
-                            className="border border-[#00000033] rounded-lg p-3 bg-gray-50 hover:shadow-md transition"
-                          >
-                            <div className="flex items-start gap-2">
-                              <button
-                                onClick={() => handleToggleTask(task.id, false)}
-                                className="mt-0.5 flex-shrink-0 w-5 h-5 border-2 border-green-500 rounded-full bg-green-500 flex items-center justify-center transition-colors hover:bg-green-600"
-                                aria-label="Вернуть в активные"
-                              >
-                                <svg width="10" height="10" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                  <path d="M10 3L4.5 8.5L2 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                </svg>
-                              </button>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-[14px] max-[1599px]:text-[13px] font-forum text-[#00000060] line-through">
-                                  {getTaskTitle(task)}
-                                </p>
+                        {completedTasks.map((task) => {
+                          const isEditing = editingTaskId === task.id;
+                          const taskTitle = getTaskTitle(task);
+                          
+                          return (
+                            <div
+                              key={task.id}
+                              draggable
+                              onDragStart={(e) => handleTaskDragStart(e, task.id, groupId)}
+                              onDragOver={handleTaskDragOver}
+                              onDragEnd={handleTaskDragEnd}
+                              className="border border-[#00000033] rounded-lg p-3 bg-gray-50 hover:shadow-md transition cursor-move"
+                            >
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => handleToggleTask(task.id, false)}
+                                  className="flex-shrink-0 w-5 h-5 border-2 border-green-500 rounded-full bg-green-500 flex items-center justify-center transition-colors hover:bg-green-600"
+                                  aria-label="Вернуть в активные"
+                                >
+                                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M10 3L4.5 8.5L2 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  </svg>
+                                </button>
+                                
+                                {isEditing ? (
+                                  <div className="flex-1 flex items-center gap-2">
+                                    <input
+                                      type="text"
+                                      value={editingTaskText}
+                                      onChange={(e) => setEditingTaskText(e.target.value)}
+                                      onBlur={() => {
+                                        if (editingTaskText.trim()) {
+                                          handleSaveInlineEditTask(task.id);
+                                        } else {
+                                          handleCancelInlineEditTask();
+                                        }
+                                      }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          e.currentTarget.blur();
+                                        } else if (e.key === 'Escape') {
+                                          handleCancelInlineEditTask();
+                                        }
+                                      }}
+                                      autoFocus
+                                      className="flex-1 px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum text-[14px] max-[1599px]:text-[13px] bg-white"
+                                      onClick={(e) => e.stopPropagation()}
+                                    />
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteTask(task.id);
+                                      }}
+                                      className="p-1 text-red-600 hover:text-red-700 transition-colors cursor-pointer flex-shrink-0"
+                                      aria-label="Удалить"
+                                    >
+                                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M2 4H14M12.6667 4V13.3333C12.6667 14 12 14.6667 11.3333 14.6667H4.66667C4 14.6667 3.33333 14 3.33333 13.3333V4M5.33333 4V2.66667C5.33333 2 6 1.33333 6.66667 1.33333H9.33333C10 1.33333 10.6667 2 10.6667 2.66667V4M6.66667 7.33333V11.3333M9.33333 7.33333V11.3333" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                      </svg>
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <div className="flex-1 min-w-0">
+                                      <p 
+                                        className="text-[14px] max-[1599px]:text-[13px] font-forum text-[#00000060] line-through cursor-pointer"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleEditTask(task);
+                                        }}
+                                      >
+                                        {taskTitle}
+                                      </p>
+                                    </div>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEditTask(task);
+                                      }}
+                                      className="p-1 text-[#00000080] hover:text-black transition-colors cursor-pointer flex-shrink-0"
+                                      aria-label="Редактировать"
+                                    >
+                                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M11.333 2.00001C11.5084 1.82475 11.7163 1.68596 11.9447 1.59219C12.1731 1.49843 12.4173 1.45166 12.6637 1.45468C12.9101 1.4577 13.1531 1.51045 13.3787 1.60982C13.6043 1.70919 13.8078 1.85316 13.9773 2.03335C14.1469 2.21354 14.2792 2.42619 14.3668 2.65889C14.4544 2.89159 14.4954 3.13978 14.4873 3.38868C14.4792 3.63758 14.4222 3.88238 14.3197 4.10868C14.2172 4.33498 14.0714 4.53838 13.8913 4.70668L5.528 13.07L2 14L2.93 10.472L11.333 2.00001Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                      </svg>
+                                    </button>
+                                  </>
+                                )}
                               </div>
-                              <button
-                                onClick={() => handleEditTask(task)}
-                                className="mt-0.5 p-1 text-[#00000080] hover:text-black transition-colors cursor-pointer flex-shrink-0"
-                                aria-label="Редактировать"
-                              >
-                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                  <path d="M11.333 2.00001C11.5084 1.82475 11.7163 1.68596 11.9447 1.59219C12.1731 1.49843 12.4173 1.45166 12.6637 1.45468C12.9101 1.4577 13.1531 1.51045 13.3787 1.60982C13.6043 1.70919 13.8078 1.85316 13.9773 2.03335C14.1469 2.21354 14.2792 2.42619 14.3668 2.65889C14.4544 2.89159 14.4954 3.13978 14.4873 3.38868C14.4792 3.63758 14.4222 3.88238 14.3197 4.10868C14.2172 4.33498 14.0714 4.53838 13.8913 4.70668L5.528 13.07L2 14L2.93 10.472L11.333 2.00001Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                </svg>
-                              </button>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                           </div>
                         )}
                       </div>
@@ -827,15 +1251,17 @@ const OrganizerDashboard = () => {
                     )}
                   </div>
 
-                  {/* Футер колонки с кнопкой */}
-                  <div className="px-3 py-3 border-t border-[#00000033] flex-shrink-0">
-                    <button
-                      onClick={() => handleCreateTask(group.id)}
-                      className="w-full px-3 py-2 bg-white border border-[#00000033] text-black rounded-lg hover:bg-gray-50 transition-colors cursor-pointer text-[14px] max-[1599px]:text-[13px] font-forum"
-                    >
-                      + Добавить карточку
-                    </button>
-                  </div>
+                  {/* Футер колонки с кнопкой (только для обычных блоков) */}
+                  {!isUnsortedGroup && groupId && (
+                    <div className="px-3 py-3 border-t border-[#00000033] flex-shrink-0">
+                      <button
+                        onClick={() => handleCreateTask(groupId)}
+                        className="w-full px-3 py-2 bg-white border border-[#00000033] text-black rounded-lg hover:bg-gray-50 transition-colors cursor-pointer text-[14px] max-[1599px]:text-[13px] font-forum"
+                      >
+                        + Добавить карточку
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -1462,9 +1888,9 @@ const OrganizerDashboard = () => {
       await clientService.createClient(clientData.email, clientData.password);
       setShowClientModal(false);
       await loadData(); // Перезагружаем данные, чтобы обновить список клиентов
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error creating client:', err);
-      setError(err.message || 'Ошибка при создании клиента');
+      setError(err instanceof Error ? err.message : 'Ошибка при создании клиента');
     }
   };
 
@@ -1560,6 +1986,36 @@ const OrganizerDashboard = () => {
     setDraggedTaskId(taskId);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/html', taskId);
+    
+    // Создаем клон элемента для непрозрачного drag изображения
+    const target = e.currentTarget as HTMLElement;
+    const rect = target.getBoundingClientRect();
+    const clone = target.cloneNode(true) as HTMLElement;
+    
+    // Устанавливаем стили для клона
+    clone.style.position = 'absolute';
+    clone.style.top = '-9999px';
+    clone.style.left = '0';
+    clone.style.width = rect.width + 'px';
+    clone.style.height = rect.height + 'px';
+    clone.style.opacity = '1';
+    clone.style.pointerEvents = 'none';
+    
+    document.body.appendChild(clone);
+    
+    // Вычисляем смещение относительно позиции мыши
+    const offsetX = e.clientX - rect.left;
+    const offsetY = e.clientY - rect.top;
+    
+    // Устанавливаем клон как drag image
+    e.dataTransfer.setDragImage(clone, offsetX, offsetY);
+    
+    // Удаляем клон после небольшой задержки
+    requestAnimationFrame(() => {
+      if (document.body.contains(clone)) {
+        document.body.removeChild(clone);
+      }
+    });
   };
 
   const handleTaskDragOver = (e: React.DragEvent) => {
@@ -2268,9 +2724,7 @@ const OrganizerDashboard = () => {
                       onDragOver={handleTaskDragOver}
                       onDrop={(e) => handleTaskDrop(e, task.id)}
                       onDragEnd={handleTaskDragEnd}
-                      className={`border border-[#00000033] rounded-lg p-4 flex justify-between items-start hover:shadow-md transition cursor-move ${
-                        draggedTaskId === task.id ? 'opacity-50' : ''
-                      }`}
+                      className="border border-[#00000033] rounded-lg p-4 flex justify-between items-start hover:shadow-md transition cursor-move"
                     >
                       <div className="flex items-start gap-2 flex-1">
                         <div className="text-[#00000040] mt-1 cursor-move select-none">⋮⋮</div>
