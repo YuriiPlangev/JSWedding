@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { taskService } from '../services/weddingService';
 import { weddingService } from '../services/weddingService';
-import type { User, Task, Document, Wedding } from '../types';
+import type { User, Document, Wedding } from '../types';
 import logoV3 from '../assets/logoV3.svg';
 import { supabase } from '../lib/supabase';
 
@@ -15,7 +15,6 @@ const MainOrganizerDashboard = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('events');
   const [currentLanguage] = useState<'en' | 'ru' | 'ua'>('ru');
   const [events, setEvents] = useState<Wedding[]>([]);
-  const [organizers, setOrganizers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -37,14 +36,12 @@ const MainOrganizerDashboard = () => {
       setError(null);
       try {
         console.log('Loading events and organizers...');
-        const [eventsData, organizersData] = await Promise.all([
+        const [eventsData] = await Promise.all([
           weddingService.getAllWeddings(),
           getAllOrganizers()
         ]);
         console.log('Loaded events:', eventsData);
-        console.log('Loaded organizers:', organizersData);
         setEvents(eventsData);
-        setOrganizers(organizersData);
       } catch (err) {
         console.error('Error loading data:', err);
         setError(`Ошибка при загрузке данных: ${err instanceof Error ? err.message : 'Неизвестная ошибка'}`);
@@ -149,7 +146,7 @@ const MainOrganizerDashboard = () => {
     try {
       if (editingDocument) {
         // Обновление документа
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('documents')
           .update({
             name: documentName.trim(),
@@ -174,7 +171,7 @@ const MainOrganizerDashboard = () => {
         setError(null);
       } else {
         // Создание документа
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('documents')
           .insert({
             wedding_id: null, // Документы главного организатора не привязаны к свадьбе

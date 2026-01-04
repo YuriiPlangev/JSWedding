@@ -15,7 +15,7 @@ interface SelectedWedding extends Wedding {
 const EventDetailPage = () => {
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const [currentLanguage, setCurrentLanguage] = useState<'en' | 'ru' | 'ua'>('ru');
   const [event, setEvent] = useState<SelectedWedding | null>(null);
   const [loading, setLoading] = useState(true);
