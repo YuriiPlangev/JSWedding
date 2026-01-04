@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import type { Wedding, Task, TaskGroup, Document, User, Presentation, PresentationSection } from '../types';
+import type { Wedding, Task, TaskGroup, Document, User, Presentation, PresentationSection, OrganizerTaskLog, UserRole } from '../types';
 import { getCache, setCache, invalidateCache } from '../utils/cache';
 
 // Сервис для работы со свадьбами
@@ -36,11 +36,12 @@ export const weddingService = {
   },
 
   // Получить все свадьбы организатора
-  async getOrganizerWeddings(organizerId: string): Promise<Wedding[]> {
+  // Теперь возвращает все свадьбы, доступные всем организаторам (благодаря RLS)
+  async getOrganizerWeddings(_organizerId: string): Promise<Wedding[]> {
+    // Убрали фильтр по organizer_id - теперь все организаторы видят все свадьбы
     const { data, error } = await supabase
       .from('weddings')
       .select('*')
-      .eq('organizer_id', organizerId)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -487,8 +488,9 @@ export const taskService = {
   },
 
   // Получить все блоки заданий организатора
-  async getOrganizerTaskGroups(organizerId: string, useCache: boolean = true): Promise<TaskGroup[]> {
-    const cacheKey = `organizer_task_groups_${organizerId}`;
+  // Теперь возвращает все группы, доступные всем организаторам (благодаря RLS)
+  async getOrganizerTaskGroups(_organizerId: string, useCache: boolean = true): Promise<TaskGroup[]> {
+    const cacheKey = `organizer_task_groups_all`; // Общий кеш для всех организаторов
 
     if (useCache) {
       const cached = getCache<TaskGroup[]>(cacheKey);
@@ -497,10 +499,10 @@ export const taskService = {
       }
     }
 
+    // Получаем все группы (RLS политика автоматически отфильтрует доступные)
     const { data, error } = await supabase
       .from('task_groups')
       .select('*')
-      .eq('organizer_id', organizerId)
       .order('created_at', { ascending: true });
 
     if (error) {
@@ -526,9 +528,9 @@ export const taskService = {
     }
 
     if (data) {
-      // Инвалидируем кеш для групп и для групп с заданиями
-      invalidateCache(`organizer_task_groups_${data.organizer_id}`);
-      invalidateCache(`organizer_tasks_by_groups_${data.organizer_id}`);
+      // Инвалидируем общий кеш для всех организаторов
+      invalidateCache(`organizer_task_groups_all`);
+      invalidateCache(`organizer_tasks_by_groups_all`);
     }
     return data;
   },
@@ -553,9 +555,9 @@ export const taskService = {
     console.log('[updateTaskGroup] Success:', data);
 
     if (data) {
-      // Инвалидируем кеш для групп и для групп с заданиями
-      invalidateCache(`organizer_task_groups_${data.organizer_id}`);
-      invalidateCache(`organizer_tasks_by_groups_${data.organizer_id}`);
+      // Инвалидируем общий кеш для всех организаторов
+      invalidateCache(`organizer_task_groups_all`);
+      invalidateCache(`organizer_tasks_by_groups_all`);
     }
     return data;
   },
@@ -580,14 +582,17 @@ export const taskService = {
     }
 
     if (group) {
-      invalidateCache(`organizer_task_groups_${group.organizer_id}`);
+      // Инвалидируем общий кеш для всех организаторов
+      invalidateCache(`organizer_task_groups_all`);
+      invalidateCache(`organizer_tasks_by_groups_all`);
     }
     return true;
   },
 
   // Получить все задания организатора по блокам
-  async getOrganizerTasksByGroups(organizerId: string, useCache: boolean = true): Promise<{ group: TaskGroup | null; tasks: Task[]; isUnsorted?: boolean }[]> {
-    const cacheKey = `organizer_tasks_by_groups_${organizerId}`;
+  // Теперь возвращает все задания, доступные всем организаторам (благодаря RLS)
+  async getOrganizerTasksByGroups(_organizerId: string, useCache: boolean = true): Promise<{ group: TaskGroup | null; tasks: Task[]; isUnsorted?: boolean }[]> {
+    const cacheKey = `organizer_tasks_by_groups_all`; // Общий кеш для всех организаторов
 
     if (useCache) {
       const cached = getCache<{ group: TaskGroup | null; tasks: Task[]; isUnsorted?: boolean }[]>(cacheKey);
@@ -596,10 +601,10 @@ export const taskService = {
       }
     }
 
-    // Получаем все блоки
-    const groups = await taskService.getOrganizerTaskGroups(organizerId, useCache);
+    // Получаем все блоки (RLS политика автоматически отфильтрует доступные)
+    const groups = await taskService.getOrganizerTaskGroups(_organizerId, useCache);
     
-    // Получаем все задания организатора
+    // Получаем все задания организаторов (RLS политика автоматически отфильтрует доступные)
     const { data: tasks, error } = await supabase
       .from('tasks')
       .select('*')
@@ -611,27 +616,17 @@ export const taskService = {
       return [];
     }
 
-    // Задания с task_group_id = null (несортированные)
-    // Включаем задания, которые принадлежат этому организатору ИЛИ созданы главным организатором (organizer_id = null)
-    const unsortedTasks = (tasks || []).filter(task => 
-      task.task_group_id === null && 
-      (task.organizer_id === organizerId || task.organizer_id === null)
-    );
+    // Задания с task_group_id = null (несортированные) - теперь все задания видны всем
+    const unsortedTasks = (tasks || []).filter(task => task.task_group_id === null);
 
-
-    // Группируем задания по блокам
-    // Включаем задания, которые принадлежат этому организатору ИЛИ созданы главным организатором (organizer_id = null)
+    // Группируем задания по блокам - теперь все задания видны всем
     const groupedTasks = groups.map(group => ({
       group,
-      tasks: (tasks || []).filter(task => 
-        task.task_group_id === group.id && 
-        (task.organizer_id === organizerId || task.organizer_id === null)
-      ),
+      tasks: (tasks || []).filter(task => task.task_group_id === group.id),
       isUnsorted: false as const
     }));
 
     // Добавляем блок несортированных задач в начало, если есть такие задания
-    // Несортированные задачи - это все задания с task_group_id = null (независимо от organizer_id)
     const result: { group: TaskGroup | null; tasks: Task[]; isUnsorted?: boolean }[] = [];
     
     if (unsortedTasks.length > 0) {
@@ -664,24 +659,9 @@ export const taskService = {
       return null;
     }
 
-    // Инвалидируем кеш
-    if (data.organizer_id) {
-      // Если задание для конкретного организатора, инвалидируем только его кеш
-      invalidateCache(`organizer_tasks_by_groups_${data.organizer_id}`);
-    } else {
-      // Если organizer_id = null, задание видно всем организаторам - нужно инвалидировать кеш для всех
-      // Получаем всех организаторов и main_organizer и инвалидируем их кеши
-      const { data: organizers } = await supabase
-        .from('profiles')
-        .select('id')
-        .in('role', ['organizer', 'main_organizer']);
-      
-      if (organizers) {
-        organizers.forEach(org => {
-          invalidateCache(`organizer_tasks_by_groups_${org.id}`);
-        });
-      }
-    }
+    // Инвалидируем общий кеш для всех организаторов
+    invalidateCache(`organizer_tasks_by_groups_all`);
+    invalidateCache(`organizer_task_groups_all`);
 
     return data;
   },
@@ -701,23 +681,9 @@ export const taskService = {
       return null;
     }
 
-    // Инвалидируем кеш
-    if (data?.organizer_id) {
-      // Если задание для конкретного организатора, инвалидируем только его кеш
-      invalidateCache(`organizer_tasks_by_groups_${data.organizer_id}`);
-    } else {
-      // Если organizer_id = null, задание видно всем организаторам - нужно инвалидировать кеш для всех
-      const { data: organizers } = await supabase
-        .from('profiles')
-        .select('id')
-        .in('role', ['organizer', 'main_organizer']);
-      
-      if (organizers) {
-        organizers.forEach(org => {
-          invalidateCache(`organizer_tasks_by_groups_${org.id}`);
-        });
-      }
-    }
+    // Инвалидируем общий кеш для всех организаторов
+    invalidateCache(`organizer_tasks_by_groups_all`);
+    invalidateCache(`organizer_task_groups_all`);
 
     return data;
   },
@@ -725,7 +691,7 @@ export const taskService = {
   // Удалить задание организатора
   async deleteOrganizerTask(taskId: string): Promise<boolean> {
     // Получаем задание для инвалидации кеша
-    const { data: task } = await supabase
+    const { data: _task } = await supabase
       .from('tasks')
       .select('organizer_id')
       .eq('id', taskId)
@@ -742,25 +708,72 @@ export const taskService = {
       return false;
     }
 
-    // Инвалидируем кеш
-    if (task?.organizer_id) {
-      // Если задание для конкретного организатора, инвалидируем только его кеш
-      invalidateCache(`organizer_tasks_by_groups_${task.organizer_id}`);
-    } else {
-      // Если organizer_id = null, задание видно всем организаторам - нужно инвалидировать кеш для всех
-      const { data: organizers } = await supabase
+    // Инвалидируем общий кеш для всех организаторов
+    invalidateCache(`organizer_tasks_by_groups_all`);
+    invalidateCache(`organizer_task_groups_all`);
+
+    return true;
+  },
+
+  // Получить логи выполнения заданий организаторов
+  async getOrganizerTaskLogs(taskId?: string, limit: number = 100): Promise<OrganizerTaskLog[]> {
+    // Сначала получаем логи
+    let query = supabase
+      .from('organizer_task_logs')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (taskId) {
+      query = query.eq('task_id', taskId);
+    }
+
+    const { data: logs, error } = await query;
+
+    if (error) {
+      console.error('Error fetching task logs:', error);
+      return [];
+    }
+
+    if (!logs || logs.length === 0) {
+      return [];
+    }
+
+    // Получаем уникальные ID организаторов
+    const organizerIds = [...new Set(logs.map((log: any) => log.organizer_id).filter(Boolean))];
+
+    // Получаем профили организаторов
+    let profiles: any[] = [];
+    if (organizerIds.length > 0) {
+      const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
-        .select('id')
-        .in('role', ['organizer', 'main_organizer']);
-      
-      if (organizers) {
-        organizers.forEach(org => {
-          invalidateCache(`organizer_tasks_by_groups_${org.id}`);
-        });
+        .select('id, email, name, role, avatar_url')
+        .in('id', organizerIds);
+
+      if (profilesError) {
+        console.error('Error fetching organizer profiles:', profilesError);
+      } else {
+        profiles = profilesData || [];
       }
     }
 
-    return true;
+    // Создаем мапу профилей для быстрого доступа
+    const profilesMap = new Map(profiles.map((p: any) => [p.id, p]));
+
+    // Объединяем логи с профилями
+    return logs.map((log: any) => {
+      const profile = profilesMap.get(log.organizer_id);
+      return {
+        ...log,
+        organizer: profile ? {
+          id: profile.id,
+          email: profile.email || '',
+          name: profile.name || '',
+          role: profile.role as UserRole,
+          avatar: profile.avatar_url || undefined,
+        } : undefined,
+      };
+    }) as OrganizerTaskLog[];
   },
 };
 

@@ -1,9 +1,13 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { weddingService, taskService, documentService, clientService, presentationService } from '../services/weddingService';
 import type { Wedding, Task, TaskGroup, Document, User, Presentation } from '../types';
 import { WeddingModal, TaskModal, OrganizerTaskModal, DocumentModal, PresentationModal, ClientModal } from '../components/modals';
+import { TaskColumn, ScrollbarStyles } from '../components/organizer';
+import { useTaskGroups, useTaskLogs, useTaskDragAndDrop, useGroupDragAndDrop } from '../hooks';
+import { hexToHsl, hslToHex } from '../utils/colorUtils';
+import { splitTasksByStatus } from '../utils/taskUtils';
 import logoV3 from '../assets/logoV3.svg';
 
 type ViewMode = 'weddings' | 'tasks' | 'wedding-details';
@@ -87,9 +91,40 @@ const OrganizerDashboard = () => {
   const [draggedDocumentId, setDraggedDocumentId] = useState<string | null>(null);
 
   // Компонент страницы заданий
-  const TasksPage = ({ user }: { user: User | null }) => {
-    const [taskGroups, setTaskGroups] = useState<{ group: TaskGroup | null; tasks: Task[]; isUnsorted?: boolean }[]>([]);
-    const [loadingTasks, setLoadingTasks] = useState(true);
+  const TasksPage = ({ user, viewMode }: { user: User | null; viewMode: string }) => {
+    // Используем кастомные хуки
+    const { taskGroups, loadingTasks, loadOrganizerTasks, setTaskGroups } = useTaskGroups(user?.id || null);
+    
+    // Обновляем данные при переключении на вкладку "Задания"
+    useEffect(() => {
+      if (viewMode === 'tasks' && user?.id) {
+        // Обновляем данные без показа индикатора загрузки, если данные уже есть
+        loadOrganizerTasks(true, false);
+      }
+    }, [viewMode, user?.id, loadOrganizerTasks]);
+    const { taskLogs, loadingLogs, expandedTaskLogs, toggleTaskLogs } = useTaskLogs();
+    const {
+      draggedTaskId,
+      handleTaskDragStart,
+      handleTaskDragOver,
+      handleTaskDragEnd,
+      handleTaskDropOnGroup,
+    } = useTaskDragAndDrop({
+      setTaskGroups,
+      loadOrganizerTasks,
+    });
+    const {
+      draggedGroupId,
+      handleGroupDragStart,
+      handleGroupDragOver,
+      handleGroupDragEnd,
+      handleGroupDrop,
+    } = useGroupDragAndDrop({
+      taskGroups,
+      setTaskGroups,
+      loadOrganizerTasks,
+    });
+
     const [showOrganizerTaskModal, setShowOrganizerTaskModal] = useState(false);
     const [showTaskGroupModal, setShowTaskGroupModal] = useState(false);
     const [editingOrganizerTask, setEditingOrganizerTask] = useState<Task | null>(null);
@@ -97,65 +132,23 @@ const OrganizerDashboard = () => {
     const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
     const [showGroupMenu, setShowGroupMenu] = useState<string | null>(null);
     
-    // Состояния для drag and drop блоков задач
-    const [draggedGroupId, setDraggedGroupId] = useState<string | null>(null);
-    
-    // Состояния для drag and drop заданий между блоками
-    const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
-    const [draggedFromGroupId, setDraggedFromGroupId] = useState<string | null>(null);
-    
     // Состояния для раскрытия/сворачивания секций "Выполнено"
     const [expandedCompletedSections, setExpandedCompletedSections] = useState<Set<string>>(new Set());
     
     // Состояния для inline создания задач
     const [creatingTaskGroupId, setCreatingTaskGroupId] = useState<string | null>(null);
     const [newTaskText, setNewTaskText] = useState('');
+    const [newTaskPriority, setNewTaskPriority] = useState<'low' | 'medium' | 'high'>('medium');
     const newTaskInputRef = useRef<HTMLInputElement | null>(null);
     
     // Состояния для inline редактирования задания
     const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
     const [editingTaskText, setEditingTaskText] = useState<string>('');
-    
+
     // Состояния для цветового пикера
     const [colorPickerHue, setColorPickerHue] = useState(0);
     const [colorPickerSaturation, setColorPickerSaturation] = useState(0);
     const [colorPickerLightness, setColorPickerLightness] = useState(100);
-
-    // Функция для конвертации HEX в HSL
-    const hexToHsl = (hex: string) => {
-      if (!hex) return { h: 0, s: 0, l: 100 };
-      const r = parseInt(hex.slice(1, 3), 16) / 255;
-      const g = parseInt(hex.slice(3, 5), 16) / 255;
-      const b = parseInt(hex.slice(5, 7), 16) / 255;
-
-      const max = Math.max(r, g, b);
-      const min = Math.min(r, g, b);
-      let h = 0, s = 0;
-      const l = (max + min) / 2;
-
-      if (max !== min) {
-        const d = max - min;
-        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-        switch (max) {
-          case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
-          case g: h = ((b - r) / d + 2) / 6; break;
-          case b: h = ((r - g) / d + 4) / 6; break;
-        }
-      }
-      return { h: h * 360, s: s * 100, l: l * 100 };
-    };
-
-    // Функция для конвертации HSL в HEX
-    const hslToHex = (h: number, s: number, l: number) => {
-      l /= 100;
-      const a = s * Math.min(l, 1 - l) / 100;
-      const f = (n: number) => {
-        const k = (n + h / 30) % 12;
-        const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
-        return Math.round(255 * color).toString(16).padStart(2, '0');
-      };
-      return `#${f(0)}${f(8)}${f(4)}`;
-    };
 
     // Инициализация цветового пикера при открытии модала
     useEffect(() => {
@@ -172,59 +165,6 @@ const OrganizerDashboard = () => {
         setColorPickerLightness(100);
       }
     }, [showTaskGroupModal, editingTaskGroup]);
-
-    const loadOrganizerTasks = useCallback(async (useCache: boolean = true, showLoading: boolean = false) => {
-      if (!user?.id) return;
-      // Показываем загрузку только если явно запрошено И данных еще нет
-      if (showLoading && taskGroups.length === 0) {
-        setLoadingTasks(true);
-      }
-      try {
-        const groupsWithTasks = await taskService.getOrganizerTasksByGroups(user.id, useCache);
-        setTaskGroups(groupsWithTasks);
-      } catch (err) {
-        console.error('Error loading organizer tasks:', err);
-      } finally {
-        if (showLoading) {
-          setLoadingTasks(false);
-        }
-      }
-    }, [user?.id, taskGroups.length]);
-
-    // Используем ref для отслеживания, был ли уже загружен user.id для заданий
-    const loadedTasksUserIdRef = useRef<string | null>(null);
-    const isInitialLoadRef = useRef(true);
-
-    useEffect(() => {
-      // Загружаем задания только один раз при монтировании или при изменении user.id
-      if (user?.id && loadedTasksUserIdRef.current !== user.id) {
-        loadedTasksUserIdRef.current = user.id;
-        isInitialLoadRef.current = true;
-        // При первой загрузке показываем индикатор загрузки
-        loadOrganizerTasks(false, true);
-      }
-    }, [user?.id, loadOrganizerTasks]);
-
-    // Обработчик переключения вкладок - обновляем данные в фоне без показа загрузки
-    useEffect(() => {
-      const handleVisibilityChange = () => {
-        if (document.visibilityState === 'visible' && user?.id && !isInitialLoadRef.current) {
-          // Обновляем данные в фоне, используя кеш для быстрого отображения
-          loadOrganizerTasks(true, false);
-        }
-      };
-
-      document.addEventListener('visibilitychange', handleVisibilityChange);
-      
-      // Отмечаем, что первая загрузка завершена
-      if (user?.id && taskGroups.length > 0) {
-        isInitialLoadRef.current = false;
-      }
-
-      return () => {
-        document.removeEventListener('visibilitychange', handleVisibilityChange);
-      };
-    }, [user?.id, taskGroups.length, loadOrganizerTasks]);
 
     const handleCreateGroup = () => {
       setEditingTaskGroup(null);
@@ -310,27 +250,6 @@ const OrganizerDashboard = () => {
       }
     };
 
-    // Отслеживаем, какие задания были выполнены при загрузке страницы (для каждого блока отдельно)
-    const [initiallyCompletedTaskIds, setInitiallyCompletedTaskIds] = useState<Set<string>>(new Set());
-    
-    useEffect(() => {
-      if (taskGroups.length > 0 && initiallyCompletedTaskIds.size === 0) {
-        // При первой загрузке сохраняем ID выполненных заданий из всех блоков
-        const completedIds = new Set<string>();
-        taskGroups.forEach(({ tasks }) => {
-          tasks.filter(t => t.status === 'completed').forEach(t => {
-            completedIds.add(t.id);
-          });
-        });
-        setInitiallyCompletedTaskIds(completedIds);
-      }
-    }, [taskGroups.length, initiallyCompletedTaskIds.size]);
-
-
-    const getGroupName = (group: TaskGroup | null) => {
-      if (!group) return 'Несортированные задачи';
-      return group.name;
-    };
 
     const handleCreateTask = (groupId: string) => {
       setCreatingTaskGroupId(groupId);
@@ -509,6 +428,7 @@ const OrganizerDashboard = () => {
         title: taskText,
         title_ru: taskText,
         status: 'pending',
+        priority: newTaskPriority,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
@@ -540,6 +460,7 @@ const OrganizerDashboard = () => {
           title: taskText,
           title_ru: taskText,
           status: 'pending',
+          priority: newTaskPriority,
           organizer_id: user.id,
           task_group_id: groupId,
         });
@@ -599,78 +520,23 @@ const OrganizerDashboard = () => {
       }
     }, [creatingTaskGroupId]);
 
-    // Обработчики drag and drop для блоков задач
-    const handleGroupDragStart = (e: React.DragEvent, groupId: string) => {
+    // Обертки для обработчиков drag and drop с дополнительной логикой
+    const handleGroupDragStartWrapper = useCallback((e: React.DragEvent, groupId: string) => {
       // Предотвращаем перетаскивание, если клик был на кнопке или другом интерактивном элементе
       const target = e.target as HTMLElement;
       if (target.closest('button') || target.closest('input') || target.closest('textarea')) {
         e.preventDefault();
         return;
       }
-      
-      setDraggedGroupId(groupId);
-      e.dataTransfer.effectAllowed = 'move';
-      // Добавляем визуальную обратную связь
-      e.dataTransfer.setData('text/plain', groupId);
-    };
+      handleGroupDragStart(e, groupId);
+    }, [handleGroupDragStart]);
 
-    const handleGroupDragOver = (e: React.DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      e.dataTransfer.dropEffect = 'move';
-    };
-
-    const handleGroupDrop = async (e: React.DragEvent, targetGroupId: string | null) => {
-      e.preventDefault();
-      e.stopPropagation();
-      
-      if (!draggedGroupId || draggedGroupId === targetGroupId) {
-        setDraggedGroupId(null);
-        return;
-      }
-
-      // Не перетаскиваем несортированные блоки
-      if (!targetGroupId) {
-        setDraggedGroupId(null);
-        return;
-      }
-
-      const draggedIndex = taskGroups.findIndex(g => g.group?.id === draggedGroupId);
-      const targetIndex = taskGroups.findIndex(g => g.group?.id === targetGroupId);
-
-      if (draggedIndex === -1 || targetIndex === -1) {
-        setDraggedGroupId(null);
-        return;
-      }
-
-      // Оптимистичное обновление: сразу меняем порядок в UI
-      const newGroups = [...taskGroups];
-      const [draggedGroup] = newGroups.splice(draggedIndex, 1);
-      newGroups.splice(targetIndex, 0, draggedGroup);
-      setTaskGroups(newGroups);
-
-      // Сохраняем новый порядок в БД (пока просто обновляем локальное состояние)
-      // В будущем можно добавить поле order в таблицу task_groups
-      setDraggedGroupId(null);
-    };
-
-    const handleGroupDragEnd = () => {
-      setDraggedGroupId(null);
-    };
-
-    // Обработчики drag and drop для заданий между блоками
-    const handleTaskDragStart = (e: React.DragEvent, taskId: string, fromGroupId: string | null) => {
-      setDraggedTaskId(taskId);
-      setDraggedFromGroupId(fromGroupId);
-      e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/html', taskId);
-      
+    const handleTaskDragStartWrapper = useCallback((e: React.DragEvent, taskId: string, groupId: string | null) => {
       // Создаем клон элемента для непрозрачного drag изображения
       const target = e.currentTarget as HTMLElement;
       const rect = target.getBoundingClientRect();
       const clone = target.cloneNode(true) as HTMLElement;
       
-      // Устанавливаем стили для клона
       clone.style.position = 'absolute';
       clone.style.top = '-9999px';
       clone.style.left = '0';
@@ -681,96 +547,19 @@ const OrganizerDashboard = () => {
       
       document.body.appendChild(clone);
       
-      // Вычисляем смещение относительно позиции мыши
       const offsetX = e.clientX - rect.left;
       const offsetY = e.clientY - rect.top;
       
-      // Устанавливаем клон как drag image
       e.dataTransfer.setDragImage(clone, offsetX, offsetY);
       
-      // Удаляем клон после небольшой задержки
       requestAnimationFrame(() => {
         if (document.body.contains(clone)) {
           document.body.removeChild(clone);
         }
       });
-    };
 
-    const handleTaskDragOver = (e: React.DragEvent) => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-    };
-
-    const handleTaskDropOnGroup = async (e: React.DragEvent, targetGroupId: string | null) => {
-      e.preventDefault();
-      e.stopPropagation();
-      
-      if (!draggedTaskId || draggedFromGroupId === targetGroupId) {
-        setDraggedTaskId(null);
-        setDraggedFromGroupId(null);
-        return;
-      }
-
-      if (!user?.id) return;
-
-      // Находим задание
-      const sourceGroup = taskGroups.find(g => 
-        (g.group?.id === draggedFromGroupId) || (g.isUnsorted && draggedFromGroupId === null)
-      );
-      const task = sourceGroup?.tasks.find(t => t.id === draggedTaskId);
-      
-      if (!task) {
-        setDraggedTaskId(null);
-        setDraggedFromGroupId(null);
-        return;
-      }
-
-      // Оптимистичное обновление: сразу перемещаем задание в UI
-      setTaskGroups(prevGroups => {
-        const newGroups = prevGroups.map(groupData => {
-          // Удаляем задание из исходного блока
-          if ((groupData.group?.id === draggedFromGroupId) || (groupData.isUnsorted && draggedFromGroupId === null)) {
-            return {
-              ...groupData,
-              tasks: groupData.tasks.filter(t => t.id !== draggedTaskId)
-            };
-          }
-          // Добавляем задание в целевой блок
-          if ((groupData.group?.id === targetGroupId) || (groupData.isUnsorted && targetGroupId === null)) {
-            return {
-              ...groupData,
-              tasks: [...groupData.tasks, { ...task, task_group_id: targetGroupId }]
-            };
-          }
-          return groupData;
-        });
-        return newGroups;
-      });
-
-      try {
-        // Обновляем task_group_id на сервере
-        const result = await taskService.updateOrganizerTask(draggedTaskId, {
-          task_group_id: targetGroupId
-        });
-        
-        if (!result) {
-          // В случае ошибки возвращаем задание обратно
-          await loadOrganizerTasks();
-        }
-      } catch (err) {
-        console.error('Error moving task:', err);
-        // Возвращаем задание обратно при ошибке
-        await loadOrganizerTasks();
-      }
-
-      setDraggedTaskId(null);
-      setDraggedFromGroupId(null);
-    };
-
-    const handleTaskDragEnd = () => {
-      setDraggedTaskId(null);
-      setDraggedFromGroupId(null);
-    };
+      handleTaskDragStart(e, taskId, groupId);
+    }, [handleTaskDragStart]);
 
     const handleToggleTask = async (taskId: string, completed: boolean) => {
       // Находим задание в группах
@@ -822,10 +611,30 @@ const OrganizerDashboard = () => {
       }
     };
 
-    const getTaskTitle = (task: Task) => {
-      if (task.title_ru) return task.title_ru;
-      return task.title || task.title_en || task.title_ua || '';
-    };
+    // Отслеживаем, какие задания были выполнены при загрузке страницы
+    // ВАЖНО: Все хуки должны быть объявлены ДО любого условного return
+    const [initiallyCompletedTaskIds, setInitiallyCompletedTaskIds] = useState<Set<string>>(new Set());
+    
+    useEffect(() => {
+      if (taskGroups.length > 0 && initiallyCompletedTaskIds.size === 0) {
+        const completedIds = new Set<string>();
+        taskGroups.forEach(({ tasks }) => {
+          tasks.filter(t => t.status === 'completed').forEach(t => {
+            completedIds.add(t.id);
+          });
+        });
+        setInitiallyCompletedTaskIds(completedIds);
+      }
+    }, [taskGroups.length, initiallyCompletedTaskIds.size]);
+
+    // Мемоизируем разделение задач на активные и выполненные
+    // ВАЖНО: useMemo должен быть ДО условного return
+    const taskGroupsWithSplit = useMemo(() => {
+      return taskGroups.map(({ group, tasks, isUnsorted }) => {
+        const { active, completed } = splitTasksByStatus(tasks, initiallyCompletedTaskIds);
+        return { group, tasks, isUnsorted, activeTasks: active, completedTasks: completed };
+      });
+    }, [taskGroups, initiallyCompletedTaskIds]);
 
     // Показываем загрузку только если данных еще нет
     if (loadingTasks && taskGroups.length === 0) {
@@ -838,431 +647,82 @@ const OrganizerDashboard = () => {
 
     return (
       <div className="h-full flex flex-col">
+        <ScrollbarStyles />
         {/* Блоки заданий в Kanban-стиле */}
         {taskGroups.length > 0 ? (
-          <div className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 items-start">
-            {taskGroups.map(({ group, tasks, isUnsorted }) => {
+          <div className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 items-start task-blocks-scroll" style={{
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#00000040 transparent'
+          }}>
+            {taskGroupsWithSplit.map(({ group, activeTasks, completedTasks, isUnsorted }) => {
               const groupId = group?.id || null;
-              const isUnsortedGroup = isUnsorted || false;
-              
-              // Разделяем задания на активные и выполненные
-              // Выполненные задачи попадают в архив только после перезагрузки страницы
-              const activeTasks = tasks.filter(t => {
-                if (t.status !== 'completed') return true;
-                // Выполненные задачи остаются в активных, если они были отмечены после загрузки страницы
-                return !initiallyCompletedTaskIds.has(t.id);
-              });
-
-              const completedTasks = tasks.filter(t => 
-                t.status === 'completed' && initiallyCompletedTaskIds.has(t.id)
-              );
               const isCompletedExpanded = groupId ? expandedCompletedSections.has(groupId) : false;
-
               const backgroundColor = group?.color || '#f0f0f0';
               const isMenuOpen = groupId ? showGroupMenu === groupId : false;
 
               return (
-                <div 
-                  key={groupId || 'unsorted'} 
-                  draggable={!isUnsortedGroup}
-                  onDragStart={!isUnsortedGroup && groupId ? (e) => handleGroupDragStart(e, groupId) : undefined}
-                  onDragOver={(e) => {
-                    if (draggedTaskId) {
-                      handleTaskDragOver(e);
-                    } else if (draggedGroupId) {
-                      handleGroupDragOver(e);
-                    }
+                <TaskColumn
+                  key={groupId || 'unsorted'}
+                  group={group}
+                  tasks={[...activeTasks, ...completedTasks]}
+                  isUnsorted={isUnsorted}
+                  activeTasks={activeTasks}
+                  completedTasks={completedTasks}
+                  isCompletedExpanded={isCompletedExpanded}
+                  backgroundColor={backgroundColor}
+                  isMenuOpen={isMenuOpen}
+                  editingTaskId={editingTaskId}
+                  editingTaskText={editingTaskText}
+                  expandedTaskLogs={expandedTaskLogs}
+                  taskLogs={taskLogs}
+                  loadingLogs={loadingLogs}
+                  initiallyCompletedTaskIds={initiallyCompletedTaskIds}
+                  creatingTaskGroupId={creatingTaskGroupId}
+                  newTaskText={newTaskText}
+                  newTaskInputRef={newTaskInputRef}
+                  onToggleCompleted={(gId) => {
+                    if (!gId) return;
+                    setExpandedCompletedSections(prev => {
+                      const newSet = new Set(prev);
+                      if (newSet.has(gId)) {
+                        newSet.delete(gId);
+                      } else {
+                        newSet.add(gId);
+                      }
+                      return newSet;
+                    });
                   }}
-                  onDrop={(e) => {
-                    if (draggedTaskId) {
-                      handleTaskDropOnGroup(e, groupId);
-                    } else if (draggedGroupId && groupId) {
-                      handleGroupDrop(e, groupId);
-                    }
+                  onTaskToggle={handleToggleTask}
+                  onEditTask={handleEditTask}
+                  onDeleteTask={handleDeleteTask}
+                  onSaveInlineEdit={handleSaveInlineEditTask}
+                  onCancelInlineEdit={handleCancelInlineEditTask}
+                  onEditingTaskTextChange={setEditingTaskText}
+                  onToggleTaskLogs={toggleTaskLogs}
+                  onTaskDragStart={handleTaskDragStartWrapper}
+                  onTaskDragOver={handleTaskDragOver}
+                  onTaskDragEnd={handleTaskDragEnd}
+                  onGroupMenuClick={setShowGroupMenu}
+                  onEditGroup={handleEditGroup}
+                  onDeleteGroup={handleDeleteGroup}
+                  onSaveInlineTask={handleSaveInlineTask}
+                  onNewTaskTextChange={setNewTaskText}
+                  newTaskPriority={newTaskPriority}
+                  onNewTaskPriorityChange={setNewTaskPriority}
+                  onCancelCreatingTask={() => {
+                    setCreatingTaskGroupId(null);
+                    setNewTaskText('');
+                    setNewTaskPriority('medium');
                   }}
-                  onDragEnd={() => {
-                    if (draggedTaskId) {
-                      handleTaskDragEnd();
-                    } else if (draggedGroupId) {
-                      handleGroupDragEnd();
-                    }
-                  }}
-                  className={`flex-shrink-0 w-[280px] sm:w-[320px] border border-[#00000033] rounded-lg flex flex-col transition-opacity ${
-                    !isUnsortedGroup && groupId && draggedGroupId === groupId ? 'opacity-50 cursor-grabbing' : 'cursor-default hover:shadow-md'
-                  }`}
-                  style={{ 
-                    backgroundColor,
-                    maxHeight: 'calc(100vh - 200px)',
-                    height: 'auto'
-                  }}
-                >
-                  {/* Заголовок блока с меню (только для обычных блоков) */}
-                  <div className="px-4 py-3 border-b border-[#00000033] flex-shrink-0 flex items-center justify-between relative">
-                    <h3 className="text-[18px] sm:text-[20px] max-[1599px]:text-[18px] font-forum font-bold text-black">
-                      {getGroupName(group)}
-                    </h3>
-                    {!isUnsortedGroup && groupId && (
-                      <div className="relative">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setShowGroupMenu(isMenuOpen ? null : groupId);
-                          }}
-                          onMouseDown={(e) => e.stopPropagation()}
-                          onDragStart={(e) => e.stopPropagation()}
-                          className="p-1 text-[#00000080] hover:text-black transition-colors cursor-pointer"
-                          aria-label="Меню"
-                        >
-                          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <circle cx="10" cy="4" r="1.5" fill="currentColor"/>
-                            <circle cx="10" cy="10" r="1.5" fill="currentColor"/>
-                            <circle cx="10" cy="16" r="1.5" fill="currentColor"/>
-                          </svg>
-                        </button>
-                        {isMenuOpen && (
-                          <>
-                            <div 
-                              className="fixed inset-0 z-10" 
-                              onClick={() => setShowGroupMenu(null)}
-                            />
-                            <div className="absolute right-0 top-8 bg-white border border-[#00000033] rounded-lg shadow-lg z-20 min-w-[120px]">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setShowGroupMenu(null);
-                                  if (group) handleEditGroup(group);
-                                }}
-                                className="w-full px-4 py-2 text-left text-[14px] font-forum text-black hover:bg-gray-50 transition-colors cursor-pointer"
-                              >
-                                Редактировать
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setShowGroupMenu(null);
-                                  if (groupId) handleDeleteGroup(groupId);
-                                }}
-                                className="w-full px-4 py-2 text-left text-[14px] font-forum text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
-                              >
-                                Удалить
-                              </button>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Контент колонки с прокруткой */}
-                  <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2" style={{ maxHeight: 'calc(100vh - 300px)' }}>
-                    {/* Активные задания */}
-                    {activeTasks.length > 0 && (
-                      <>
-                        {activeTasks.map((task) => {
-                          const isCompleted = task.status === 'completed';
-                          const isEditing = editingTaskId === task.id;
-                          const taskTitle = getTaskTitle(task);
-                          
-                          return (
-                            <div
-                              key={task.id}
-                              draggable
-                              onDragStart={(e) => handleTaskDragStart(e, task.id, groupId)}
-                              onDragOver={handleTaskDragOver}
-                              onDragEnd={handleTaskDragEnd}
-                              className={`border border-[#00000033] rounded-lg p-3 bg-white hover:shadow-md transition cursor-move ${
-                                isCompleted ? 'opacity-60' : ''
-                              }`}
-                            >
-                              <div className="flex items-center gap-2">
-                                <button
-                                  onClick={() => handleToggleTask(task.id, !isCompleted)}
-                                  className={`flex-shrink-0 w-5 h-5 border-2 rounded-full flex items-center justify-center transition-colors ${
-                                    isCompleted 
-                                      ? 'border-green-500 bg-green-500 hover:bg-green-600' 
-                                      : 'border-[#00000080] hover:border-black bg-white'
-                                  }`}
-                                  aria-label={isCompleted ? "Отметить невыполненным" : "Отметить выполненным"}
-                                >
-                                  {isCompleted && (
-                                    <svg width="10" height="10" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                      <path d="M10 3L4.5 8.5L2 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                    </svg>
-                                  )}
-                                </button>
-                                
-                                {isEditing ? (
-                                  <div className="flex-1 flex items-center gap-2">
-                                    <input
-                                      type="text"
-                                      value={editingTaskText}
-                                      onChange={(e) => setEditingTaskText(e.target.value)}
-                                      onBlur={() => {
-                                        if (editingTaskText.trim()) {
-                                          handleSaveInlineEditTask(task.id);
-                                        } else {
-                                          handleCancelInlineEditTask();
-                                        }
-                                      }}
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
-                                          e.currentTarget.blur();
-                                        } else if (e.key === 'Escape') {
-                                          handleCancelInlineEditTask();
-                                        }
-                                      }}
-                                      autoFocus
-                                      className="flex-1 px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum text-[14px] max-[1599px]:text-[13px] bg-white"
-                                      onClick={(e) => e.stopPropagation()}
-                                    />
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleDeleteTask(task.id);
-                                      }}
-                                      className="p-1 text-red-600 hover:text-red-700 transition-colors cursor-pointer flex-shrink-0"
-                                      aria-label="Удалить"
-                                    >
-                                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M2 4H14M12.6667 4V13.3333C12.6667 14 12 14.6667 11.3333 14.6667H4.66667C4 14.6667 3.33333 14 3.33333 13.3333V4M5.33333 4V2.66667C5.33333 2 6 1.33333 6.66667 1.33333H9.33333C10 1.33333 10.6667 2 10.6667 2.66667V4M6.66667 7.33333V11.3333M9.33333 7.33333V11.3333" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                      </svg>
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <>
-                                    <div className="flex-1 min-w-0">
-                                      <p 
-                                        className={`text-[14px] max-[1599px]:text-[13px] font-forum cursor-pointer ${
-                                          isCompleted ? 'text-[#00000060] line-through' : 'text-black'
-                                        }`}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleEditTask(task);
-                                        }}
-                                      >
-                                        {taskTitle}
-                                      </p>
-                                    </div>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleEditTask(task);
-                                      }}
-                                      className="p-1 text-[#00000080] hover:text-black transition-colors cursor-pointer flex-shrink-0"
-                                      aria-label="Редактировать"
-                                    >
-                                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M11.333 2.00001C11.5084 1.82475 11.7163 1.68596 11.9447 1.59219C12.1731 1.49843 12.4173 1.45166 12.6637 1.45468C12.9101 1.4577 13.1531 1.51045 13.3787 1.60982C13.6043 1.70919 13.8078 1.85316 13.9773 2.03335C14.1469 2.21354 14.2792 2.42619 14.3668 2.65889C14.4544 2.89159 14.4954 3.13978 14.4873 3.38868C14.4792 3.63758 14.4222 3.88238 14.3197 4.10868C14.2172 4.33498 14.0714 4.53838 13.8913 4.70668L5.528 13.07L2 14L2.93 10.472L11.333 2.00001Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                      </svg>
-                                    </button>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </>
-                    )}
-
-                    {/* Inline input для создания новой задачи - показывается под активными задачами */}
-                    {!isUnsortedGroup && groupId && creatingTaskGroupId === groupId && (
-                      <div className="space-y-2 mt-2">
-                        <input
-                          ref={newTaskInputRef}
-                          type="text"
-                          value={newTaskText}
-                          onChange={(e) => setNewTaskText(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleSaveInlineTask(groupId, e);
-                            } else if (e.key === 'Escape') {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setCreatingTaskGroupId(null);
-                              setNewTaskText('');
-                            }
-                          }}
-                          placeholder="Введите текст задания..."
-                          className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white text-[14px] max-[1599px]:text-[13px]"
-                          autoFocus
-                        />
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              handleSaveInlineTask(groupId, e);
-                            }}
-                            disabled={!newTaskText.trim()}
-                            className="px-3 py-1.5 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[14px] max-[1599px]:text-[13px] font-forum disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            Сохранить
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setCreatingTaskGroupId(null);
-                              setNewTaskText('');
-                            }}
-                            className="px-3 py-1.5 border border-[#00000033] text-black rounded-lg hover:bg-gray-50 transition-colors cursor-pointer text-[14px] max-[1599px]:text-[13px] font-forum"
-                          >
-                            Отмена
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Секция "Выполнено" (архив) */}
-                    {completedTasks.length > 0 && (
-                      <div className="mt-4 pt-4 border-t border-[#00000033] flex-shrink-0">
-                        <button
-                          onClick={() => {
-                            if (!groupId) return;
-                            setExpandedCompletedSections(prev => {
-                              const newSet = new Set(prev);
-                              if (newSet.has(groupId)) {
-                                newSet.delete(groupId);
-                              } else {
-                                newSet.add(groupId);
-                              }
-                              return newSet;
-                            });
-                          }}
-                          className="w-full flex items-center justify-between text-[14px] max-[1599px]:text-[13px] font-forum text-[#00000080] hover:text-black transition-colors cursor-pointer mb-2"
-                        >
-                          <span className="font-bold">Выполнено ({completedTasks.length})</span>
-                          <svg 
-                            width="16" 
-                            height="16" 
-                            viewBox="0 0 16 16" 
-                            fill="none" 
-                            xmlns="http://www.w3.org/2000/svg"
-                            className={`transition-transform ${isCompletedExpanded ? 'rotate-180' : ''}`}
-                          >
-                            <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
-                        </button>
-                        {isCompletedExpanded && (
-                          <div className="space-y-2 max-h-[150px] overflow-y-auto pr-1">
-                        {completedTasks.map((task) => {
-                          const isEditing = editingTaskId === task.id;
-                          const taskTitle = getTaskTitle(task);
-                          
-                          return (
-                            <div
-                              key={task.id}
-                              draggable
-                              onDragStart={(e) => handleTaskDragStart(e, task.id, groupId)}
-                              onDragOver={handleTaskDragOver}
-                              onDragEnd={handleTaskDragEnd}
-                              className="border border-[#00000033] rounded-lg p-3 bg-gray-50 hover:shadow-md transition cursor-move"
-                            >
-                              <div className="flex items-center gap-2">
-                                <button
-                                  onClick={() => handleToggleTask(task.id, false)}
-                                  className="flex-shrink-0 w-5 h-5 border-2 border-green-500 rounded-full bg-green-500 flex items-center justify-center transition-colors hover:bg-green-600"
-                                  aria-label="Вернуть в активные"
-                                >
-                                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M10 3L4.5 8.5L2 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                  </svg>
-                                </button>
-                                
-                                {isEditing ? (
-                                  <div className="flex-1 flex items-center gap-2">
-                                    <input
-                                      type="text"
-                                      value={editingTaskText}
-                                      onChange={(e) => setEditingTaskText(e.target.value)}
-                                      onBlur={() => {
-                                        if (editingTaskText.trim()) {
-                                          handleSaveInlineEditTask(task.id);
-                                        } else {
-                                          handleCancelInlineEditTask();
-                                        }
-                                      }}
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
-                                          e.currentTarget.blur();
-                                        } else if (e.key === 'Escape') {
-                                          handleCancelInlineEditTask();
-                                        }
-                                      }}
-                                      autoFocus
-                                      className="flex-1 px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum text-[14px] max-[1599px]:text-[13px] bg-white"
-                                      onClick={(e) => e.stopPropagation()}
-                                    />
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleDeleteTask(task.id);
-                                      }}
-                                      className="p-1 text-red-600 hover:text-red-700 transition-colors cursor-pointer flex-shrink-0"
-                                      aria-label="Удалить"
-                                    >
-                                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M2 4H14M12.6667 4V13.3333C12.6667 14 12 14.6667 11.3333 14.6667H4.66667C4 14.6667 3.33333 14 3.33333 13.3333V4M5.33333 4V2.66667C5.33333 2 6 1.33333 6.66667 1.33333H9.33333C10 1.33333 10.6667 2 10.6667 2.66667V4M6.66667 7.33333V11.3333M9.33333 7.33333V11.3333" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                      </svg>
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <>
-                                    <div className="flex-1 min-w-0">
-                                      <p 
-                                        className="text-[14px] max-[1599px]:text-[13px] font-forum text-[#00000060] line-through cursor-pointer"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleEditTask(task);
-                                        }}
-                                      >
-                                        {taskTitle}
-                                      </p>
-                                    </div>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleEditTask(task);
-                                      }}
-                                      className="p-1 text-[#00000080] hover:text-black transition-colors cursor-pointer flex-shrink-0"
-                                      aria-label="Редактировать"
-                                    >
-                                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M11.333 2.00001C11.5084 1.82475 11.7163 1.68596 11.9447 1.59219C12.1731 1.49843 12.4173 1.45166 12.6637 1.45468C12.9101 1.4577 13.1531 1.51045 13.3787 1.60982C13.6043 1.70919 13.8078 1.85316 13.9773 2.03335C14.1469 2.21354 14.2792 2.42619 14.3668 2.65889C14.4544 2.89159 14.4954 3.13978 14.4873 3.38868C14.4792 3.63758 14.4222 3.88238 14.3197 4.10868C14.2172 4.33498 14.0714 4.53838 13.8913 4.70668L5.528 13.07L2 14L2.93 10.472L11.333 2.00001Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                      </svg>
-                                    </button>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {activeTasks.length === 0 && completedTasks.length === 0 && (
-                      <p className="text-[14px] font-forum font-light text-[#00000080] py-4 text-center">
-                        Нет заданий
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Футер колонки с кнопкой (только для обычных блоков) */}
-                  {!isUnsortedGroup && groupId && (
-                    <div className="px-3 py-3 border-t border-[#00000033] flex-shrink-0">
-                      <button
-                        onClick={() => handleCreateTask(groupId)}
-                        className="w-full px-3 py-2 bg-white border border-[#00000033] text-black rounded-lg hover:bg-gray-50 transition-colors cursor-pointer text-[14px] max-[1599px]:text-[13px] font-forum"
-                      >
-                        + Добавить карточку
-                      </button>
-                    </div>
-                  )}
-                </div>
+                  onCreateTask={handleCreateTask}
+                  onGroupDragStart={handleGroupDragStartWrapper}
+                  onGroupDragOver={handleGroupDragOver}
+                  onGroupDrop={handleGroupDrop}
+                  onGroupDragEnd={handleGroupDragEnd}
+                  onTaskDropOnGroup={handleTaskDropOnGroup}
+                  draggedGroupId={draggedGroupId}
+                  draggedTaskId={draggedTaskId}
+                />
               );
             })}
             {/* Кнопка создания нового блока в конце списка */}
@@ -2431,7 +1891,7 @@ const OrganizerDashboard = () => {
       </nav>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto px-3 sm:px-4 md:px-8 lg:px-12 xl:px-[60px] py-4 sm:py-5 md:py-6 lg:py-8 font-forum">
+      <main className="flex-1 overflow-x-auto overflow-y-hidden px-3 sm:px-4 md:px-8 lg:px-12 xl:px-[60px] pt-1 pb-1 font-forum">
         {error && (
           <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
             <p className="text-red-800 font-forum text-[16px]">{error}</p>
@@ -2447,6 +1907,7 @@ const OrganizerDashboard = () => {
         {viewMode === 'tasks' && (
           <TasksPage
             user={user}
+            viewMode={viewMode}
           />
         )}
 

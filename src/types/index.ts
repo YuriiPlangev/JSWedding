@@ -121,3 +121,15 @@ export interface Presentation {
   title: string; // Название презентации
   sections: PresentationSection[]; // Секции презентации
 }
+
+// Типы для логов заданий организаторов
+export interface OrganizerTaskLog {
+  id: string;
+  task_id: string;
+  organizer_id: string;
+  old_status: 'pending' | 'in_progress' | 'completed' | null;
+  new_status: 'pending' | 'in_progress' | 'completed';
+  action: 'completed' | 'uncompleted' | 'started' | 'paused' | 'edited';
+  created_at: string;
+  organizer?: User; // Информация об организаторе (при join)
+}

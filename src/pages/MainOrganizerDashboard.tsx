@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { taskService } from '../services/weddingService';
 import { weddingService } from '../services/weddingService';
-import type { User, Document, Wedding } from '../types';
+import type { User, Document, Wedding, Task, TaskGroup } from '../types';
+import TaskRow from '../components/organizer/TaskRow';
 import logoV3 from '../assets/logoV3.svg';
 import { supabase } from '../lib/supabase';
 
@@ -22,6 +23,13 @@ const MainOrganizerDashboard = () => {
   const [taskTitle, setTaskTitle] = useState('');
   const [taskPriority, setTaskPriority] = useState<'low' | 'medium' | 'high'>('medium');
   
+  // Состояния для всех заданий организаторов
+  const [allOrganizerTasks, setAllOrganizerTasks] = useState<Task[]>([]);
+  const [allTaskGroups, setAllTaskGroups] = useState<TaskGroup[]>([]);
+  const [organizers, setOrganizers] = useState<User[]>([]);
+  const [loadingTasks, setLoadingTasks] = useState(false);
+  const [taskViewMode, setTaskViewMode] = useState<'by-priority' | 'by-organizer'>('by-priority');
+  
   // Состояния для документов
   const [documents, setDocuments] = useState<Document[]>([]);
   const [showDocumentModal, setShowDocumentModal] = useState(false);
@@ -36,12 +44,13 @@ const MainOrganizerDashboard = () => {
       setError(null);
       try {
         console.log('Loading events and organizers...');
-        const [eventsData] = await Promise.all([
+        const [eventsData, organizersData] = await Promise.all([
           weddingService.getAllWeddings(),
           getAllOrganizers()
         ]);
         console.log('Loaded events:', eventsData);
         setEvents(eventsData);
+        setOrganizers(organizersData);
       } catch (err) {
         console.error('Error loading data:', err);
         setError(`Ошибка при загрузке данных: ${err instanceof Error ? err.message : 'Неизвестная ошибка'}`);
@@ -54,6 +63,49 @@ const MainOrganizerDashboard = () => {
       loadData();
     }
   }, [user]);
+
+  // Загрузка всех заданий организаторов
+  useEffect(() => {
+    if (viewMode === 'tasks' && user) {
+      loadAllOrganizerTasks();
+    }
+  }, [viewMode, user]);
+
+  const loadAllOrganizerTasks = async () => {
+    setLoadingTasks(true);
+    try {
+      // Получаем все задания организаторов (wedding_id IS NULL)
+      const { data: tasksData, error: tasksError } = await supabase
+        .from('tasks')
+        .select('*')
+        .is('wedding_id', null)
+        .order('created_at', { ascending: false });
+
+      if (tasksError) {
+        console.error('Error loading tasks:', tasksError);
+        setError('Ошибка при загрузке заданий');
+        return;
+      }
+
+      // Получаем все группы заданий
+      const { data: groupsData, error: groupsError } = await supabase
+        .from('task_groups')
+        .select('*')
+        .order('created_at', { ascending: true });
+
+      if (groupsError) {
+        console.error('Error loading task groups:', groupsError);
+      }
+
+      setAllOrganizerTasks(tasksData || []);
+      setAllTaskGroups(groupsData || []);
+    } catch (err) {
+      console.error('Error loading organizer tasks:', err);
+      setError('Ошибка при загрузке заданий');
+    } finally {
+      setLoadingTasks(false);
+    }
+  };
 
   // Загрузка документов
   useEffect(() => {
@@ -128,6 +180,8 @@ const MainOrganizerDashboard = () => {
         setTaskTitle('');
         setTaskPriority('medium');
         setError(null);
+        // Обновляем список заданий
+        await loadAllOrganizerTasks();
       } else {
         setError('Не удалось создать задание');
       }
@@ -360,16 +414,42 @@ const MainOrganizerDashboard = () => {
         {/* Вкладка заданий */}
         {viewMode === 'tasks' && (
           <div>
-            <h2 className="text-2xl font-forum font-bold mb-4">Создание заданий для организаторов</h2>
-            
-            <div className="bg-white rounded-lg shadow p-6 mb-4">
-              <p className="text-gray-600 mb-4">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-forum font-bold">Все задания организаторов</h2>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setTaskViewMode('by-priority')}
+                  className={`px-3 py-1.5 rounded-lg border transition-colors text-[14px] font-forum ${
+                    taskViewMode === 'by-priority'
+                      ? 'bg-black text-white border-black'
+                      : 'bg-white text-black border-[#00000033] hover:bg-gray-50'
+                  }`}
+                >
+                  По приоритету
+                </button>
+                <button
+                  onClick={() => setTaskViewMode('by-organizer')}
+                  className={`px-3 py-1.5 rounded-lg border transition-colors text-[14px] font-forum ${
+                    taskViewMode === 'by-organizer'
+                      ? 'bg-black text-white border-black'
+                      : 'bg-white text-black border-[#00000033] hover:bg-gray-50'
+                  }`}
+                >
+                  По организаторам
+                </button>
+              </div>
+            </div>
+
+            {/* Форма создания задания */}
+            <div className="bg-white rounded-lg shadow p-6 mb-6">
+              <h3 className="text-lg font-forum font-bold mb-4">Создать новое задание</h3>
+              <p className="text-gray-600 mb-4 text-[14px] font-forum">
                 Созданные задания будут отображаться в блоке "Несортированные задачи" у всех организаторов.
               </p>
               
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Название задания</label>
+                  <label className="block text-sm font-medium mb-2 font-forum">Название задания</label>
                   <input
                     type="text"
                     value={taskTitle}
@@ -388,7 +468,7 @@ const MainOrganizerDashboard = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">Срочность</label>
+                  <label className="block text-sm font-medium mb-2 font-forum">Срочность</label>
                   <select
                     value={taskPriority}
                     onChange={(e) => setTaskPriority(e.target.value as 'low' | 'medium' | 'high')}
@@ -411,6 +491,134 @@ const MainOrganizerDashboard = () => {
                 </div>
               </div>
             </div>
+
+            {/* Отображение всех заданий */}
+            {loadingTasks ? (
+              <div className="text-center py-8">
+                <p className="text-gray-600 font-forum">Загрузка заданий...</p>
+              </div>
+            ) : allOrganizerTasks.length === 0 ? (
+              <div className="bg-white rounded-lg shadow p-8 text-center">
+                <p className="text-gray-600 font-forum">Нет заданий организаторов</p>
+              </div>
+            ) : taskViewMode === 'by-priority' ? (
+              <div className="space-y-6">
+                {/* Срочные задания */}
+                {allOrganizerTasks.filter(t => t.priority === 'high' && t.status !== 'completed').length > 0 && (
+                  <div>
+                    <h3 className="text-xl font-forum font-bold mb-3 flex items-center gap-2">
+                      <span className="w-3 h-3 rounded-full bg-red-500"></span>
+                      Срочные
+                    </h3>
+                    <div className="bg-white rounded-lg shadow divide-y divide-gray-200">
+                      {allOrganizerTasks
+                        .filter(t => t.priority === 'high' && t.status !== 'completed')
+                        .map(task => (
+                          <TaskRow key={task.id} task={task} organizers={organizers} taskGroups={allTaskGroups} />
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Средние задания */}
+                {allOrganizerTasks.filter(t => t.priority === 'medium' && t.status !== 'completed').length > 0 && (
+                  <div>
+                    <h3 className="text-xl font-forum font-bold mb-3 flex items-center gap-2">
+                      <span className="w-3 h-3 rounded-full bg-amber-500"></span>
+                      Средние
+                    </h3>
+                    <div className="bg-white rounded-lg shadow divide-y divide-gray-200">
+                      {allOrganizerTasks
+                        .filter(t => t.priority === 'medium' && t.status !== 'completed')
+                        .map(task => (
+                          <TaskRow key={task.id} task={task} organizers={organizers} taskGroups={allTaskGroups} />
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Низкие задания */}
+                {allOrganizerTasks.filter(t => t.priority === 'low' && t.status !== 'completed').length > 0 && (
+                  <div>
+                    <h3 className="text-xl font-forum font-bold mb-3 flex items-center gap-2">
+                      <span className="w-3 h-3 rounded-full bg-green-500"></span>
+                      Низкие
+                    </h3>
+                    <div className="bg-white rounded-lg shadow divide-y divide-gray-200">
+                      {allOrganizerTasks
+                        .filter(t => t.priority === 'low' && t.status !== 'completed')
+                        .map(task => (
+                          <TaskRow key={task.id} task={task} organizers={organizers} taskGroups={allTaskGroups} />
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Без приоритета */}
+                {allOrganizerTasks.filter(t => !t.priority && t.status !== 'completed').length > 0 && (
+                  <div>
+                    <h3 className="text-xl font-forum font-bold mb-3">Без приоритета</h3>
+                    <div className="bg-white rounded-lg shadow divide-y divide-gray-200">
+                      {allOrganizerTasks
+                        .filter(t => !t.priority && t.status !== 'completed')
+                        .map(task => (
+                          <TaskRow key={task.id} task={task} organizers={organizers} taskGroups={allTaskGroups} />
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Выполненные */}
+                {allOrganizerTasks.filter(t => t.status === 'completed').length > 0 && (
+                  <div>
+                    <h3 className="text-xl font-forum font-bold mb-3 text-gray-500">Выполненные</h3>
+                    <div className="bg-white rounded-lg shadow divide-y divide-gray-200 opacity-60">
+                      {allOrganizerTasks
+                        .filter(t => t.status === 'completed')
+                        .slice(0, 10)
+                        .map(task => (
+                          <TaskRow key={task.id} task={task} organizers={organizers} taskGroups={allTaskGroups} />
+                        ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {organizers.map(organizer => {
+                  const organizerTasks = allOrganizerTasks.filter(t => 
+                    t.organizer_id === organizer.id || (t.organizer_id === null && !t.task_group_id)
+                  );
+                  
+                  if (organizerTasks.length === 0) return null;
+
+                  return (
+                    <div key={organizer.id}>
+                      <h3 className="text-xl font-forum font-bold mb-3 flex items-center gap-2">
+                        {organizer.avatar && (
+                          <img 
+                            src={organizer.avatar} 
+                            alt={organizer.name}
+                            className="w-8 h-8 rounded-full object-cover"
+                          />
+                        )}
+                        {organizer.name}
+                        <span className="text-sm font-normal text-gray-500">
+                          ({organizerTasks.filter(t => t.status !== 'completed').length} активных)
+                        </span>
+                      </h3>
+                      <div className="bg-white rounded-lg shadow divide-y divide-gray-200">
+                        {organizerTasks
+                          .filter(t => t.status !== 'completed')
+                          .map(task => (
+                            <TaskRow key={task.id} task={task} organizers={organizers} taskGroups={allTaskGroups} />
+                          ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
