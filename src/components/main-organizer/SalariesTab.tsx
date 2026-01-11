@@ -829,8 +829,8 @@ const SalariesTab = () => {
                             value={salary.bonus_currency || ''}
                             onChange={async (e) => {
                               const newCurrency = e.target.value as 'доллар' | 'евро' | '';
-                              handleUpdateSalary(salary.id, 'bonus_currency', newCurrency || null);
-                              const updateData = { bonus_currency: newCurrency || null };
+                              handleUpdateSalary(salary.id, 'bonus_currency', newCurrency || undefined);
+                              const updateData = { bonus_currency: newCurrency || undefined };
                               const updated = await salaryService.updateSalary(salary.id, updateData);
                               if (updated) {
                                 setSalaries(prev => prev.map(s => s.id === salary.id ? updated : s));
@@ -847,7 +847,7 @@ const SalariesTab = () => {
                       </td>
                       <td className="border border-[#00000033] p-0 align-top">
                         <div className="flex flex-col gap-1 p-1.5 min-h-[60px]">
-                          {(coordinationPayments[salary.id] || []).map((coord, idx) => (
+                          {(coordinationPayments[salary.id] || []).map((coord) => (
                             <div key={coord.id} className="flex items-center gap-1 flex-wrap">
                               <input
                                 type="text"

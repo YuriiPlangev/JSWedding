@@ -5,7 +5,7 @@ interface SelectedWedding extends Wedding {
   tasks?: Task[];
   documents?: Document[];
   presentation?: {
-    type: string;
+    type: 'company' | 'wedding';
     title?: string;
     sections?: Array<{ id: number; name: string; image_url: string }>;
   };

@@ -314,7 +314,7 @@ const MainOrganizerDashboard = () => {
 
   // Функция удаления свадьбы (не используется, но может понадобиться в будущем)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleDeleteWedding = async (weddingId: string) => {
+  const _handleDeleteWedding = async (weddingId: string) => {
     if (!confirm('Вы уверены, что хотите удалить этот ивент?')) {
       return;
     }
