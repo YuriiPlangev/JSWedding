@@ -194,7 +194,7 @@ const SalariesTab = () => {
   }, []);
 
   // Обновление UI сразу, без сохранения
-  const handleUpdateSalary = useCallback((id: string, field: keyof Salary, value: string | number) => {
+  const handleUpdateSalary = useCallback((id: string, field: keyof Salary, value: string | number | undefined) => {
     setSalaries(prev => prev.map(s => {
       if (s.id === id) {
         return { ...s, [field]: value };
@@ -321,16 +321,19 @@ const SalariesTab = () => {
       }
     }
     
-    // Конвертируем координацию в гривны
-    if (salary.coordination && salary.coordination > 0) {
-      if (salary.coordination_currency === 'доллар') {
-        total += salary.coordination * rates.usd;
-      } else if (salary.coordination_currency === 'евро') {
-        total += salary.coordination * rates.eur;
-      } else {
-        total += salary.coordination; // Если валюта не указана, считаем как гривны
+    // Конвертируем координации в гривны
+    const coordinations = coordinationPayments[salary.id] || [];
+    coordinations.forEach(coord => {
+      if (coord.amount && coord.amount > 0) {
+        if (coord.currency === 'доллар') {
+          total += coord.amount * rates.usd;
+        } else if (coord.currency === 'евро') {
+          total += coord.amount * rates.eur;
+        } else {
+          total += coord.amount; // Если валюта не указана, считаем как гривны
+        }
       }
-    }
+    });
     
     return total;
   };
@@ -829,8 +832,9 @@ const SalariesTab = () => {
                             value={salary.bonus_currency || ''}
                             onChange={async (e) => {
                               const newCurrency = e.target.value as 'доллар' | 'евро' | '';
-                              handleUpdateSalary(salary.id, 'bonus_currency', newCurrency || undefined);
-                              const updateData = { bonus_currency: newCurrency || undefined };
+                              const currencyValue = newCurrency || undefined;
+                              handleUpdateSalary(salary.id, 'bonus_currency', currencyValue as 'доллар' | 'евро' | undefined);
+                              const updateData = { bonus_currency: currencyValue };
                               const updated = await salaryService.updateSalary(salary.id, updateData);
                               if (updated) {
                                 setSalaries(prev => prev.map(s => s.id === salary.id ? updated : s));

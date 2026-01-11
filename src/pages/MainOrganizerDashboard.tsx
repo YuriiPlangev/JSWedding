@@ -312,34 +312,6 @@ const MainOrganizerDashboard = () => {
     setShowWeddingModal(true);
   };
 
-  // Функция удаления свадьбы (не используется, но может понадобиться в будущем)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _handleDeleteWedding = async (weddingId: string) => {
-    if (!confirm('Вы уверены, что хотите удалить этот ивент?')) {
-      return;
-    }
-
-    try {
-      const success = await weddingService.deleteWedding(weddingId);
-      if (success) {
-        await loadData();
-        // Удаляем вкладку из открытых (всегда, даже если она не активна)
-        const remainingTabs = openTabs.filter(tab => tab.weddingId !== weddingId);
-        setOpenTabs(remainingTabs);
-        saveTabsToStorage(remainingTabs);
-        if (selectedWedding?.id === weddingId) {
-          setSelectedWedding(null);
-          setViewMode('weddings');
-          if (lastActiveTabId === weddingId) {
-            localStorage.removeItem('main_organizer_lastActiveTabId');
-            setLastActiveTabId(null);
-          }
-        }
-      }
-    } catch (err) {
-      console.error('Error deleting wedding:', err);
-    }
-  };
 
   // Функция для создания стандартных документов при создании свадьбы
   const createDefaultDocuments = async (weddingId: string) => {

@@ -1,12 +1,12 @@
 import type { Wedding, Task, Document, User } from '../../types';
 
-interface SelectedWedding extends Wedding {
+interface SelectedWedding extends Omit<Wedding, 'presentation'> {
   client?: User;
   tasks?: Task[];
   documents?: Document[];
   presentation?: {
     type: 'company' | 'wedding';
-    title?: string;
+    title: string;
     sections?: Array<{ id: number; name: string; image_url: string }>;
   };
 }
