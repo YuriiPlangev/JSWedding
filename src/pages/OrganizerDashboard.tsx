@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { weddingService, taskService, documentService, clientService, presentationService } from '../services/weddingService';
+import { weddingService, taskService, documentService, clientService, presentationService, organizerService } from '../services/weddingService';
 import type { Wedding, Task, TaskGroup, Document, User, Presentation } from '../types';
 import { WeddingModal, TaskModal, OrganizerTaskModal, DocumentModal, PresentationModal, ClientModal } from '../components/modals';
+import TaskViewModal from '../components/modals/TaskViewModal';
 import { TaskColumn, ScrollbarStyles } from '../components/organizer';
 import { useTaskGroups, useTaskLogs, useTaskDragAndDrop, useGroupDragAndDrop } from '../hooks';
 import { hexToHsl, hslToHex } from '../utils/colorUtils';
@@ -128,6 +129,9 @@ const OrganizerDashboard = () => {
     const [showOrganizerTaskModal, setShowOrganizerTaskModal] = useState(false);
     const [showTaskGroupModal, setShowTaskGroupModal] = useState(false);
     const [editingOrganizerTask, setEditingOrganizerTask] = useState<Task | null>(null);
+    const [viewingTask, setViewingTask] = useState<Task | null>(null);
+    const [showTaskViewModal, setShowTaskViewModal] = useState(false);
+    const [organizers, setOrganizers] = useState<User[]>([]);
     const [editingTaskGroup, setEditingTaskGroup] = useState<TaskGroup | null>(null);
     const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
     const [showGroupMenu, setShowGroupMenu] = useState<string | null>(null);
@@ -144,6 +148,15 @@ const OrganizerDashboard = () => {
     // Состояния для inline редактирования задания
     const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
     const [editingTaskText, setEditingTaskText] = useState<string>('');
+
+    // Загрузка списка организаторов
+    useEffect(() => {
+      const loadOrganizers = async () => {
+        const data = await organizerService.getAllOrganizers();
+        setOrganizers(data);
+      };
+      loadOrganizers();
+    }, []);
 
     // Состояния для цветового пикера
     const [colorPickerHue, setColorPickerHue] = useState(0);
@@ -255,6 +268,11 @@ const OrganizerDashboard = () => {
       setCreatingTaskGroupId(groupId);
       setNewTaskText('');
       // Фокус на input будет установлен через useEffect
+    };
+
+    const handleViewTask = (task: Task) => {
+      setViewingTask(task);
+      setShowTaskViewModal(true);
     };
 
     const handleEditTask = (task: Task) => {
@@ -693,6 +711,7 @@ const OrganizerDashboard = () => {
                     });
                   }}
                   onTaskToggle={handleToggleTask}
+                  onViewTask={handleViewTask}
                   onEditTask={handleEditTask}
                   onDeleteTask={handleDeleteTask}
                   onSaveInlineEdit={handleSaveInlineEditTask}
@@ -743,6 +762,23 @@ const OrganizerDashboard = () => {
               Создать первый блок
             </button>
           </div>
+        )}
+
+        {/* Task View Modal */}
+        {showTaskViewModal && viewingTask && (
+          <TaskViewModal
+            task={viewingTask}
+            assignedOrganizer={organizers.find(o => o.id === viewingTask.assigned_organizer_id)}
+            onClose={() => {
+              setShowTaskViewModal(false);
+              setViewingTask(null);
+            }}
+            onEdit={() => {
+              setShowTaskViewModal(false);
+              setViewingTask(null);
+              handleEditTask(viewingTask);
+            }}
+          />
         )}
 
         {/* Task Modal */}

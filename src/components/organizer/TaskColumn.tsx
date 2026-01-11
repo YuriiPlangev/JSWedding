@@ -30,6 +30,7 @@ interface TaskColumnProps {
   onToggleCompleted: (groupId: string | null) => void;
   onTaskToggle: (taskId: string, checked: boolean) => void;
   onEditTask: (task: Task) => void;
+  onViewTask?: (task: Task) => void;
   onDeleteTask: (taskId: string) => void;
   onSaveInlineEdit: (taskId: string) => void;
   onCancelInlineEdit: () => void;
@@ -77,6 +78,7 @@ const TaskColumn = memo(({
   onToggleCompleted,
   onTaskToggle,
   onEditTask,
+  onViewTask,
   onDeleteTask,
   onSaveInlineEdit,
   onCancelInlineEdit,
@@ -323,7 +325,11 @@ const TaskColumn = memo(({
                               }`}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                onEditTask(task);
+                                if (onViewTask) {
+                                  onViewTask(task);
+                                } else {
+                                  onEditTask(task);
+                                }
                               }}
                             >
                               {taskTitle}
@@ -431,7 +437,7 @@ const TaskColumn = memo(({
 
                   {/* Фото исполнителя справа снизу */}
                   {task.assigned_organizer_id && (
-                    <div className="absolute right-1.5 bottom-1.5 flex-shrink-0">
+                    <div className="absolute right-0.5 bottom-0.5 flex-shrink-0">
                       {assignedOrganizer?.avatar ? (
                         <img
                           src={assignedOrganizer.avatar}
@@ -710,7 +716,17 @@ const TaskColumn = memo(({
                           </svg>
                         </button>
                         <div className="flex-1 min-w-0 pl-7">
-                            <p className="text-[14px] max-[1599px]:text-[13px] font-forum text-[#00000060] line-through cursor-pointer" onClick={() => onEditTask(task)}>
+                            <p 
+                              className="text-[14px] max-[1599px]:text-[13px] font-forum text-[#00000060] line-through cursor-pointer" 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (onViewTask) {
+                                  onViewTask(task);
+                                } else {
+                                  onEditTask(task);
+                                }
+                              }}
+                            >
                               {taskTitle}
                             </p>
                         </div>
@@ -798,9 +814,9 @@ const TaskColumn = memo(({
                         </div>
                       )}
 
-                      {/* Фото исполнителя справа снизу */}
-                      {task.assigned_organizer_id && (
-                        <div className="absolute right-1.5 bottom-1.5 flex-shrink-0">
+                  {/* Фото исполнителя справа снизу */}
+                  {task.assigned_organizer_id && (
+                    <div className="absolute right-0.5 bottom-0.5 flex-shrink-0">
                           {assignedOrganizer?.avatar ? (
                             <img
                               src={assignedOrganizer.avatar}

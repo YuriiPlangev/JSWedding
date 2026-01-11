@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { User, Task, TaskGroup } from '../../types';
-import { taskService } from '../../services/weddingService';
+import { taskService, organizerService } from '../../services/weddingService';
 import { OrganizerTaskModal } from '../modals';
+import TaskViewModal from '../modals/TaskViewModal';
 import { TaskColumn, ScrollbarStyles } from '../organizer';
 import { useTaskGroups, useTaskLogs, useTaskDragAndDrop, useGroupDragAndDrop } from '../../hooks';
 import { hexToHsl, hslToHex } from '../../utils/colorUtils';
@@ -50,6 +51,9 @@ const TasksPage = ({ user, viewMode }: TasksPageProps) => {
   });
 
   const [showOrganizerTaskModal, setShowOrganizerTaskModal] = useState(false);
+  const [showTaskViewModal, setShowTaskViewModal] = useState(false);
+  const [viewingTask, setViewingTask] = useState<Task | null>(null);
+  const [organizers, setOrganizers] = useState<User[]>([]);
   const [showTaskGroupModal, setShowTaskGroupModal] = useState(false);
   const [editingOrganizerTask, setEditingOrganizerTask] = useState<Task | null>(null);
   const [editingTaskGroup, setEditingTaskGroup] = useState<TaskGroup | null>(null);
@@ -183,6 +187,20 @@ const TasksPage = ({ user, viewMode }: TasksPageProps) => {
     setCreatingTaskGroupId(groupId === null ? 'unsorted' : groupId);
     setNewTaskText('');
     // Фокус на input будет установлен через useEffect
+  };
+
+  // Загрузка списка организаторов
+  useEffect(() => {
+    const loadOrganizers = async () => {
+      const data = await organizerService.getAllOrganizers();
+      setOrganizers(data);
+    };
+    loadOrganizers();
+  }, []);
+
+  const handleViewTask = (task: Task) => {
+    setViewingTask(task);
+    setShowTaskViewModal(true);
   };
 
   const handleEditTask = (task: Task) => {
@@ -646,6 +664,7 @@ const TasksPage = ({ user, viewMode }: TasksPageProps) => {
                   });
                 }}
                 onTaskToggle={handleToggleTask}
+                onViewTask={handleViewTask}
                 onEditTask={handleEditTask}
                 onDeleteTask={handleDeleteTask}
                 onSaveInlineEdit={handleSaveInlineEditTask}
@@ -699,6 +718,23 @@ const TasksPage = ({ user, viewMode }: TasksPageProps) => {
             Создать первый блок
           </button>
         </div>
+      )}
+
+      {/* Task View Modal */}
+      {showTaskViewModal && viewingTask && (
+        <TaskViewModal
+          task={viewingTask}
+          assignedOrganizer={organizers.find(o => o.id === viewingTask.assigned_organizer_id)}
+          onClose={() => {
+            setShowTaskViewModal(false);
+            setViewingTask(null);
+          }}
+          onEdit={() => {
+            setShowTaskViewModal(false);
+            setViewingTask(null);
+            handleEditTask(viewingTask);
+          }}
+        />
       )}
 
       {/* Task Modal */}
