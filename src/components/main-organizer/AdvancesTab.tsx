@@ -135,7 +135,7 @@ const AdvancesTab = () => {
   }, []);
 
   // Обновление UI сразу, без сохранения
-  const handleUpdateAdvance = useCallback((id: string, field: keyof Advance, value: string | number | null) => {
+  const handleUpdateAdvance = useCallback((id: string, field: keyof Omit<Advance, 'id' | 'created_at' | 'updated_at'>, value: string | number | null) => {
     setAdvances(prev => prev.map(a => {
       if (a.id === id) {
         return { ...a, [field]: value };
@@ -145,7 +145,7 @@ const AdvancesTab = () => {
   }, []);
 
   // Сохранение в Supabase при потере фокуса
-  const handleSaveAdvance = useCallback(async (id: string, field: keyof Advance, value: string | number | null) => {
+  const handleSaveAdvance = useCallback(async (id: string, field: keyof Omit<Advance, 'id' | 'created_at' | 'updated_at'>, value: string | number | null) => {
     const currentAdvance = advances.find(a => a.id === id);
     if (!currentAdvance) return;
 
@@ -157,14 +157,19 @@ const AdvancesTab = () => {
     } else if (field === 'currency') {
       // Для валюты всегда сохраняем значение, даже если оно совпадает
       updateData.currency = value as Currency;
-    } else {
-      updateData[field] = value as any;
+    } else if (field === 'date') {
+      updateData.date = value as string;
+    } else if (field === 'payment_method') {
+      updateData.payment_method = value as 'крипта' | 'наличка' | 'карта';
+    } else if (field === 'event_id') {
+      updateData.event_id = value as string;
     }
 
     // Для валюты не проверяем изменение, всегда сохраняем
     if (field !== 'currency') {
       const currentValue = currentAdvance[field];
-      if (currentValue === updateData[field]) {
+      const newValue = updateData[field];
+      if (currentValue === newValue) {
         return;
       }
     }
