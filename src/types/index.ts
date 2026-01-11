@@ -75,6 +75,7 @@ export interface Task {
   due_date?: string;
   status: 'pending' | 'in_progress' | 'completed';
   priority?: 'low' | 'medium' | 'high'; // Срочность задания
+  assigned_organizer_id?: string | null; // ID организатора-исполнителя
   order?: number; // Порядок отображения
   created_at: string;
   updated_at: string;
@@ -114,6 +115,77 @@ export interface PresentationSection {
   id: number;
   name: string;
   image_url: string; // URL изображения из Storage или внешний URL
+}
+
+// Типы для авансов
+export interface Event {
+  id: string;
+  name: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Advance {
+  id: string;
+  event_id: string;
+  date: string;
+  amount: number;
+  purpose: string | null;
+  payment_method: 'крипта' | 'наличка' | 'карта';
+  currency?: 'грн' | 'доллар' | 'евро';
+  created_at: string;
+  updated_at: string;
+}
+
+// Типы для зарплат
+export interface Employee {
+  id: string;
+  name: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Salary {
+  id: string;
+  employee_id: string;
+  month: string; // Первое число месяца (YYYY-MM-01)
+  salary: number;
+  salary_currency?: 'грн' | 'доллар' | 'евро'; // Валюта для зарплаты
+  bonus: number;
+  bonus_currency?: 'доллар' | 'евро'; // Валюта для бонуса
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CoordinationPayment {
+  id: string;
+  salary_id: string;
+  name: string; // Название координации (например, "Координация Киев Едем")
+  amount: number;
+  currency?: 'грн' | 'доллар' | 'евро';
+  created_at: string;
+  updated_at: string;
+}
+
+// Типы для оплат подрядчикам
+export interface ContractorPayment {
+  id: string;
+  created_by: string;
+  service: string; // Услуга
+  cost: number; // Стоимость
+  cost_currency?: 'грн' | 'доллар' | 'евро'; // Валюта стоимости
+  percent: number; // %
+  percent_currency?: 'грн' | 'доллар' | 'евро'; // Валюта процента
+  advance: number; // Аванс
+  advance_currency?: 'грн' | 'доллар' | 'евро'; // Валюта аванса
+  date: string; // Дата
+  currency?: 'грн' | 'доллар' | 'евро'; // Валюта (старое поле, для обратной совместимости)
+  comment?: string | null; // Комментарий
+  to_pay: number; // К Оплате (вычисляемое поле: cost - advance)
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Presentation {

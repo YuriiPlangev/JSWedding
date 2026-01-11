@@ -100,7 +100,7 @@ const ClientModal = ({ onClose, onSave }: ClientModalProps) => {
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum"
+                className="px-5 py-2 bg-black text-white rounded-md hover:bg-[#1a1a1a] active:scale-[0.98] transition-all duration-200 cursor-pointer text-[15px] max-[1599px]:text-[13px] font-forum font-medium"
               >
                 Создать
               </button>

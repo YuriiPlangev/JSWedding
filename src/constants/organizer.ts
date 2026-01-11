@@ -4,17 +4,18 @@
 
 export const SCROLLBAR_STYLES = `
   .task-blocks-scroll::-webkit-scrollbar {
-    height: 8px;
+    height: 0;
+    display: none;
   }
   .task-blocks-scroll::-webkit-scrollbar-track {
-    background: transparent;
+    display: none;
   }
   .task-blocks-scroll::-webkit-scrollbar-thumb {
-    background-color: rgba(0, 0, 0, 0.25);
-    border-radius: 4px;
+    display: none;
   }
-  .task-blocks-scroll::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(0, 0, 0, 0.4);
+  .task-blocks-scroll {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
   .task-column-scroll::-webkit-scrollbar {
     width: 8px;

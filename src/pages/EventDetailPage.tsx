@@ -678,11 +678,6 @@ const EventDetailPage = () => {
                               ? 'В процессе'
                               : 'Ожидает'}
                           </span>
-                          {task.due_date && (
-                            <span className="text-[14px] font-forum font-light text-[#00000080]">
-                              Срок: {new Date(task.due_date).toLocaleDateString('ru-RU')}
-                            </span>
-                          )}
                         </div>
                         <h4 className="text-[20px] max-[1599px]:text-[18px] font-forum font-bold text-black mt-2">
                           {task.title_ru || task.title || task.title_en || task.title_ua || ''}

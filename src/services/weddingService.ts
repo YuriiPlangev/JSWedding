@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import type { Wedding, Task, TaskGroup, Document, User, Presentation, PresentationSection, OrganizerTaskLog, UserRole } from '../types';
+import type { Wedding, Task, TaskGroup, Document, User, Presentation, PresentationSection, OrganizerTaskLog, UserRole, Event, Advance, Employee, Salary, ContractorPayment, CoordinationPayment } from '../types';
 import { getCache, setCache, invalidateCache } from '../utils/cache';
 
 // Сервис для работы со свадьбами
@@ -1226,6 +1226,36 @@ export const clientService = {
   },
 };
 
+// Сервис для работы с организаторами
+export const organizerService = {
+  // Получить всех обычных организаторов (только с ролью 'organizer', без 'main_organizer')
+  async getAllOrganizers(): Promise<User[]> {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, email, name, role, avatar_url')
+        .eq('role', 'organizer')
+        .order('name', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching organizers:', error);
+        return [];
+      }
+
+      return (data || []).map((profile) => ({
+        id: profile.id,
+        email: profile.email || '',
+        name: profile.name || '',
+        role: profile.role as UserRole,
+        avatar: profile.avatar_url || undefined,
+      }));
+    } catch (err) {
+      console.error('Error in getAllOrganizers:', err);
+      return [];
+    }
+  },
+};
+
 // Сервис для работы с презентациями
 export const presentationService = {
   // Получить презентацию компании по умолчанию
@@ -1383,6 +1413,408 @@ export const presentationService = {
 
     if (updatedWedding) {
       invalidateCache(`wedding_${updatedWedding.client_id}`);
+    }
+
+    return true;
+  },
+};
+
+// Сервис для работы с авансами
+export const advanceService = {
+  // Получить все ивенты
+  async getEvents(userId: string): Promise<Event[]> {
+    const { data, error } = await supabase
+      .from('events')
+      .select('*')
+      .eq('created_by', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching events:', error);
+      return [];
+    }
+
+    return data || [];
+  },
+
+  // Создать новый ивент
+  async createEvent(userId: string, name: string): Promise<Event | null> {
+    const { data, error } = await supabase
+      .from('events')
+      .insert({
+        name,
+        created_by: userId,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating event:', error);
+      return null;
+    }
+
+    return data;
+  },
+
+  // Обновить ивент
+  async updateEvent(eventId: string, name: string): Promise<Event | null> {
+    const { data, error } = await supabase
+      .from('events')
+      .update({ name })
+      .eq('id', eventId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating event:', error);
+      return null;
+    }
+
+    return data;
+  },
+
+  // Удалить ивент
+  async deleteEvent(eventId: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('events')
+      .delete()
+      .eq('id', eventId);
+
+    if (error) {
+      console.error('Error deleting event:', error);
+      return false;
+    }
+
+    return true;
+  },
+
+  // Получить все авансы для ивента
+  async getAdvancesByEvent(eventId: string): Promise<Advance[]> {
+    const { data, error } = await supabase
+      .from('advances')
+      .select('*')
+      .eq('event_id', eventId)
+      .order('date', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching advances:', error);
+      return [];
+    }
+
+    return data || [];
+  },
+
+  // Создать аванс
+  async createAdvance(advance: Omit<Advance, 'id' | 'created_at' | 'updated_at'>): Promise<Advance | null> {
+    const { data, error } = await supabase
+      .from('advances')
+      .insert(advance)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating advance:', error);
+      return null;
+    }
+
+    return data;
+  },
+
+  // Обновить аванс
+  async updateAdvance(advanceId: string, advance: Partial<Omit<Advance, 'id' | 'created_at' | 'updated_at'>>): Promise<Advance | null> {
+    const { data, error } = await supabase
+      .from('advances')
+      .update(advance)
+      .eq('id', advanceId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating advance:', error);
+      return null;
+    }
+
+    return data;
+  },
+
+  // Удалить аванс
+  async deleteAdvance(advanceId: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('advances')
+      .delete()
+      .eq('id', advanceId);
+
+    if (error) {
+      console.error('Error deleting advance:', error);
+      return false;
+    }
+
+    return true;
+  },
+};
+
+// Сервис для работы с зарплатами
+export const salaryService = {
+  // Получить всех сотрудников
+  async getEmployees(userId: string): Promise<Employee[]> {
+    const { data, error } = await supabase
+      .from('employees')
+      .select('*')
+      .eq('created_by', userId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching employees:', error);
+      return [];
+    }
+
+    return data || [];
+  },
+
+  // Создать нового сотрудника
+  async createEmployee(userId: string, name: string): Promise<Employee | null> {
+    const { data, error } = await supabase
+      .from('employees')
+      .insert({
+        name,
+        created_by: userId,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating employee:', error);
+      return null;
+    }
+
+    return data;
+  },
+
+  // Обновить сотрудника
+  async updateEmployee(employeeId: string, name: string): Promise<Employee | null> {
+    const { data, error } = await supabase
+      .from('employees')
+      .update({ name })
+      .eq('id', employeeId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating employee:', error);
+      return null;
+    }
+
+    return data;
+  },
+
+  // Удалить сотрудника
+  async deleteEmployee(employeeId: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('employees')
+      .delete()
+      .eq('id', employeeId);
+
+    if (error) {
+      console.error('Error deleting employee:', error);
+      return false;
+    }
+
+    return true;
+  },
+
+  // Получить все зарплаты для сотрудника
+  async getSalariesByEmployee(employeeId: string): Promise<Salary[]> {
+    const { data, error } = await supabase
+      .from('salaries')
+      .select('*')
+      .eq('employee_id', employeeId)
+      .order('month', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching salaries:', error);
+      return [];
+    }
+
+    return data || [];
+  },
+
+  // Создать зарплату
+  async createSalary(salary: Omit<Salary, 'id' | 'created_at' | 'updated_at'>): Promise<Salary | null> {
+    const { data, error } = await supabase
+      .from('salaries')
+      .insert(salary)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating salary:', error);
+      return null;
+    }
+
+    return data;
+  },
+
+  // Обновить зарплату
+  async updateSalary(salaryId: string, salary: Partial<Omit<Salary, 'id' | 'created_at' | 'updated_at'>>): Promise<Salary | null> {
+    const { data, error } = await supabase
+      .from('salaries')
+      .update(salary)
+      .eq('id', salaryId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating salary:', error);
+      return null;
+    }
+
+    return data;
+  },
+
+  // Удалить зарплату
+  async deleteSalary(salaryId: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('salaries')
+      .delete()
+      .eq('id', salaryId);
+
+    if (error) {
+      console.error('Error deleting salary:', error);
+      return false;
+    }
+
+    return true;
+  },
+};
+
+// Сервис для работы с координациями
+export const coordinationService = {
+  // Получить все координации для зарплаты
+  async getCoordinationPayments(salaryId: string): Promise<CoordinationPayment[]> {
+    const { data, error } = await supabase
+      .from('coordination_payments')
+      .select('*')
+      .eq('salary_id', salaryId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching coordination payments:', error);
+      return [];
+    }
+
+    return data || [];
+  },
+
+  // Создать координацию
+  async createCoordinationPayment(payment: Omit<CoordinationPayment, 'id' | 'created_at' | 'updated_at'>): Promise<CoordinationPayment | null> {
+    const { data, error } = await supabase
+      .from('coordination_payments')
+      .insert(payment)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating coordination payment:', error);
+      return null;
+    }
+
+    return data;
+  },
+
+  // Обновить координацию
+  async updateCoordinationPayment(paymentId: string, payment: Partial<Omit<CoordinationPayment, 'id' | 'created_at' | 'updated_at'>>): Promise<CoordinationPayment | null> {
+    const { data, error } = await supabase
+      .from('coordination_payments')
+      .update(payment)
+      .eq('id', paymentId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating coordination payment:', error);
+      return null;
+    }
+
+    return data;
+  },
+
+  // Удалить координацию
+  async deleteCoordinationPayment(paymentId: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('coordination_payments')
+      .delete()
+      .eq('id', paymentId);
+
+    if (error) {
+      console.error('Error deleting coordination payment:', error);
+      return false;
+    }
+
+    return true;
+  },
+};
+
+// Сервис для работы с оплатами подрядчикам
+export const contractorPaymentService = {
+  // Получить все оплаты подрядчикам
+  async getPayments(userId: string): Promise<ContractorPayment[]> {
+    const { data, error } = await supabase
+      .from('contractor_payments')
+      .select('*')
+      .eq('created_by', userId)
+      .order('date', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching contractor payments:', error);
+      return [];
+    }
+
+    return data || [];
+  },
+
+  // Создать оплату подрядчику
+  async createPayment(payment: Omit<ContractorPayment, 'id' | 'created_at' | 'updated_at' | 'to_pay'>): Promise<ContractorPayment | null> {
+    const { data, error } = await supabase
+      .from('contractor_payments')
+      .insert(payment)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating contractor payment:', error);
+      return null;
+    }
+
+    return data;
+  },
+
+  // Обновить оплату подрядчику
+  async updatePayment(paymentId: string, payment: Partial<Omit<ContractorPayment, 'id' | 'created_at' | 'updated_at' | 'to_pay'>>): Promise<ContractorPayment | null> {
+    const { data, error } = await supabase
+      .from('contractor_payments')
+      .update(payment)
+      .eq('id', paymentId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating contractor payment:', error);
+      return null;
+    }
+
+    return data;
+  },
+
+  // Удалить оплату подрядчику
+  async deletePayment(paymentId: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('contractor_payments')
+      .delete()
+      .eq('id', paymentId);
+
+    if (error) {
+      console.error('Error deleting contractor payment:', error);
+      return false;
     }
 
     return true;

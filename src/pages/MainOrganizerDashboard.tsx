@@ -1,284 +1,930 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { taskService } from '../services/weddingService';
-import { weddingService } from '../services/weddingService';
-import type { User, Document, Wedding, Task, TaskGroup } from '../types';
-import TaskRow from '../components/organizer/TaskRow';
+import { weddingService, taskService, documentService, clientService, presentationService } from '../services/weddingService';
+import type { Wedding, Task, Document, User, Presentation } from '../types';
+import { WeddingModal, TaskModal, DocumentModal, PresentationModal, ClientModal } from '../components/modals';
+import { TasksPage, WeddingsList, WeddingDetails, AdvancesTab, SalariesTab, ContractorsPaymentsTab } from '../components/main-organizer';
 import logoV3 from '../assets/logoV3.svg';
-import { supabase } from '../lib/supabase';
 
-type ViewMode = 'events' | 'tasks' | 'documents';
+type ViewMode = 'weddings' | 'tasks' | 'wedding-details' | 'advances' | 'salaries' | 'contractors-payments';
+
+interface SelectedWedding extends Wedding {
+  client?: User;
+  tasks?: Task[];
+  documents?: Document[];
+}
+
+interface OpenTab {
+  id: string;
+  weddingId: string;
+  name: string;
+}
 
 const MainOrganizerDashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [viewMode, setViewMode] = useState<ViewMode>('events');
-  const [currentLanguage] = useState<'en' | 'ru' | 'ua'>('ru');
-  const [events, setEvents] = useState<Wedding[]>([]);
+  const [weddings, setWeddings] = useState<Wedding[]>([]);
+  const [clients, setClients] = useState<User[]>([]);
+  const [selectedWedding, setSelectedWedding] = useState<SelectedWedding | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    // Восстанавливаем viewMode из localStorage при загрузке
+    try {
+      const saved = localStorage.getItem('main_organizer_viewMode');
+      if (saved && (saved === 'tasks' || saved === 'weddings' || saved === 'wedding-details' || saved === 'advances' || saved === 'salaries' || saved === 'contractors-payments')) {
+        return saved as ViewMode;
+      }
+    } catch {
+      // Игнорируем ошибки
+    }
+    return 'tasks';
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
-  // Состояния для создания заданий (inline)
-  const [taskTitle, setTaskTitle] = useState('');
-  const [taskPriority, setTaskPriority] = useState<'low' | 'medium' | 'high'>('medium');
-  
-  // Состояния для всех заданий организаторов
-  const [allOrganizerTasks, setAllOrganizerTasks] = useState<Task[]>([]);
-  const [allTaskGroups, setAllTaskGroups] = useState<TaskGroup[]>([]);
-  const [organizers, setOrganizers] = useState<User[]>([]);
-  const [loadingTasks, setLoadingTasks] = useState(false);
-  const [taskViewMode, setTaskViewMode] = useState<'by-priority' | 'by-organizer'>('by-priority');
-  
-  // Состояния для документов
-  const [documents, setDocuments] = useState<Document[]>([]);
-  const [showDocumentModal, setShowDocumentModal] = useState(false);
-  const [documentName, setDocumentName] = useState('');
-  const [documentLink, setDocumentLink] = useState('');
-  const [editingDocument, setEditingDocument] = useState<Document | null>(null);
-
-  // Загрузка ивентов и организаторов
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        console.log('Loading events and organizers...');
-        const [eventsData, organizersData] = await Promise.all([
-          weddingService.getAllWeddings(),
-          getAllOrganizers()
-        ]);
-        console.log('Loaded events:', eventsData);
-        setEvents(eventsData);
-        setOrganizers(organizersData);
-      } catch (err) {
-        console.error('Error loading data:', err);
-        setError(`Ошибка при загрузке данных: ${err instanceof Error ? err.message : 'Неизвестная ошибка'}`);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (user) {
-      loadData();
-    }
-  }, [user]);
-
-  // Загрузка всех заданий организаторов
-  useEffect(() => {
-    if (viewMode === 'tasks' && user) {
-      loadAllOrganizerTasks();
-    }
-  }, [viewMode, user]);
-
-  const loadAllOrganizerTasks = async () => {
-    setLoadingTasks(true);
+  // Функции для работы с localStorage
+  const saveTabsToStorage = (tabs: OpenTab[]) => {
     try {
-      // Получаем все задания организаторов (wedding_id IS NULL)
-      const { data: tasksData, error: tasksError } = await supabase
-        .from('tasks')
-        .select('*')
-        .is('wedding_id', null)
-        .order('created_at', { ascending: false });
-
-      if (tasksError) {
-        console.error('Error loading tasks:', tasksError);
-        setError('Ошибка при загрузке заданий');
-        return;
-      }
-
-      // Получаем все группы заданий
-      const { data: groupsData, error: groupsError } = await supabase
-        .from('task_groups')
-        .select('*')
-        .order('created_at', { ascending: true });
-
-      if (groupsError) {
-        console.error('Error loading task groups:', groupsError);
-      }
-
-      setAllOrganizerTasks(tasksData || []);
-      setAllTaskGroups(groupsData || []);
-    } catch (err) {
-      console.error('Error loading organizer tasks:', err);
-      setError('Ошибка при загрузке заданий');
-    } finally {
-      setLoadingTasks(false);
+      localStorage.setItem('main_organizer_openTabs', JSON.stringify(tabs));
+    } catch (error) {
+      console.error('Error saving tabs to localStorage:', error);
     }
   };
 
-  // Загрузка документов
+  const loadTabsFromStorage = (): OpenTab[] => {
+    try {
+      const saved = localStorage.getItem('main_organizer_openTabs');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (error) {
+      console.error('Error loading tabs from localStorage:', error);
+    }
+    return [];
+  };
+
+  const [openTabs, setOpenTabs] = useState<OpenTab[]>(loadTabsFromStorage());
+  const [lastActiveTabId, setLastActiveTabId] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem('main_organizer_lastActiveTabId');
+    } catch {
+      return null;
+    }
+  });
+  
+
+  // Состояния для модальных окон
+  const [showWeddingModal, setShowWeddingModal] = useState(false);
+  const [showTaskModal, setShowTaskModal] = useState(false);
+  const [showDocumentModal, setShowDocumentModal] = useState(false);
+  const [showPresentationModal, setShowPresentationModal] = useState(false);
+  const [showClientModal, setShowClientModal] = useState(false);
+  const [editingWedding, setEditingWedding] = useState<Wedding | null>(null);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [editingDocument, setEditingDocument] = useState<Document | null>(null);
+  const [uploadingPresentation, setUploadingPresentation] = useState(false);
+  
+  // Состояния для drag and drop
+  const [draggedWeddingTaskId, setDraggedWeddingTaskId] = useState<string | null>(null);
+  const [draggedDocumentId, setDraggedDocumentId] = useState<string | null>(null);
+
+  const loadData = useCallback(async () => {
+    if (!user?.id) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const [weddingsData, clientsData] = await Promise.all([
+        weddingService.getAllWeddings(), // Главный организатор видит все свадьбы
+        clientService.getAllClients(),
+      ]);
+
+      setWeddings(weddingsData);
+      setClients(clientsData);
+    } catch (err) {
+      console.error('Error loading data:', err);
+      setError('Ошибка при загрузке данных');
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id]);
+
+  // useEffect для загрузки данных при монтировании
   useEffect(() => {
-    if (viewMode === 'documents') {
-      loadDocuments();
+    loadData();
+  }, [loadData]);
+
+  // Используем ref для отслеживания, был ли уже загружен user.id
+  const loadedUserIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (user?.id && user.role === 'main_organizer') {
+      // Загружаем данные только один раз при монтировании или при изменении user.id
+      if (loadedUserIdRef.current !== user.id) {
+        loadedUserIdRef.current = user.id;
+        loadData();
+      }
+    } else if (user && user.role !== 'main_organizer') {
+      // Если пользователь не главный организатор, перенаправляем
+      // Но только если он не находится уже на правильной странице
+      if (window.location.pathname !== '/dashboard' && window.location.pathname !== '/client' && window.location.pathname !== '/organizer') {
+        navigate('/dashboard', { replace: true });
+      }
+    }
+  }, [user?.id, user?.role, navigate, loadData]);
+
+  // Сохраняем viewMode в localStorage при изменении
+  useEffect(() => {
+    try {
+      localStorage.setItem('main_organizer_viewMode', viewMode);
+    } catch (error) {
+      console.error('Error saving viewMode to localStorage:', error);
     }
   }, [viewMode]);
 
-  const getAllOrganizers = async (): Promise<User[]> => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('role', 'organizer')
-        .order('name', { ascending: true });
+  // Восстанавливаем открытые вкладки после загрузки данных
+  const hasRestoredTabsRef = useRef(false);
+  useEffect(() => {
+    // Восстанавливаем состояние только один раз после загрузки свадеб
+    if (weddings.length > 0 && !selectedWedding && !hasRestoredTabsRef.current) {
+      hasRestoredTabsRef.current = true;
+      
+      // Проверяем, какие вкладки все еще существуют (не были удалены)
+      const validTabs = openTabs.filter(tab => 
+        weddings.some(wedding => wedding.id === tab.weddingId)
+      );
 
-      if (error) {
-        console.error('Error fetching organizers:', error);
-        return [];
+      // Если есть невалидные вкладки, обновляем список
+      if (validTabs.length !== openTabs.length) {
+        setOpenTabs(validTabs);
+        saveTabsToStorage(validTabs);
       }
 
-      return (data || []).map((profile) => ({
-        id: profile.id,
-        email: profile.email || '',
-        name: profile.name || '',
-        role: 'organizer' as const,
-        avatar: profile.avatar_url,
-      }));
-    } catch (err) {
-      console.error('Error in getAllOrganizers:', err);
-      return [];
-    }
-  };
+      // Приоритет 1: Восстанавливаем последнюю активную вкладку по lastActiveTabId
+      if (lastActiveTabId) {
+        const weddingExists = weddings.some(w => w.id === lastActiveTabId);
+        if (weddingExists) {
+          // Загружаем детали свадьбы напрямую, даже если нет открытых вкладок
+          loadWeddingDetails(lastActiveTabId);
+          return;
+        }
+      }
 
-  const loadDocuments = async () => {
-    try {
-      // Получаем все документы главного организатора (где wedding_id = null или специальное поле)
-      const { data, error } = await supabase
-        .from('documents')
-        .select('*')
-        .is('wedding_id', null)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error loading documents:', error);
+      // Приоритет 2: Если есть валидные вкладки, открываем первую
+      if (validTabs.length > 0) {
+        loadWeddingDetails(validTabs[0].weddingId);
         return;
       }
 
-      setDocuments(data || []);
-    } catch (err) {
-      console.error('Error loading documents:', err);
+      // Приоритет 3: Если нет вкладок и нет lastActiveTabId, проверяем сохраненный viewMode
+      const savedViewMode = localStorage.getItem('main_organizer_viewMode');
+      if (savedViewMode && savedViewMode !== 'wedding-details') {
+        // Если viewMode не 'wedding-details', просто устанавливаем его
+        // (viewMode уже восстановлен из localStorage при инициализации, но на всякий случай)
+        if (savedViewMode === 'tasks' || savedViewMode === 'weddings' || savedViewMode === 'advances' || savedViewMode === 'salaries') {
+          setViewMode(savedViewMode as ViewMode);
+        }
+      } else if (savedViewMode === 'wedding-details' && !lastActiveTabId) {
+        // Если viewMode был 'wedding-details', но нет lastActiveTabId, переключаемся на ивенты
+        setViewMode('weddings');
+      }
     }
-  };
+  }, [weddings.length, lastActiveTabId, selectedWedding]);
 
-  const handleCreateTask = async () => {
-    if (!taskTitle.trim()) {
-      setError('Введите название задания');
-      return;
-    }
-
+  const loadWeddingDetails = async (weddingId: string) => {
+    setLoading(true);
     try {
-      const result = await taskService.createOrganizerTask({
-        organizer_id: null, // null - задание видно всем организаторам
-        task_group_id: null, // Несортированные задачи
-        title: taskTitle.trim(),
-        title_ru: taskTitle.trim(),
-        status: 'pending',
-        priority: taskPriority,
+      const wedding = await weddingService.getWeddingById(weddingId);
+      if (!wedding) {
+        setError('Ошибка при загрузке данных');
+        setLoading(false);
+        return;
+      }
+
+      const client = await clientService.getClientById(wedding.client_id);
+      const [tasks, documents] = await Promise.all([
+        taskService.getWeddingTasks(weddingId),
+        documentService.getWeddingDocuments(weddingId),
+      ]);
+
+      const weddingData = {
+        ...wedding,
+        client: client || undefined,
+        tasks,
+        documents,
+      };
+
+      setSelectedWedding(weddingData);
+
+      // Добавляем вкладку, если её еще нет
+      const coupleName = `${wedding.couple_name_1_ru || wedding.couple_name_1_en || ''} & ${wedding.couple_name_2_ru || wedding.couple_name_2_en || ''}`;
+
+      setOpenTabs(prevTabs => {
+        // Проверяем, есть ли уже такая вкладка
+        if (prevTabs.some(tab => tab.weddingId === weddingId)) {
+          const updatedTabs = prevTabs;
+          saveTabsToStorage(updatedTabs);
+          localStorage.setItem('main_organizer_lastActiveTabId', weddingId);
+          setLastActiveTabId(weddingId);
+          return updatedTabs;
+        }
+        // Добавляем новую вкладку
+        const newTabs = [...prevTabs, {
+          id: weddingId,
+          weddingId: weddingId,
+          name: coupleName,
+        }];
+        saveTabsToStorage(newTabs);
+        localStorage.setItem('main_organizer_lastActiveTabId', weddingId);
+        setLastActiveTabId(weddingId);
+        return newTabs;
       });
 
-      if (result) {
-        setTaskTitle('');
-        setTaskPriority('medium');
-        setError(null);
-        // Обновляем список заданий
-        await loadAllOrganizerTasks();
-      } else {
-        setError('Не удалось создать задание');
-      }
+      setViewMode('wedding-details');
+      setLoading(false);
     } catch (err) {
-      console.error('Error creating task:', err);
-      setError('Ошибка при создании задания');
+      console.error('Error loading wedding details:', err);
+      setError('Ошибка при загрузке данных');
+      setLoading(false);
     }
   };
 
-  const handleSaveDocument = async () => {
-    if (!documentName.trim()) {
-      setError('Введите название документа');
+  const handleCloseTab = (tabId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const remainingTabs = openTabs.filter(tab => tab.id !== tabId);
+    setOpenTabs(remainingTabs);
+    saveTabsToStorage(remainingTabs);
+    
+    // Если закрываемая вкладка была активной, переключаемся на другую
+    if (selectedWedding?.id === tabId) {
+      if (remainingTabs.length > 0) {
+        // Переключаемся на последнюю открытую вкладку
+        const lastTab = remainingTabs[remainingTabs.length - 1];
+        localStorage.setItem('main_organizer_lastActiveTabId', lastTab.weddingId);
+        setLastActiveTabId(lastTab.weddingId);
+        loadWeddingDetails(lastTab.weddingId);
+      } else {
+        // Если вкладок не осталось, переключаемся на ивенты
+        setSelectedWedding(null);
+        setViewMode('weddings');
+        localStorage.removeItem('main_organizer_lastActiveTabId');
+        setLastActiveTabId(null);
+      }
+    }
+  };
+
+  const handleTabClick = (tab: OpenTab) => {
+    if (selectedWedding?.id !== tab.weddingId) {
+      localStorage.setItem('main_organizer_lastActiveTabId', tab.weddingId);
+      setLastActiveTabId(tab.weddingId);
+      loadWeddingDetails(tab.weddingId);
+    }
+  };
+
+  const handleCreateWedding = async () => {
+    setEditingWedding(null);
+    // Обновляем список клиентов перед открытием формы
+    if (user?.id) {
+      try {
+        const clientsData = await clientService.getAllClients();
+        setClients(clientsData);
+      } catch (err) {
+        console.error('Error loading clients:', err);
+      }
+    }
+    setShowWeddingModal(true);
+  };
+
+  const handleEditWedding = async (wedding: Wedding) => {
+    // Загружаем актуальные данные свадьбы из БД перед открытием модалки
+    try {
+      const updatedWedding = await weddingService.getWeddingById(wedding.id);
+      if (updatedWedding) {
+        setEditingWedding(updatedWedding);
+      } else {
+        setEditingWedding(wedding); // Fallback на переданные данные
+      }
+    } catch (err) {
+      console.error('Error loading wedding for edit:', err);
+      setEditingWedding(wedding); // Fallback на переданные данные
+    }
+    setShowWeddingModal(true);
+  };
+
+  const handleDeleteWedding = async (weddingId: string) => {
+    if (!confirm('Вы уверены, что хотите удалить этот ивент?')) {
       return;
     }
 
     try {
-      if (editingDocument) {
-        // Обновление документа
-        const { error } = await supabase
-          .from('documents')
-          .update({
-            name: documentName.trim(),
-            name_ru: documentName.trim(),
-            link: documentLink || undefined,
-          })
-          .eq('id', editingDocument.id)
-          .select()
-          .single();
-
-        if (error) {
-          console.error('Error updating document:', error);
-          setError('Не удалось обновить документ');
-          return;
+      const success = await weddingService.deleteWedding(weddingId);
+      if (success) {
+        await loadData();
+        // Удаляем вкладку из открытых (всегда, даже если она не активна)
+        const remainingTabs = openTabs.filter(tab => tab.weddingId !== weddingId);
+        setOpenTabs(remainingTabs);
+        saveTabsToStorage(remainingTabs);
+        if (selectedWedding?.id === weddingId) {
+          setSelectedWedding(null);
+          setViewMode('weddings');
+          if (lastActiveTabId === weddingId) {
+            localStorage.removeItem('main_organizer_lastActiveTabId');
+            setLastActiveTabId(null);
+          }
         }
-
-        await loadDocuments();
-        setShowDocumentModal(false);
-        setEditingDocument(null);
-        setDocumentName('');
-        setDocumentLink('');
-        setError(null);
       } else {
-        // Создание документа
-        const { error } = await supabase
-          .from('documents')
-          .insert({
-            wedding_id: null, // Документы главного организатора не привязаны к свадьбе
-            name: documentName.trim(),
-            name_ru: documentName.trim(),
-            link: documentLink || undefined,
-          })
-          .select()
-          .single();
-
-        if (error) {
-          console.error('Error creating document:', error);
-          setError('Не удалось создать документ');
-          return;
-        }
-
-        await loadDocuments();
-        setShowDocumentModal(false);
-        setDocumentName('');
-        setDocumentLink('');
-        setError(null);
+        setError('Не удалось удалить ивент. Проверьте консоль для деталей.');
       }
     } catch (err) {
-      console.error('Error saving document:', err);
-      setError('Ошибка при сохранении документа');
+      console.error('Error deleting wedding:', err);
+      setError(err instanceof Error ? err.message : 'Ошибка при удалении ивента');
     }
   };
 
-  const handleDeleteDocument = async (documentId: string) => {
+  // Функция для создания стандартных документов при создании свадьбы
+  const createDefaultDocuments = async (weddingId: string) => {
+    // Убираем order из документов, так как колонка может не существовать в базе данных
+    const defaultDocuments = [
+      // Закрепленные документы
+      {
+        wedding_id: weddingId,
+        name: 'Бюджет',
+        name_en: 'Estimate',
+        name_ru: 'Бюджет',
+        name_ua: 'Кошторис',
+        pinned: true,
+      },
+      {
+        wedding_id: weddingId,
+        name: 'Тайминг',
+        name_en: 'Timing plan',
+        name_ru: 'Тайминг',
+        name_ua: 'Таймінг',
+        pinned: true,
+      },
+      {
+        wedding_id: weddingId,
+        name: 'Этапы подготовки свадьбы',
+        name_en: 'Stages of wedding preparation',
+        name_ru: 'Этапы подготовки свадьбы',
+        name_ua: 'Етапи підготовки весілля',
+        pinned: true,
+      },
+      // Незакрепленные документы
+      {
+        wedding_id: weddingId,
+        name: 'Список гостей',
+        name_en: 'Guest list',
+        name_ru: 'Список гостей',
+        name_ua: 'Список гостей',
+        pinned: false,
+      },
+      {
+        wedding_id: weddingId,
+        name: 'Договор & JS',
+        name_en: 'Agreement & JS',
+        name_ru: 'Договор & JS',
+        name_ua: 'Договір & JS',
+        pinned: false,
+      },
+      {
+        wedding_id: weddingId,
+        name: 'Тайминг утра невесты',
+        name_en: "Bride's morning timing plan",
+        name_ru: 'Тайминг утра невесты',
+        name_ua: 'Таймінг ранку нареченої',
+        pinned: false,
+      },
+      {
+        wedding_id: weddingId,
+        name: 'Проживание гостей и специалистов',
+        name_en: 'Accommodation of guests and specialists',
+        name_ru: 'Проживание гостей и специалистов',
+        name_ua: 'Проживання гостей та спеціалістів',
+        pinned: false,
+      },
+      {
+        wedding_id: weddingId,
+        name: 'План рассадки',
+        name_en: 'Seating plan',
+        name_ru: 'План рассадки',
+        name_ua: 'План розсадки',
+        pinned: false,
+      },
+      {
+        wedding_id: weddingId,
+        name: 'Меню',
+        name_en: 'Menu',
+        name_ru: 'Меню',
+        name_ua: 'Меню',
+        pinned: false,
+      },
+      {
+        wedding_id: weddingId,
+        name: 'Алкоголь',
+        name_en: 'Alcohol list',
+        name_ru: 'Алкоголь',
+        name_ua: 'Алкоголь',
+        pinned: false,
+      },
+    ];
+
+    // Создаем все документы параллельно
+    const createPromises = defaultDocuments.map((doc) =>
+      documentService.createDocument(doc)
+    );
+
+    try {
+      await Promise.all(createPromises);
+      console.log('Default documents created successfully');
+    } catch (error) {
+      console.error('Error creating default documents:', error);
+      // Не прерываем процесс, если документы не создались
+    }
+  };
+
+  const handleSaveWedding = async (weddingData: Omit<Wedding, 'id' | 'created_at' | 'updated_at'>) => {
+    if (!user?.id) return;
+
+    try {
+      if (editingWedding) {
+        console.log('Updating wedding:', editingWedding.id);
+        console.log('Update data:', weddingData);
+        const result = await weddingService.updateWedding(editingWedding.id, weddingData);
+        if (!result) {
+          setError('Не удалось обновить свадьбу. Проверьте консоль для деталей.');
+          return;
+        }
+
+        // Обновляем название вкладки, если свадьба открыта
+        const coupleName = `${weddingData.couple_name_1_ru || weddingData.couple_name_1_en || ''} & ${weddingData.couple_name_2_ru || weddingData.couple_name_2_en || ''}`;
+
+        setOpenTabs(prevTabs => {
+          const updatedTabs = prevTabs.map(tab => 
+            tab.weddingId === editingWedding.id 
+              ? { ...tab, name: coupleName }
+              : tab
+          );
+          saveTabsToStorage(updatedTabs);
+          return updatedTabs;
+        });
+
+        // Если редактируемая свадьба сейчас открыта, обновляем её данные
+        if (selectedWedding?.id === editingWedding.id) {
+          await loadWeddingDetails(editingWedding.id);
+        }
+      } else {
+        const newWedding = await weddingService.createWedding({
+          ...weddingData,
+          organizer_id: user.id,
+        });
+        
+        // После успешного создания свадьбы создаем стандартные документы
+        if (newWedding?.id) {
+          await createDefaultDocuments(newWedding.id);
+        }
+      }
+
+      setShowWeddingModal(false);
+      setEditingWedding(null);
+      await loadData();
+    } catch (err) {
+      console.error('Error saving wedding:', err);
+      setError(err instanceof Error ? err.message : 'Ошибка при сохранении свадьбы');
+    }
+  };
+
+  const handleCreateClient = () => {
+    setShowClientModal(true);
+  };
+
+  const handleSaveClient = async (clientData: { email: string; password: string }) => {
+    try {
+      await clientService.createClient(clientData.email, clientData.password);
+      await loadData();
+      setShowClientModal(false);
+    } catch (err) {
+      console.error('Error creating client:', err);
+      setError(err instanceof Error ? err.message : 'Ошибка при создании клиента');
+    }
+  };
+
+  const handleCreateTask = () => {
+    setEditingTask(null);
+    setShowTaskModal(true);
+  };
+
+  const handleEditTask = (task: Task) => {
+    setEditingTask(task);
+    setShowTaskModal(true);
+  };
+
+  const handleSaveTask = async (taskData: Omit<Task, 'id' | 'created_at' | 'updated_at' | 'wedding_id'>) => {
+    if (!selectedWedding) return;
+
+    try {
+      // Подготавливаем данные для сохранения
+      const taskToSave: Omit<Task, 'id' | 'created_at' | 'updated_at'> = {
+        wedding_id: selectedWedding.id,
+        organizer_id: null, // Для заданий свадьбы organizer_id будет null
+        task_group_id: null, // Для заданий свадьбы task_group_id будет null
+        title: taskData.title.trim(),
+        status: taskData.status,
+        ...(taskData.title_en?.trim() && { title_en: taskData.title_en.trim() }),
+        ...(taskData.title_ru?.trim() && { title_ru: taskData.title_ru.trim() }),
+        ...(taskData.title_ua?.trim() && { title_ua: taskData.title_ua.trim() }),
+        ...(taskData.due_date && taskData.due_date.trim() && { due_date: taskData.due_date }),
+        ...(taskData.link && taskData.link.trim() && { link: taskData.link.trim() }),
+        ...(taskData.link_text && taskData.link_text.trim() && { link_text: taskData.link_text.trim() }),
+        ...(taskData.link_text_en?.trim() && { link_text_en: taskData.link_text_en.trim() }),
+        ...(taskData.link_text_ru?.trim() && { link_text_ru: taskData.link_text_ru.trim() }),
+        ...(taskData.link_text_ua?.trim() && { link_text_ua: taskData.link_text_ua.trim() }),
+      };
+
+      if (editingTask) {
+        const result = await taskService.updateTask(editingTask.id, taskToSave, selectedWedding.id);
+        if (!result) {
+          setError('Не удалось обновить задание');
+          return;
+        }
+      } else {
+        // При создании нового задания устанавливаем порядок в конец списка (если колонка order существует)
+        const existingTasks = selectedWedding.tasks || [];
+        const hasOrderColumn = existingTasks.some(task => task.order !== null && task.order !== undefined);
+        if (hasOrderColumn) {
+          const maxOrder = existingTasks.reduce((max, task) => {
+            const order = task.order ?? -1;
+            return order > max ? order : max;
+          }, -1);
+          taskToSave.order = maxOrder + 1;
+        }
+        // Если колонки order нет, просто не устанавливаем её
+        
+        const result = await taskService.createTask(taskToSave);
+        if (!result) {
+          setError('Не удалось создать задание');
+          return;
+        }
+      }
+
+      setShowTaskModal(false);
+      setEditingTask(null);
+      await loadWeddingDetails(selectedWedding.id);
+    } catch (err) {
+      console.error('Error saving task:', err);
+      setError('Ошибка при сохранении задания');
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    if (!selectedWedding) return;
+
+    if (!confirm('Вы уверены, что хотите удалить это задание?')) {
+      return;
+    }
+
+    try {
+      const success = await taskService.deleteTask(taskId, selectedWedding.id);
+      if (success) {
+        await loadWeddingDetails(selectedWedding.id);
+      } else {
+        setError('Не удалось удалить задание');
+      }
+    } catch (err) {
+      console.error('Error deleting task:', err);
+      setError('Ошибка при удалении задания');
+    }
+  };
+
+  // Обработчики drag and drop для заданий
+  const handleTaskDragStart = (e: React.DragEvent, taskId: string) => {
+    setDraggedWeddingTaskId(taskId);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', taskId);
+    
+    // Создаем клон элемента для непрозрачного drag изображения
+    const target = e.currentTarget as HTMLElement;
+    const rect = target.getBoundingClientRect();
+    const clone = target.cloneNode(true) as HTMLElement;
+    
+    // Устанавливаем стили для клона
+    clone.style.position = 'absolute';
+    clone.style.top = '-9999px';
+    clone.style.left = '0';
+    clone.style.width = rect.width + 'px';
+    clone.style.height = rect.height + 'px';
+    clone.style.opacity = '1';
+    clone.style.pointerEvents = 'none';
+    
+    document.body.appendChild(clone);
+    
+    // Вычисляем смещение относительно позиции мыши
+    const offsetX = e.clientX - rect.left;
+    const offsetY = e.clientY - rect.top;
+    
+    // Устанавливаем клон как drag image
+    e.dataTransfer.setDragImage(clone, offsetX, offsetY);
+    
+    // Удаляем клон после небольшой задержки
+    requestAnimationFrame(() => {
+      if (document.body.contains(clone)) {
+        document.body.removeChild(clone);
+      }
+    });
+  };
+
+  const handleTaskDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleTaskDrop = async (e: React.DragEvent, targetTaskId: string) => {
+    e.preventDefault();
+    if (!selectedWedding || !draggedWeddingTaskId || draggedWeddingTaskId === targetTaskId) {
+      setDraggedWeddingTaskId(null);
+      return;
+    }
+
+    const tasks = selectedWedding.tasks || [];
+    const draggedIndex = tasks.findIndex(t => t.id === draggedWeddingTaskId);
+    const targetIndex = tasks.findIndex(t => t.id === targetTaskId);
+
+    if (draggedIndex === -1 || targetIndex === -1) {
+      setDraggedWeddingTaskId(null);
+      return;
+    }
+
+    // Создаем новый массив с обновленным порядком
+    const newTasks = [...tasks];
+    const [draggedTask] = newTasks.splice(draggedIndex, 1);
+    newTasks.splice(targetIndex, 0, draggedTask);
+
+    // Обновляем порядок для всех заданий
+    const taskOrders = newTasks.map((task, index) => ({
+      id: task.id,
+      order: index,
+    }));
+
+    try {
+      const success = await taskService.updateTasksOrder(selectedWedding.id, taskOrders);
+      if (success) {
+        await loadWeddingDetails(selectedWedding.id);
+      } else {
+        setError('Не удалось обновить порядок заданий');
+      }
+    } catch (err) {
+      console.error('Error updating tasks order:', err);
+      setError('Ошибка при обновлении порядка заданий');
+    }
+
+    setDraggedWeddingTaskId(null);
+  };
+
+  const handleTaskDragEnd = () => {
+    setDraggedWeddingTaskId(null);
+  };
+
+  // Обработчики drag and drop для документов
+  const handleDocumentDragStart = (e: React.DragEvent, documentId: string) => {
+    setDraggedDocumentId(documentId);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', documentId);
+  };
+
+  const handleDocumentDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDocumentDrop = async (e: React.DragEvent, targetDocumentId: string) => {
+    e.preventDefault();
+    if (!selectedWedding || !draggedDocumentId || draggedDocumentId === targetDocumentId) {
+      setDraggedDocumentId(null);
+      return;
+    }
+
+    const documents = selectedWedding.documents || [];
+    const draggedDoc = documents.find(d => d.id === draggedDocumentId);
+    const targetDoc = documents.find(d => d.id === targetDocumentId);
+
+    if (!draggedDoc || !targetDoc) {
+      setDraggedDocumentId(null);
+      return;
+    }
+
+    // Разделяем документы на закрепленные и незакрепленные
+    const pinnedDocs = documents.filter(d => d.pinned);
+    const unpinnedDocs = documents.filter(d => !d.pinned);
+
+    // Если перетаскиваем закрепленный документ, работаем только с закрепленными
+    // Если перетаскиваем незакрепленный, работаем только с незакрепленными
+    let targetArray: Document[];
+    let draggedIndex: number;
+    let targetIndex: number;
+
+    if (draggedDoc.pinned) {
+      targetArray = pinnedDocs;
+      draggedIndex = pinnedDocs.findIndex(d => d.id === draggedDocumentId);
+      targetIndex = pinnedDocs.findIndex(d => d.id === targetDocumentId);
+    } else {
+      targetArray = unpinnedDocs;
+      draggedIndex = unpinnedDocs.findIndex(d => d.id === draggedDocumentId);
+      targetIndex = unpinnedDocs.findIndex(d => d.id === targetDocumentId);
+    }
+
+    if (draggedIndex === -1 || targetIndex === -1) {
+      setDraggedDocumentId(null);
+      return;
+    }
+
+    // Создаем новый массив с обновленным порядком
+    const newArray = [...targetArray];
+    const [draggedItem] = newArray.splice(draggedIndex, 1);
+    newArray.splice(targetIndex, 0, draggedItem);
+
+    // Обновляем порядок для всех документов в этой группе
+    const documentOrders = newArray.map((doc, index) => ({
+      id: doc.id,
+      order: index,
+    }));
+
+    try {
+      const success = await documentService.updateDocumentsOrder(selectedWedding.id, documentOrders);
+      if (success) {
+        await loadWeddingDetails(selectedWedding.id);
+      } else {
+        setError('Не удалось обновить порядок документов');
+      }
+    } catch (err) {
+      console.error('Error updating documents order:', err);
+      setError('Ошибка при обновлении порядка документов');
+    }
+
+    setDraggedDocumentId(null);
+  };
+
+  const handleDocumentDragEnd = () => {
+    setDraggedDocumentId(null);
+  };
+
+  const handleCreateDocument = () => {
+    setEditingDocument(null);
+    setShowDocumentModal(true);
+  };
+
+  const handleDeleteDocument = async (document: Document) => {
+    if (!selectedWedding) return;
+
     if (!confirm('Вы уверены, что хотите удалить этот документ?')) {
       return;
     }
 
     try {
-      const { error } = await supabase
-        .from('documents')
-        .delete()
-        .eq('id', documentId);
-
-      if (error) {
-        console.error('Error deleting document:', error);
+      const success = await documentService.deleteDocument(
+        document.id,
+        undefined, // file_path больше не используется
+        selectedWedding.id
+      );
+      if (success) {
+        await loadWeddingDetails(selectedWedding.id);
+      } else {
         setError('Не удалось удалить документ');
-        return;
       }
-
-      await loadDocuments();
     } catch (err) {
       console.error('Error deleting document:', err);
       setError('Ошибка при удалении документа');
     }
   };
 
-  if (loading) {
+  // Обработчики для презентации
+  const handleDeletePresentation = async () => {
+    if (!selectedWedding) return;
+
+    if (!confirm('Вы уверены, что хотите удалить эту презентацию?')) {
+      return;
+    }
+
+    try {
+      const success = await presentationService.deletePresentation(selectedWedding.id);
+      if (success) {
+        await loadWeddingDetails(selectedWedding.id);
+      } else {
+        setError('Не удалось удалить презентацию');
+      }
+    } catch (err) {
+      console.error('Error deleting presentation:', err);
+      setError('Ошибка при удалении презентации');
+    }
+  };
+
+  const handleUploadPresentation = async (files: FileList | null) => {
+    if (!selectedWedding || !files || files.length === 0) return;
+
+    setUploadingPresentation(true);
+    try {
+      const defaultPresentation = presentationService.getDefaultCompanyPresentation();
+      const sections: Presentation['sections'] = [];
+
+      // Загружаем изображения для каждой секции
+      for (let i = 0; i < Math.min(files.length, defaultPresentation.sections.length); i++) {
+        const file = files[i];
+        const imageUrl = await presentationService.uploadPresentationImage(
+          selectedWedding.id,
+          file,
+          i
+        );
+
+        if (imageUrl) {
+          sections.push({
+            id: i,
+            name: defaultPresentation.sections[i].name,
+            image_url: imageUrl,
+          });
+        }
+      }
+
+      // Если загружено меньше файлов, чем секций, заполняем остальные пустыми
+      for (let i = files.length; i < defaultPresentation.sections.length; i++) {
+        sections.push({
+          id: i,
+          name: defaultPresentation.sections[i].name,
+          image_url: '',
+        });
+      }
+
+      // Формируем название презентации
+      const coupleName1 = selectedWedding.couple_name_1_ru || selectedWedding.couple_name_1_en || '';
+      const coupleName2 = selectedWedding.couple_name_2_ru || selectedWedding.couple_name_2_en || '';
+      
+      const presentation: Presentation = {
+        type: 'wedding',
+        title: `Презентация свадьбы: ${coupleName1} & ${coupleName2}`,
+        sections,
+      };
+
+      const success = await presentationService.updatePresentation(selectedWedding.id, presentation);
+      if (success) {
+        await loadWeddingDetails(selectedWedding.id);
+        setShowPresentationModal(false);
+      } else {
+        setError('Ошибка при загрузке данных');
+      }
+    } catch (err) {
+      console.error('Error uploading presentation:', err);
+      setError('Ошибка при загрузке данных');
+    } finally {
+      setUploadingPresentation(false);
+    }
+  };
+
+  const handleEditDocument = (document: Document) => {
+    setEditingDocument(document);
+    setShowDocumentModal(true);
+  };
+
+  const handleSaveDocument = async (
+    docData: Omit<Document, 'id' | 'created_at' | 'updated_at' | 'file_url'>
+  ) => {
+    if (!selectedWedding) return;
+
+    try {
+      let result: Document | null = null;
+      
+      if (editingDocument) {
+        result = await documentService.updateDocument(editingDocument.id, docData, selectedWedding.id);
+      } else {
+        // При создании нового документа устанавливаем порядок в конец соответствующей группы (если колонка order существует)
+        const existingDocuments = selectedWedding.documents || [];
+        const hasOrderColumn = existingDocuments.some(doc => doc.order !== null && doc.order !== undefined);
+        if (hasOrderColumn) {
+          const isPinned = docData.pinned === true;
+          const sameGroupDocs = existingDocuments.filter(d => d.pinned === isPinned);
+          const maxOrder = sameGroupDocs.reduce((max, doc) => {
+            const order = doc.order ?? -1;
+            return order > max ? order : max;
+          }, -1);
+          docData.order = maxOrder + 1;
+        }
+        // Если колонки order нет, просто не устанавливаем её
+        
+        result = await documentService.createDocument(docData);
+      }
+
+      if (!result) {
+        setError('Ошибка при сохранении документа');
+        return;
+      }
+
+      setShowDocumentModal(false);
+      setEditingDocument(null);
+      await loadWeddingDetails(selectedWedding.id);
+    } catch (err) {
+      console.error('Error saving document:', err);
+      setError('Ошибка при сохранении документа');
+    }
+  };
+
+  if (loading && weddings.length === 0) {
     return (
       <div className="min-h-screen bg-[#eae6db] flex items-center justify-center">
         <div className="text-black font-forum">Загрузка...</div>
@@ -315,431 +961,202 @@ const MainOrganizerDashboard = () => {
       </header>
 
       {/* Navigation */}
-      <nav className="bg-[#eae6db] border-b border-[#00000033] overflow-x-auto flex-shrink-0">
-        <div className="px-3 sm:px-4 md:px-8 lg:px-12 xl:px-[60px]">
-          <div className="flex space-x-4 sm:space-x-6 md:space-x-8 min-w-max">
-            <button
-              onClick={() => setViewMode('events')}
-              className={`py-3 sm:py-4 px-1 border-b-2 font-forum text-[16px] sm:text-[18px] max-[1599px]:text-[16px] transition-colors cursor-pointer whitespace-nowrap ${
-                viewMode === 'events'
-                  ? 'border-black text-black'
-                  : 'border-transparent text-[#00000080] hover:text-black hover:border-[#00000033]'
-              }`}
-            >
-              Ивенты
-            </button>
-            <button
-              onClick={() => setViewMode('tasks')}
-              className={`py-3 sm:py-4 px-1 border-b-2 font-forum text-[16px] sm:text-[18px] max-[1599px]:text-[16px] transition-colors cursor-pointer whitespace-nowrap ${
-                viewMode === 'tasks'
-                  ? 'border-black text-black'
-                  : 'border-transparent text-[#00000080] hover:text-black hover:border-[#00000033]'
-              }`}
-            >
-              Задания
-            </button>
-            <button
-              onClick={() => setViewMode('documents')}
-              className={`py-3 sm:py-4 px-1 border-b-2 font-forum text-[16px] sm:text-[18px] max-[1599px]:text-[16px] transition-colors cursor-pointer whitespace-nowrap ${
-                viewMode === 'documents'
-                  ? 'border-black text-black'
-                  : 'border-transparent text-[#00000080] hover:text-black hover:border-[#00000033]'
-              }`}
-            >
-              Документы
-            </button>
-          </div>
+      <nav className="bg-[#eae6db] border-b border-[#00000033] flex-shrink-0 overflow-x-auto">
+        <div className="flex items-center gap-2 px-3 sm:px-4 md:px-8 lg:px-12 xl:px-[60px] py-2">
+          <button
+            onClick={() => {
+              setViewMode('tasks');
+              setSelectedWedding(null);
+            }}
+            className={`px-3 sm:px-4 py-2 text-[14px] sm:text-[16px] max-[1599px]:text-[14px] font-forum rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
+              viewMode === 'tasks'
+                ? 'bg-black text-white'
+                : 'bg-white text-[#00000080] hover:text-black border border-[#00000033]'
+            }`}
+          >
+            Задания
+          </button>
+          <button
+            onClick={() => {
+              setViewMode('weddings');
+              setSelectedWedding(null);
+            }}
+            className={`px-3 sm:px-4 py-2 text-[14px] sm:text-[16px] max-[1599px]:text-[14px] font-forum rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
+              viewMode === 'weddings'
+                ? 'bg-black text-white'
+                : 'bg-white text-[#00000080] hover:text-black border border-[#00000033]'
+            }`}
+          >
+            Ивенты
+          </button>
+          {openTabs.map(tab => {
+            const wedding = weddings.find(w => w.id === tab.weddingId);
+            if (!wedding) return null;
+            
+            return (
+              <div
+                key={tab.id}
+                onClick={() => handleTabClick(tab)}
+                className={`flex items-center gap-2 px-3 sm:px-4 py-2 text-[14px] sm:text-[16px] max-[1599px]:text-[14px] font-forum rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
+                  selectedWedding?.id === tab.weddingId
+                    ? 'bg-black text-white'
+                    : 'bg-white text-[#00000080] hover:text-black border border-[#00000033]'
+                }`}
+              >
+                <span>{tab.name}</span>
+                <button
+                  onClick={(e) => handleCloseTab(tab.id, e)}
+                  className="ml-1 hover:bg-[#00000020] rounded px-1"
+                >
+                  ✕
+                </button>
+              </div>
+            );
+          })}
+          <button
+            onClick={() => {
+              setViewMode('advances');
+              setSelectedWedding(null);
+            }}
+            className={`px-3 sm:px-4 py-2 text-[14px] sm:text-[16px] max-[1599px]:text-[14px] font-forum rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
+              viewMode === 'advances'
+                ? 'bg-black text-white'
+                : 'bg-white text-[#00000080] hover:text-black border border-[#00000033]'
+            }`}
+          >
+            Авансы
+          </button>
+          <button
+            onClick={() => {
+              setViewMode('salaries');
+              setSelectedWedding(null);
+            }}
+            className={`px-3 sm:px-4 py-2 text-[14px] sm:text-[16px] max-[1599px]:text-[14px] font-forum rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
+              viewMode === 'salaries'
+                ? 'bg-black text-white'
+                : 'bg-white text-[#00000080] hover:text-black border border-[#00000033]'
+            }`}
+          >
+            Зарплаты
+          </button>
+          <button
+            onClick={() => {
+              setViewMode('contractors-payments');
+              setSelectedWedding(null);
+            }}
+            className={`px-3 sm:px-4 py-2 text-[14px] sm:text-[16px] max-[1599px]:text-[14px] font-forum rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
+              viewMode === 'contractors-payments'
+                ? 'bg-black text-white'
+                : 'bg-white text-[#00000080] hover:text-black border border-[#00000033]'
+            }`}
+          >
+            Оплаты подрядчикам
+          </button>
         </div>
       </nav>
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-auto px-3 sm:px-4 md:px-8 lg:px-12 xl:px-[60px] py-4 sm:py-5 md:py-6 lg:py-8 font-forum">
-        {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-            <p className="text-red-800 font-forum text-[16px]">{error}</p>
-            <button
-              onClick={() => setError(null)}
-              className="mt-2 text-[16px] text-red-600 hover:text-red-800 font-forum cursor-pointer"
-            >
-              Закрыть
-            </button>
-          </div>
-        )}
-
-        {/* Вкладка ивентов */}
-        {viewMode === 'events' && (
-          <div>
-            <h2 className="text-2xl font-forum font-bold mb-4">Все ивенты</h2>
-            {events.length === 0 ? (
-              <p className="text-gray-600">Нет ивентов</p>
-            ) : (
-              <div className="bg-white rounded-lg shadow overflow-hidden">
-                <ul className="divide-y divide-gray-200">
-                  {events.map((event) => {
-                    const eventName = event.project_name || 
-                      `${currentLanguage === 'ru' ? event.couple_name_1_ru : event.couple_name_1_en} & ${currentLanguage === 'ru' ? event.couple_name_2_ru : event.couple_name_2_en}`;
-                    return (
-                      <li
-                        key={event.id}
-                        onClick={() => navigate(`/main-organizer/event/${event.id}`)}
-                        className="px-6 py-4 hover:bg-gray-50 cursor-pointer transition-colors"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <h3 className="text-lg font-forum font-medium text-gray-900">
-                              {eventName}
-                            </h3>
-                            <p className="text-sm text-gray-500 font-forum mt-1">
-                              {new Date(event.wedding_date).toLocaleDateString('ru-RU', {
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric',
-                              })}
-                              {event.venue && ` • ${event.venue}`}
-                            </p>
-                          </div>
-                          <div className="ml-4 text-gray-400">
-                            →
-                          </div>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Вкладка заданий */}
+      {/* Content */}
+      <main className="flex-1 overflow-y-auto p-2">
         {viewMode === 'tasks' && (
-          <div>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-forum font-bold">Все задания организаторов</h2>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setTaskViewMode('by-priority')}
-                  className={`px-3 py-1.5 rounded-lg border transition-colors text-[14px] font-forum ${
-                    taskViewMode === 'by-priority'
-                      ? 'bg-black text-white border-black'
-                      : 'bg-white text-black border-[#00000033] hover:bg-gray-50'
-                  }`}
-                >
-                  По приоритету
-                </button>
-                <button
-                  onClick={() => setTaskViewMode('by-organizer')}
-                  className={`px-3 py-1.5 rounded-lg border transition-colors text-[14px] font-forum ${
-                    taskViewMode === 'by-organizer'
-                      ? 'bg-black text-white border-black'
-                      : 'bg-white text-black border-[#00000033] hover:bg-gray-50'
-                  }`}
-                >
-                  По организаторам
-                </button>
-              </div>
-            </div>
-
-            {/* Форма создания задания */}
-            <div className="bg-white rounded-lg shadow p-6 mb-6">
-              <h3 className="text-lg font-forum font-bold mb-4">Создать новое задание</h3>
-              <p className="text-gray-600 mb-4 text-[14px] font-forum">
-                Созданные задания будут отображаться в блоке "Несортированные задачи" у всех организаторов.
-              </p>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2 font-forum">Название задания</label>
-                  <input
-                    type="text"
-                    value={taskTitle}
-                    onChange={(e) => setTaskTitle(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        if (taskTitle.trim()) {
-                          handleCreateTask();
-                        }
-                      }
-                    }}
-                    placeholder="Введите название задания..."
-                    className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white text-[14px] max-[1599px]:text-[13px]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2 font-forum">Срочность</label>
-                  <select
-                    value={taskPriority}
-                    onChange={(e) => setTaskPriority(e.target.value as 'low' | 'medium' | 'high')}
-                    className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white text-[14px] max-[1599px]:text-[13px] cursor-pointer"
-                  >
-                    <option value="low">Низкая</option>
-                    <option value="medium">Средняя</option>
-                    <option value="high">Высокая</option>
-                  </select>
-                </div>
-
-                <div>
-                  <button
-                    onClick={handleCreateTask}
-                    disabled={!taskTitle.trim()}
-                    className="w-full px-4 py-2 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[14px] max-[1599px]:text-[13px] font-forum disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Создать задание
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Отображение всех заданий */}
-            {loadingTasks ? (
-              <div className="text-center py-8">
-                <p className="text-gray-600 font-forum">Загрузка заданий...</p>
-              </div>
-            ) : allOrganizerTasks.length === 0 ? (
-              <div className="bg-white rounded-lg shadow p-8 text-center">
-                <p className="text-gray-600 font-forum">Нет заданий организаторов</p>
-              </div>
-            ) : taskViewMode === 'by-priority' ? (
-              <div className="space-y-6">
-                {/* Срочные задания */}
-                {allOrganizerTasks.filter(t => t.priority === 'high' && t.status !== 'completed').length > 0 && (
-                  <div>
-                    <h3 className="text-xl font-forum font-bold mb-3 flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full bg-red-500"></span>
-                      Срочные
-                    </h3>
-                    <div className="bg-white rounded-lg shadow divide-y divide-gray-200">
-                      {allOrganizerTasks
-                        .filter(t => t.priority === 'high' && t.status !== 'completed')
-                        .map(task => (
-                          <TaskRow key={task.id} task={task} organizers={organizers} taskGroups={allTaskGroups} />
-                        ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Средние задания */}
-                {allOrganizerTasks.filter(t => t.priority === 'medium' && t.status !== 'completed').length > 0 && (
-                  <div>
-                    <h3 className="text-xl font-forum font-bold mb-3 flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full bg-amber-500"></span>
-                      Средние
-                    </h3>
-                    <div className="bg-white rounded-lg shadow divide-y divide-gray-200">
-                      {allOrganizerTasks
-                        .filter(t => t.priority === 'medium' && t.status !== 'completed')
-                        .map(task => (
-                          <TaskRow key={task.id} task={task} organizers={organizers} taskGroups={allTaskGroups} />
-                        ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Низкие задания */}
-                {allOrganizerTasks.filter(t => t.priority === 'low' && t.status !== 'completed').length > 0 && (
-                  <div>
-                    <h3 className="text-xl font-forum font-bold mb-3 flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full bg-green-500"></span>
-                      Низкие
-                    </h3>
-                    <div className="bg-white rounded-lg shadow divide-y divide-gray-200">
-                      {allOrganizerTasks
-                        .filter(t => t.priority === 'low' && t.status !== 'completed')
-                        .map(task => (
-                          <TaskRow key={task.id} task={task} organizers={organizers} taskGroups={allTaskGroups} />
-                        ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Без приоритета */}
-                {allOrganizerTasks.filter(t => !t.priority && t.status !== 'completed').length > 0 && (
-                  <div>
-                    <h3 className="text-xl font-forum font-bold mb-3">Без приоритета</h3>
-                    <div className="bg-white rounded-lg shadow divide-y divide-gray-200">
-                      {allOrganizerTasks
-                        .filter(t => !t.priority && t.status !== 'completed')
-                        .map(task => (
-                          <TaskRow key={task.id} task={task} organizers={organizers} taskGroups={allTaskGroups} />
-                        ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Выполненные */}
-                {allOrganizerTasks.filter(t => t.status === 'completed').length > 0 && (
-                  <div>
-                    <h3 className="text-xl font-forum font-bold mb-3 text-gray-500">Выполненные</h3>
-                    <div className="bg-white rounded-lg shadow divide-y divide-gray-200 opacity-60">
-                      {allOrganizerTasks
-                        .filter(t => t.status === 'completed')
-                        .slice(0, 10)
-                        .map(task => (
-                          <TaskRow key={task.id} task={task} organizers={organizers} taskGroups={allTaskGroups} />
-                        ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {organizers.map(organizer => {
-                  const organizerTasks = allOrganizerTasks.filter(t => 
-                    t.organizer_id === organizer.id || (t.organizer_id === null && !t.task_group_id)
-                  );
-                  
-                  if (organizerTasks.length === 0) return null;
-
-                  return (
-                    <div key={organizer.id}>
-                      <h3 className="text-xl font-forum font-bold mb-3 flex items-center gap-2">
-                        {organizer.avatar && (
-                          <img 
-                            src={organizer.avatar} 
-                            alt={organizer.name}
-                            className="w-8 h-8 rounded-full object-cover"
-                          />
-                        )}
-                        {organizer.name}
-                        <span className="text-sm font-normal text-gray-500">
-                          ({organizerTasks.filter(t => t.status !== 'completed').length} активных)
-                        </span>
-                      </h3>
-                      <div className="bg-white rounded-lg shadow divide-y divide-gray-200">
-                        {organizerTasks
-                          .filter(t => t.status !== 'completed')
-                          .map(task => (
-                            <TaskRow key={task.id} task={task} organizers={organizers} taskGroups={allTaskGroups} />
-                          ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          <TasksPage user={user} viewMode={viewMode} />
         )}
 
-        {/* Вкладка документов */}
-        {viewMode === 'documents' && (
-          <div>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-forum font-bold">Документы</h2>
-              <button
-                onClick={() => {
-                  setEditingDocument(null);
-                  setDocumentName('');
-                  setDocumentLink('');
-                  setShowDocumentModal(true);
-                  setError(null);
-                }}
-                className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800"
-              >
-                + Добавить документ
-              </button>
-            </div>
-
-            {documents.length === 0 ? (
-              <p className="text-gray-600">Нет документов</p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {documents.map((doc) => (
-                  <div key={doc.id} className="bg-white rounded-lg shadow p-4">
-                    <h3 className="font-bold mb-2">{doc.name_ru || doc.name}</h3>
-                    {doc.link && (
-                      <a
-                        href={doc.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
-                      >
-                        Открыть ссылку
-                      </a>
-                    )}
-                    <div className="mt-4 flex gap-2">
-                      <button
-                        onClick={() => {
-                          setEditingDocument(doc);
-                          setDocumentName(doc.name_ru || doc.name || '');
-                          setDocumentLink(doc.link || '');
-                          setShowDocumentModal(true);
-                        }}
-                        className="px-3 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300"
-                      >
-                        Редактировать
-                      </button>
-                      <button
-                        onClick={() => handleDeleteDocument(doc.id)}
-                        className="px-3 py-1 text-sm bg-red-200 rounded hover:bg-red-300"
-                      >
-                        Удалить
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+        {viewMode === 'weddings' && (
+          <WeddingsList
+            weddings={weddings}
+            onWeddingClick={(weddingId: string) => loadWeddingDetails(weddingId)}
+            onEditWedding={(wedding: Wedding) => handleEditWedding(wedding)}
+            onCreateClient={handleCreateClient}
+            onCreateWedding={handleCreateWedding}
+          />
         )}
 
-        {/* Модальное окно документа */}
-        {showDocumentModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-              <h3 className="text-xl font-bold mb-4">
-                {editingDocument ? 'Редактировать документ' : 'Добавить документ'}
-              </h3>
-              
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-2">Название документа *</label>
-                <input
-                  type="text"
-                  value={documentName}
-                  onChange={(e) => setDocumentName(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  placeholder="Введите название документа"
-                />
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-2">Ссылка (необязательно)</label>
-                <input
-                  type="text"
-                  value={documentLink}
-                  onChange={(e) => setDocumentLink(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  placeholder="https://..."
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={handleSaveDocument}
-                  className="flex-1 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800"
-                >
-                  {editingDocument ? 'Сохранить' : 'Создать'}
-                </button>
-                <button
-                  onClick={() => {
-                    setShowDocumentModal(false);
-                    setEditingDocument(null);
-                    setDocumentName('');
-                    setDocumentLink('');
-                  }}
-                  className="flex-1 px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
-                >
-                  Отмена
-                </button>
-              </div>
-            </div>
-          </div>
+        {viewMode === 'wedding-details' && selectedWedding && (
+          <WeddingDetails
+            selectedWedding={selectedWedding}
+            draggedDocumentId={draggedDocumentId}
+            onBack={() => {
+              setViewMode('weddings');
+              setSelectedWedding(null);
+            }}
+            onEditWedding={(wedding) => handleEditWedding(wedding as Wedding)}
+            onCreateTask={handleCreateTask}
+            onEditTask={handleEditTask}
+            onDeleteTask={handleDeleteTask}
+            onTaskDragStart={handleTaskDragStart}
+            onTaskDragOver={handleTaskDragOver}
+            onTaskDrop={handleTaskDrop}
+            onTaskDragEnd={handleTaskDragEnd}
+            onCreateDocument={handleCreateDocument}
+            onEditDocument={handleEditDocument}
+            onDeleteDocument={handleDeleteDocument}
+            onDocumentDragStart={handleDocumentDragStart}
+            onDocumentDragOver={handleDocumentDragOver}
+            onDocumentDrop={handleDocumentDrop}
+            onDocumentDragEnd={handleDocumentDragEnd}
+            onDeletePresentation={handleDeletePresentation}
+            onOpenPresentationModal={() => setShowPresentationModal(true)}
+          />
         )}
+
+        {viewMode === 'advances' && <AdvancesTab />}
+
+        {viewMode === 'salaries' && <SalariesTab />}
+        {viewMode === 'contractors-payments' && <ContractorsPaymentsTab />}
       </main>
+
+      {/* Modals */}
+      {showWeddingModal && (
+        <WeddingModal
+          wedding={editingWedding}
+          clients={clients}
+          onClose={() => {
+            setShowWeddingModal(false);
+            setEditingWedding(null);
+          }}
+          onSave={handleSaveWedding}
+        />
+      )}
+
+      {showTaskModal && (
+        <TaskModal
+          task={editingTask}
+          onClose={() => {
+            setShowTaskModal(false);
+            setEditingTask(null);
+          }}
+          onSave={handleSaveTask}
+        />
+      )}
+
+      {showDocumentModal && selectedWedding && (
+        <DocumentModal
+          document={editingDocument}
+          weddingId={selectedWedding.id}
+          onClose={() => {
+            setShowDocumentModal(false);
+            setEditingDocument(null);
+          }}
+          onSave={handleSaveDocument}
+        />
+      )}
+
+      {showPresentationModal && (
+        <PresentationModal
+          uploading={uploadingPresentation}
+          onClose={() => setShowPresentationModal(false)}
+          onUpload={handleUploadPresentation}
+        />
+      )}
+
+      {showClientModal && (
+        <ClientModal
+          onClose={() => setShowClientModal(false)}
+          onSave={handleSaveClient}
+        />
+      )}
     </div>
   );
 };
 
 export default MainOrganizerDashboard;
-
