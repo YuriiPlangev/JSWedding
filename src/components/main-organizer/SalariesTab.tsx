@@ -670,29 +670,29 @@ const SalariesTab = () => {
       {/* Таблица зарплат */}
       {selectedEmployeeId ? (
         <>
-          <div className="overflow-auto border border-[#00000033] rounded-lg mb-4">
-            <table className="w-full border-collapse min-w-[800px]">
+          <div className="overflow-auto rounded-lg mb-4 p-1.5">
+            <table className="border-collapse w-auto">
               <thead>
                 <tr className="bg-gray-100">
-                  <th className="border border-[#00000033] px-3 py-2 text-center font-forum font-bold text-[14px] max-[1599px]:text-[13px] sticky left-0 bg-gray-100 z-10">
+                  <th className="border border-[#00000033] px-1 py-0.5 text-center font-forum font-bold text-[14px] max-[1599px]:text-[13px] sticky left-0 bg-gray-100 z-10 whitespace-nowrap">
                     Месяц
                   </th>
-                  <th className="border border-[#00000033] px-2 py-1.5 text-center font-forum font-bold text-[14px] max-[1599px]:text-[13px]">
+                  <th className="border border-[#00000033] px-1 py-0.5 text-center font-forum font-bold text-[14px] max-[1599px]:text-[13px] whitespace-nowrap">
                     Зарплата
                   </th>
-                  <th className="border border-[#00000033] px-2 py-1.5 text-center font-forum font-bold text-[14px] max-[1599px]:text-[13px]">
+                  <th className="border border-[#00000033] px-1 py-0.5 text-center font-forum font-bold text-[14px] max-[1599px]:text-[13px] whitespace-nowrap">
                     Бонус
                   </th>
-                  <th className="border border-[#00000033] px-2 py-1.5 text-center font-forum font-bold text-[14px] max-[1599px]:text-[13px]">
+                  <th className="border border-[#00000033] px-1 py-0.5 text-center font-forum font-bold text-[14px] max-[1599px]:text-[13px] whitespace-nowrap">
                     Координация
                   </th>
-                  <th className="border border-[#00000033] px-2 py-1.5 text-center font-forum font-bold text-[14px] max-[1599px]:text-[13px]">
+                  <th className="border border-[#00000033] px-1 py-0.5 text-center font-forum font-bold text-[14px] max-[1599px]:text-[13px] whitespace-nowrap">
                     Общая
                   </th>
-                  <th className="border border-[#00000033] px-3 py-2 text-center font-forum font-bold text-[14px] max-[1599px]:text-[13px] w-12">
+                  <th className="border border-[#00000033] px-1 py-0.5 text-center font-forum font-bold text-[14px] max-[1599px]:text-[13px] w-12">
                     💾
                   </th>
-                  <th className="border border-[#00000033] px-3 py-2 text-center font-forum font-bold text-[14px] max-[1599px]:text-[13px] w-12">
+                  <th className="border border-[#00000033] px-1 py-0.5 text-center font-forum font-bold text-[14px] max-[1599px]:text-[13px] w-12">
                     ✕
                   </th>
                 </tr>
@@ -726,7 +726,7 @@ const SalariesTab = () => {
                               handleSaveRow(salary.id);
                             }
                           }}
-                          className="w-full px-2 py-1.5 border-0 focus:ring-2 focus:ring-black focus:outline-none font-forum text-[14px] max-[1599px]:text-[13px] bg-transparent"
+                          className="w-full px-1 py-0.5 border-0 focus:ring-2 focus:ring-black focus:outline-none font-forum text-[14px] max-[1599px]:text-[13px] bg-transparent"
                         />
                       </td>
                       <td className="border border-[#00000033] p-0">
@@ -748,7 +748,7 @@ const SalariesTab = () => {
                                 handleSaveRow(salary.id);
                               }
                             }}
-                            className="flex-1 px-2 py-1.5 border-0 focus:ring-2 focus:ring-black focus:outline-none font-forum text-[14px] max-[1599px]:text-[13px] bg-transparent text-right"
+                            className="flex-1 px-1 py-0.5 border-0 focus:ring-2 focus:ring-black focus:outline-none font-forum text-[14px] max-[1599px]:text-[13px] bg-transparent text-right"
                             placeholder="0.00"
                             inputMode="decimal"
                           />
@@ -791,7 +791,7 @@ const SalariesTab = () => {
                                 handleSaveRow(salary.id);
                               }
                             }}
-                            className="flex-1 px-2 py-1.5 border-0 focus:ring-2 focus:ring-black focus:outline-none font-forum text-[14px] max-[1599px]:text-[13px] bg-transparent text-right"
+                            className="flex-1 px-1 py-0.5 border-0 focus:ring-2 focus:ring-black focus:outline-none font-forum text-[14px] max-[1599px]:text-[13px] bg-transparent text-right"
                             placeholder="0.00"
                             inputMode="decimal"
                           />
@@ -822,12 +822,12 @@ const SalariesTab = () => {
                             <div key={coord.id} className="flex items-center gap-1 flex-wrap">
                               <input
                                 type="text"
-                                value={coord.name || 'Ивент'}
+                                value={coord.name || ''}
                                 onChange={(e) => {
                                   handleUpdateCoordination(coord.id, 'name', e.target.value);
                                 }}
                                 onBlur={(e) => {
-                                  handleSaveCoordination(coord.id, 'name', e.target.value || 'Ивент');
+                                  handleSaveCoordination(coord.id, 'name', e.target.value);
                                 }}
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter') {
@@ -907,7 +907,7 @@ const SalariesTab = () => {
                           </button>
                         </div>
                       </td>
-                      <td className="border border-[#00000033] px-2 py-1.5 font-forum text-[14px] max-[1599px]:text-[13px] text-right bg-gray-50 font-semibold">
+                      <td className="border border-[#00000033] px-1 py-0.5 font-forum text-[14px] max-[1599px]:text-[13px] text-right bg-gray-50 font-semibold">
                         <div className="flex flex-col gap-0.5">
                           <div>Грн: {formatCurrencyAmount(getTotalSync(salary))}</div>
                           {exchangeRates && (

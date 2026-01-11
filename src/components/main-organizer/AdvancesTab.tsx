@@ -247,7 +247,7 @@ const AdvancesTab = () => {
     }
   };
 
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = async () => {
     if (!selectedEventId || advances.length === 0) return;
 
     const selectedEvent = events.find(e => e.id === selectedEventId);
@@ -260,8 +260,12 @@ const AdvancesTab = () => {
       advance.payment_method || '',
     ]);
 
-    const totalAmount = advances.reduce((sum, a) => sum + (a.amount || 0), 0);
-    tableBody.push(['ИТОГО', totalAmount.toFixed(2), '', '']);
+    // Вычисляем итоги по валютам
+    const totals = await getTotalInAllCurrencies(
+      advances.map(a => ({ amount: a.amount, currency: (a.currency || 'доллар') as Currency }))
+    );
+
+    tableBody.push(['ИТОГО', '', '', '']);
 
     // Создание документа pdfmake
     const docDefinition = {
@@ -279,18 +283,41 @@ const AdvancesTab = () => {
               [
                 { text: 'Дата внесения аванса', style: 'tableHeader' },
                 { text: 'Внесенная сумма', style: 'tableHeader' },
-                { text: 'Назначение', style: 'tableHeader' },
+                { text: 'Комментарии', style: 'tableHeader' },
                 { text: 'Способ оплаты', style: 'tableHeader' },
               ],
-              ...tableBody.map(row => [
-                row[0],
-                { text: row[1], alignment: 'right' },
-                row[2],
-                row[3],
-              ]),
+              ...tableBody.map((row, index) => {
+                const isTotal = index === tableBody.length - 1;
+                return [
+                  row[0],
+                  { text: row[1], alignment: 'right', bold: isTotal },
+                  row[2],
+                  row[3],
+                ];
+              }),
             ],
           },
           layout: 'lightGridLines',
+        },
+        {
+          text: 'Итого:',
+          style: 'totalHeader',
+          margin: [0, 10, 0, 5],
+        },
+        {
+          text: `USD: ${formatCurrencyAmount(totals.доллар)}`,
+          style: 'totalText',
+          margin: [0, 0, 0, 3],
+        },
+        {
+          text: `EUR: ${formatCurrencyAmount(totals.евро)}`,
+          style: 'totalText',
+          margin: [0, 0, 0, 3],
+        },
+        {
+          text: `ГРН: ${formatCurrencyAmount(totals.грн)}`,
+          style: 'totalText',
+          margin: [0, 0, 0, 0],
         },
       ],
       styles: {
@@ -303,6 +330,13 @@ const AdvancesTab = () => {
           fontSize: 10,
           color: 'white',
           fillColor: '#000000',
+        },
+        totalHeader: {
+          fontSize: 12,
+          bold: true,
+        },
+        totalText: {
+          fontSize: 10,
         },
       },
       defaultStyle: {
@@ -454,26 +488,26 @@ const AdvancesTab = () => {
 
       {/* Таблица авансов */}
       {selectedEventId ? (
-        <div className="overflow-auto border border-[#00000033] rounded-lg">
-          <table className="w-full border-collapse min-w-[800px]">
+        <div className="overflow-auto rounded-lg p-1.5">
+          <table className="border-collapse w-auto">
             <thead>
               <tr className="bg-gray-100">
-                <th className="border border-[#00000033] px-2 py-1.5 text-center font-forum font-bold text-[14px] max-[1599px]:text-[13px] sticky left-0 bg-gray-100 z-10">
+                <th className="border border-[#00000033] px-1 py-0.5 text-center font-forum font-bold text-[14px] max-[1599px]:text-[13px] sticky left-0 bg-gray-100 z-10 whitespace-nowrap">
                   Дата внесения аванса
                 </th>
-                <th className="border border-[#00000033] px-2 py-1.5 text-center font-forum font-bold text-[14px] max-[1599px]:text-[13px]">
+                <th className="border border-[#00000033] px-1 py-0.5 text-center font-forum font-bold text-[14px] max-[1599px]:text-[13px] whitespace-nowrap">
                   Внесенная сумма
                 </th>
-                <th className="border border-[#00000033] px-2 py-1.5 text-center font-forum font-bold text-[14px] max-[1599px]:text-[13px]">
-                  Назначение
+                <th className="border border-[#00000033] px-1 py-0.5 text-center font-forum font-bold text-[14px] max-[1599px]:text-[13px]" style={{ minWidth: '150px' }}>
+                  Комментарии
                 </th>
-                <th className="border border-[#00000033] px-2 py-1.5 text-center font-forum font-bold text-[14px] max-[1599px]:text-[13px]">
+                <th className="border border-[#00000033] px-1 py-0.5 text-center font-forum font-bold text-[14px] max-[1599px]:text-[13px] whitespace-nowrap">
                   Способ оплаты
                 </th>
-                <th className="border border-[#00000033] px-2 py-1.5 text-center font-forum font-bold text-[14px] max-[1599px]:text-[13px] w-12">
+                <th className="border border-[#00000033] px-1 py-0.5 text-center font-forum font-bold text-[14px] max-[1599px]:text-[13px] w-12">
                   💾
                 </th>
-                <th className="border border-[#00000033] px-2 py-1.5 text-center font-forum font-bold text-[14px] max-[1599px]:text-[13px] w-12">
+                <th className="border border-[#00000033] px-1 py-0.5 text-center font-forum font-bold text-[14px] max-[1599px]:text-[13px] w-12">
                   ✕
                 </th>
               </tr>
@@ -500,7 +534,7 @@ const AdvancesTab = () => {
                             handleSaveRow(advance.id);
                           }
                         }}
-                        className="w-full px-2 py-1.5 border-0 focus:ring-2 focus:ring-black focus:outline-none font-forum text-[14px] max-[1599px]:text-[13px] bg-transparent"
+                        className="w-full px-1 py-0.5 border-0 focus:ring-2 focus:ring-black focus:outline-none font-forum text-[14px] max-[1599px]:text-[13px] bg-transparent"
                       />
                     </td>
                     <td className="border border-[#00000033] p-0">
@@ -522,7 +556,7 @@ const AdvancesTab = () => {
                               handleSaveRow(advance.id);
                             }
                           }}
-                          className="flex-1 px-2 py-1.5 border-0 focus:ring-2 focus:ring-black focus:outline-none font-forum text-[14px] max-[1599px]:text-[13px] bg-transparent text-right"
+                          className="flex-1 px-1 py-0.5 border-0 focus:ring-2 focus:ring-black focus:outline-none font-forum text-[14px] max-[1599px]:text-[13px] bg-transparent text-right"
                           placeholder="0.00"
                           inputMode="decimal"
                         />
@@ -562,11 +596,27 @@ const AdvancesTab = () => {
                         </select>
                       </div>
                     </td>
-                    <td className="border border-[#00000033] p-0">
+                    <td className="border border-[#00000033] p-0" style={{ minWidth: '150px', width: 'auto' }}>
                       <input
                         type="text"
                         value={advance.purpose || ''}
-                        onChange={(e) => handleUpdateAdvance(advance.id, 'purpose', e.target.value)}
+                        onChange={(e) => {
+                          handleUpdateAdvance(advance.id, 'purpose', e.target.value);
+                          const input = e.target;
+                          // Создаем временный элемент для измерения ширины текста
+                          const measure = document.createElement('span');
+                          measure.style.visibility = 'hidden';
+                          measure.style.position = 'absolute';
+                          measure.style.whiteSpace = 'pre';
+                          measure.style.font = window.getComputedStyle(input).font;
+                          measure.textContent = input.value || input.placeholder;
+                          document.body.appendChild(measure);
+                          const textWidth = measure.offsetWidth;
+                          document.body.removeChild(measure);
+                          // Устанавливаем ширину input на основе реальной ширины текста
+                          input.style.width = 'auto';
+                          input.style.width = `${Math.max(150, Math.min(textWidth + 20, window.innerWidth * 0.5))}px`;
+                        }}
                         onBlur={(e) => handleSaveAdvance(advance.id, 'purpose', e.target.value)}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
@@ -574,8 +624,27 @@ const AdvancesTab = () => {
                             handleSaveRow(advance.id);
                           }
                         }}
-                        className="w-full px-2 py-1.5 border-0 focus:ring-2 focus:ring-black focus:outline-none font-forum text-[14px] max-[1599px]:text-[13px] bg-transparent"
-                        placeholder="Назначение"
+                        className="px-1 py-0.5 border-0 focus:ring-2 focus:ring-black focus:outline-none font-forum text-[14px] max-[1599px]:text-[13px] bg-transparent"
+                        placeholder="Комментарии"
+                        style={{
+                          minWidth: '150px',
+                          width: 'auto'
+                        }}
+                        ref={(input) => {
+                          if (input && advance.purpose) {
+                            const measure = document.createElement('span');
+                            measure.style.visibility = 'hidden';
+                            measure.style.position = 'absolute';
+                            measure.style.whiteSpace = 'pre';
+                            measure.style.font = window.getComputedStyle(input).font;
+                            measure.textContent = advance.purpose;
+                            document.body.appendChild(measure);
+                            const textWidth = measure.offsetWidth;
+                            document.body.removeChild(measure);
+                            input.style.width = 'auto';
+                            input.style.width = `${Math.max(150, Math.min(textWidth + 20, window.innerWidth * 0.5))}px`;
+                          }
+                        }}
                       />
                     </td>
                     <td className="border border-[#00000033] p-0">
@@ -583,7 +652,7 @@ const AdvancesTab = () => {
                         value={advance.payment_method}
                         onChange={(e) => handleUpdateAdvance(advance.id, 'payment_method', e.target.value as 'крипта' | 'наличка' | 'карта')}
                         onBlur={(e) => handleSaveAdvance(advance.id, 'payment_method', e.target.value as 'крипта' | 'наличка' | 'карта')}
-                        className="w-full px-2 py-1.5 border-0 focus:ring-2 focus:ring-black focus:outline-none font-forum text-[14px] max-[1599px]:text-[13px] bg-transparent cursor-pointer"
+                        className="w-full px-1 py-0.5 border-0 focus:ring-2 focus:ring-black focus:outline-none font-forum text-[14px] max-[1599px]:text-[13px] bg-transparent cursor-pointer"
                       >
                         <option value="карта">Карта</option>
                         <option value="наличка">Наличка</option>

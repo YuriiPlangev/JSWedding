@@ -173,6 +173,7 @@ export interface CoordinationPayment {
 export interface ContractorPayment {
   id: string;
   created_by: string;
+  event_id: string;
   service: string; // Услуга
   cost: number; // Стоимость
   cost_currency?: 'грн' | 'доллар' | 'евро'; // Валюта стоимости

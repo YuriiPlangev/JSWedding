@@ -1756,7 +1756,7 @@ export const coordinationService = {
 
 // Сервис для работы с оплатами подрядчикам
 export const contractorPaymentService = {
-  // Получить все оплаты подрядчикам
+  // Получить все оплаты подрядчикам (для обратной совместимости)
   async getPayments(userId: string): Promise<ContractorPayment[]> {
     const { data, error } = await supabase
       .from('contractor_payments')
@@ -1766,6 +1766,22 @@ export const contractorPaymentService = {
 
     if (error) {
       console.error('Error fetching contractor payments:', error);
+      return [];
+    }
+
+    return data || [];
+  },
+
+  // Получить оплаты по ивенту
+  async getPaymentsByEvent(eventId: string): Promise<ContractorPayment[]> {
+    const { data, error } = await supabase
+      .from('contractor_payments')
+      .select('*')
+      .eq('event_id', eventId)
+      .order('date', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching contractor payments by event:', error);
       return [];
     }
 

@@ -208,6 +208,43 @@ const TasksPage = ({ user, viewMode }: TasksPageProps) => {
     setEditingTaskText(task.title_ru || task.title || task.title_en || task.title_ua || '');
   };
 
+  const handleSaveTaskFromModal = async (taskId: string, updates: { title_ru?: string; priority?: 'low' | 'medium' | 'high'; assigned_organizer_id?: string | null }) => {
+    if (!user?.id) return;
+    
+    try {
+      const taskData: Partial<Task> = {};
+      
+      if (updates.title_ru !== undefined) {
+        taskData.title = updates.title_ru;
+        taskData.title_ru = updates.title_ru;
+      }
+      
+      if (updates.priority !== undefined) {
+        taskData.priority = updates.priority;
+      }
+      
+      if (updates.assigned_organizer_id !== undefined) {
+        taskData.assigned_organizer_id = updates.assigned_organizer_id;
+      }
+      
+      const result = await taskService.updateOrganizerTask(taskId, taskData);
+      if (!result) {
+        setLocalError('Не удалось обновить задание');
+        return;
+      }
+      
+      await loadOrganizerTasks();
+      
+      // Обновляем viewingTask, если он открыт
+      if (viewingTask && viewingTask.id === taskId) {
+        setViewingTask(result);
+      }
+    } catch (err) {
+      console.error('Error saving task from modal:', err);
+      setLocalError('Ошибка при сохранении задания');
+    }
+  };
+
   const handleSaveInlineEditTask = async (taskId: string) => {
     if (!user?.id || !editingTaskText.trim()) return;
     
@@ -725,6 +762,7 @@ const TasksPage = ({ user, viewMode }: TasksPageProps) => {
         <TaskViewModal
           task={viewingTask}
           assignedOrganizer={organizers.find(o => o.id === viewingTask.assigned_organizer_id)}
+          organizers={organizers}
           onClose={() => {
             setShowTaskViewModal(false);
             setViewingTask(null);
@@ -734,6 +772,7 @@ const TasksPage = ({ user, viewMode }: TasksPageProps) => {
             setViewingTask(null);
             handleEditTask(viewingTask);
           }}
+          onSave={handleSaveTaskFromModal}
         />
       )}
 
