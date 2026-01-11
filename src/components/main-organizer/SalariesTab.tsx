@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, Fragment } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { salaryService, coordinationService } from '../../services/weddingService';
 import type { Employee, Salary, CoordinationPayment } from '../../types';
-import { getExchangeRates, formatCurrencyAmount, type Currency } from '../../utils/currencyConverter';
+import { getExchangeRates, formatCurrencyAmount } from '../../utils/currencyConverter';
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
 import Toast from '../Toast';
@@ -264,7 +264,7 @@ const SalariesTab = () => {
       salary: typeof salary.salary === 'number' ? salary.salary : parseNumber(String(salary.salary || 0)),
       salary_currency: salary.salary_currency || 'грн',
       bonus: typeof salary.bonus === 'number' ? salary.bonus : parseNumber(String(salary.bonus || 0)),
-      bonus_currency: salary.bonus_currency || null,
+      bonus_currency: salary.bonus_currency || undefined,
     };
 
     try {
@@ -303,39 +303,6 @@ const SalariesTab = () => {
       'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
     ];
     return `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
-  };
-
-  // Получить общую сумму в гривнах (конвертируя бонус и координацию)
-  const getTotal = async (salary: Salary): Promise<number> => {
-    const rates = await getExchangeRates();
-    let total = salary.salary || 0;
-    
-    // Конвертируем бонус в гривны
-    if (salary.bonus && salary.bonus > 0) {
-      if (salary.bonus_currency === 'доллар') {
-        total += salary.bonus * rates.usd;
-      } else if (salary.bonus_currency === 'евро') {
-        total += salary.bonus * rates.eur;
-      } else {
-        total += salary.bonus; // Если валюта не указана, считаем как гривны
-      }
-    }
-    
-    // Конвертируем координации в гривны
-    const coordinations = coordinationPayments[salary.id] || [];
-    coordinations.forEach(coord => {
-      if (coord.amount && coord.amount > 0) {
-        if (coord.currency === 'доллар') {
-          total += coord.amount * rates.usd;
-        } else if (coord.currency === 'евро') {
-          total += coord.amount * rates.eur;
-        } else {
-          total += coord.amount; // Если валюта не указана, считаем как гривны
-        }
-      }
-    });
-    
-    return total;
   };
 
   // Синхронная версия для отображения (использует кэшированные курсы)
