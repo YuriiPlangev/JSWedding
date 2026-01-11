@@ -2,7 +2,7 @@ import React, { memo, useState, useRef, useEffect } from 'react';
 import type { Task, TaskGroup, OrganizerTaskLog, User } from '../../types';
 import { getTaskTitle, getGroupName } from '../../utils/taskUtils';
 import { getActionText, formatDateTime } from '../../utils/dateUtils';
-import { getPriorityText, getPriorityClasses } from '../../utils/priorityUtils';
+import { getPriorityText } from '../../utils/priorityUtils';
 import { organizerService } from '../../services/weddingService';
 
 interface TaskColumnProps {

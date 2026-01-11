@@ -40,7 +40,8 @@ const MainOrganizerDashboard = () => {
     return 'tasks';
   });
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_error, setError] = useState<string | null>(null);
   // Функции для работы с localStorage
   const saveTabsToStorage = (tabs: OpenTab[]) => {
     try {
@@ -311,6 +312,8 @@ const MainOrganizerDashboard = () => {
     setShowWeddingModal(true);
   };
 
+  // Функция удаления свадьбы (не используется, но может понадобиться в будущем)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleDeleteWedding = async (weddingId: string) => {
     if (!confirm('Вы уверены, что хотите удалить этот ивент?')) {
       return;
@@ -332,12 +335,9 @@ const MainOrganizerDashboard = () => {
             setLastActiveTabId(null);
           }
         }
-      } else {
-        setError('Не удалось удалить ивент. Проверьте консоль для деталей.');
       }
     } catch (err) {
       console.error('Error deleting wedding:', err);
-      setError(err instanceof Error ? err.message : 'Ошибка при удалении ивента');
     }
   };
 

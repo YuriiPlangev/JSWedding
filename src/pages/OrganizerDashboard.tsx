@@ -251,7 +251,7 @@ const OrganizerDashboard = () => {
     };
 
 
-    const handleCreateTask = (groupId: string) => {
+    const handleCreateTask = (groupId: string | null) => {
       setCreatingTaskGroupId(groupId);
       setNewTaskText('');
       // Фокус на input будет установлен через useEffect
