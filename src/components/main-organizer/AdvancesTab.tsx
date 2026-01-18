@@ -174,64 +174,6 @@ const AdvancesTab = () => {
     }));
   }, [advances]);
 
-  // Сохранение в Supabase при потере фокуса
-  const handleSaveAdvance = useCallback(async (id: string, field: keyof Omit<Advance, 'id' | 'created_at' | 'updated_at'>, value: string | number | null) => {
-    const currentAdvance = advances.find(a => a.id === id);
-    if (!currentAdvance) return;
-
-    const updateData: Partial<Omit<Advance, 'id' | 'created_at' | 'updated_at'>> = {};
-    if (field === 'purpose') {
-      updateData.purpose = value === '' ? null : (value as string);
-    } else if (field === 'amount') {
-      updateData.amount = typeof value === 'string' ? parseNumber(value) : (value as number);
-    } else if (field === 'currency') {
-      // Для валюты всегда сохраняем значение, даже если оно совпадает
-      updateData.currency = value as Currency;
-    } else if (field === 'date') {
-      updateData.date = value as string;
-    } else if (field === 'payment_method') {
-      updateData.payment_method = value as 'крипта' | 'наличка' | 'карта';
-    } else if (field === 'event_id') {
-      updateData.event_id = value as string;
-    }
-
-    // Для валюты не проверяем изменение, всегда сохраняем
-    if (field !== 'currency') {
-      const currentValue = currentAdvance[field];
-      const newValue = updateData[field];
-      if (currentValue === newValue) {
-        return;
-      }
-    }
-    
-    const updated = await advanceService.updateAdvance(id, updateData);
-    if (updated) {
-      setAdvances(prev => {
-        const newAdvances = prev.map(a => {
-          if (a.id === id) {
-            // Для currency убеждаемся, что значение сохранилось
-            if (field === 'currency' && updated.currency) {
-              return { ...updated, currency: updated.currency };
-            }
-            return updated; // Всегда используем обновленные данные из БД
-          }
-          return a;
-        });
-        // Обновляем итоги
-        getTotalInAllCurrencies(
-          newAdvances.map(a => ({ amount: a.amount, currency: (a.currency || 'доллар') as Currency }))
-        ).then(totals => setTotals(totals));
-        return newAdvances;
-      });
-      setShowToast(true);
-    } else {
-      // Если ошибка, перезагружаем данные
-      if (selectedEventId) {
-        loadAdvances(selectedEventId);
-      }
-    }
-  }, [advances, selectedEventId, parseNumber, loadAdvances]);
-
   // Сохранение всей строки сразу
   const handleSaveRow = useCallback(async (id: string) => {
     // Проверяем, были ли изменения в этой строке
@@ -570,7 +512,7 @@ const AdvancesTab = () => {
                         type="date"
                         value={advance.date}
                         onChange={(e) => handleUpdateAdvance(advance.id, 'date', e.target.value)}
-                        onBlur={(e) => handleSaveRow(advance.id)}
+                        onBlur={() => handleSaveRow(advance.id)}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
                             e.currentTarget.blur();
@@ -589,7 +531,7 @@ const AdvancesTab = () => {
                             const numValue = parseNumber(e.target.value);
                             handleUpdateAdvance(advance.id, 'amount', numValue);
                           }}
-                          onBlur={(e) => {
+                          onBlur={() => {
                             handleSaveRow(advance.id);
                           }}
                           onKeyDown={(e) => {
@@ -659,7 +601,7 @@ const AdvancesTab = () => {
                           input.style.width = 'auto';
                           input.style.width = `${Math.max(150, Math.min(textWidth + 20, window.innerWidth * 0.5))}px`;
                         }}
-                        onBlur={(e) => handleSaveRow(advance.id)}
+                        onBlur={() => handleSaveRow(advance.id)}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
                             e.currentTarget.blur();
@@ -693,7 +635,7 @@ const AdvancesTab = () => {
                       <select
                         value={advance.payment_method}
                         onChange={(e) => handleUpdateAdvance(advance.id, 'payment_method', e.target.value as 'крипта' | 'наличка' | 'карта')}
-                        onBlur={(e) => handleSaveRow(advance.id)}
+                        onBlur={() => handleSaveRow(advance.id)}
                         className="w-full px-1 py-0.5 border-0 focus:ring-2 focus:ring-black focus:outline-none font-forum text-[14px] max-[1599px]:text-[13px] bg-transparent cursor-pointer"
                       >
                         <option value="карта">Карта</option>

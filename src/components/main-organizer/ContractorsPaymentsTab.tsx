@@ -241,55 +241,6 @@ const ContractorsPaymentsTab = () => {
   }, []);
 
   // Сохранение в Supabase при потере фокуса
-  const handleSavePayment = useCallback(async (id: string, field: keyof ContractorPayment, value: string | number | Currency) => {
-    // Находим текущее значение в состоянии
-    const currentPayment = payments.find(p => p.id === id);
-    if (!currentPayment) return;
-
-    // Для валют всегда сохраняем значение
-    if (field === 'currency' || field === 'cost_currency' || field === 'percent_currency' || field === 'advance_currency') {
-      const updated = await contractorPaymentService.updatePayment(id, { [field]: value as Currency });
-      if (updated) {
-        setPayments(prev => prev.map(p => p.id === id ? updated : p));
-        setShowToast(true);
-      } else {
-        if (selectedEventId) {
-          loadPaymentsByEvent(selectedEventId);
-        }
-      }
-      return;
-    }
-
-    // Преобразуем значение в нужный тип
-    let finalValue: string | number = value;
-    if (field === 'cost' || field === 'percent' || field === 'advance') {
-      finalValue = typeof value === 'string' ? parseNumber(value) : value;
-    }
-
-    // Проверяем, изменилось ли значение (для чисел сравниваем с точностью)
-    const currentValue = currentPayment[field];
-    if (typeof currentValue === 'number' && typeof finalValue === 'number') {
-      if (Math.abs(currentValue - finalValue) < 0.01) {
-        return;
-      }
-    } else if (currentValue === finalValue) {
-      return;
-    }
-
-    const updated = await contractorPaymentService.updatePayment(id, { [field]: finalValue });
-    if (updated) {
-      // Пересчитываем to_pay на клиенте для немедленного обновления
-      const recalculatedToPay = (updated.cost || 0) - (updated.advance || 0) - (updated.percent || 0);
-      const updatedWithRecalculatedToPay = { ...updated, to_pay: recalculatedToPay };
-      setPayments(prev => prev.map(p => p.id === id ? updatedWithRecalculatedToPay : p));
-      setShowToast(true);
-    } else {
-      if (selectedEventId) {
-        loadPaymentsByEvent(selectedEventId);
-      }
-    }
-  }, [selectedEventId, loadPaymentsByEvent, payments, parseNumber]);
-
   // Сохранение всей строки сразу
   const handleSaveRow = useCallback(async (id: string) => {
     // Проверяем, были ли изменения в этой строке
@@ -712,7 +663,7 @@ const ContractorsPaymentsTab = () => {
                       type="text"
                       value={payment.service || ''}
                       onChange={(e) => handleUpdatePayment(payment.id, 'service', e.target.value)}
-                      onBlur={(e) => {
+                      onBlur={() => {
                         handleSaveRow(payment.id);
                       }}
                       onKeyDown={(e) => {
@@ -733,8 +684,7 @@ const ContractorsPaymentsTab = () => {
                           const numValue = parseNumber(e.target.value);
                           handleUpdatePayment(payment.id, 'cost', numValue);
                         }}
-                        onBlur={(e) => {
-                          const numValue = parseNumber(e.target.value);
+                        onBlur={() => {
                           handleSaveRow(payment.id);
                         }}
                         onKeyDown={(e) => {
@@ -771,7 +721,7 @@ const ContractorsPaymentsTab = () => {
                           const numValue = parseNumber(e.target.value);
                           handleUpdatePayment(payment.id, 'percent', numValue);
                         }}
-                        onBlur={(e) => {
+                        onBlur={() => {
                           handleSaveRow(payment.id);
                         }}
                         onKeyDown={(e) => {
@@ -808,7 +758,7 @@ const ContractorsPaymentsTab = () => {
                           const numValue = parseNumber(e.target.value);
                           handleUpdatePayment(payment.id, 'advance', numValue);
                         }}
-                        onBlur={(e) => {
+                        onBlur={() => {
                           handleSaveRow(payment.id);
                         }}
                         onKeyDown={(e) => {
@@ -841,7 +791,7 @@ const ContractorsPaymentsTab = () => {
                       type="date"
                       value={payment.date}
                       onChange={(e) => handleUpdatePayment(payment.id, 'date', e.target.value)}
-                      onBlur={(e) => {
+                      onBlur={() => {
                         handleSaveRow(payment.id);
                       }}
                       onKeyDown={(e) => {
@@ -881,7 +831,7 @@ const ContractorsPaymentsTab = () => {
                         input.style.width = 'auto';
                         input.style.width = `${Math.max(150, Math.min(textWidth + 20, window.innerWidth * 0.5))}px`;
                       }}
-                      onBlur={(e) => {
+                      onBlur={() => {
                         handleSaveRow(payment.id);
                       }}
                       onKeyDown={(e) => {

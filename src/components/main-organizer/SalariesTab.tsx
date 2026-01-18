@@ -233,57 +233,6 @@ const SalariesTab = () => {
     }));
   }, [salaries]);
 
-  // Сохранение в Supabase при потере фокуса
-  const handleSaveSalary = useCallback(async (id: string, field: keyof Salary, value: string | number) => {
-    const currentSalary = salaries.find(s => s.id === id);
-    if (!currentSalary) return;
-
-    // Преобразуем значение в нужный тип
-    let finalValue: string | number = value;
-    if (field === 'salary' || field === 'bonus') {
-      finalValue = typeof value === 'string' ? parseNumber(value) : value;
-    }
-
-    // Проверяем, изменилось ли значение (для чисел сравниваем с точностью)
-    const currentValue = currentSalary[field];
-    if (typeof currentValue === 'number' && typeof finalValue === 'number') {
-      if (Math.abs(currentValue - finalValue) < 0.01) {
-        return;
-      }
-    } else if (currentValue === finalValue) {
-      return;
-    }
-
-    try {
-      const updated = await salaryService.updateSalary(id, { [field]: finalValue });
-      if (updated) {
-        setSalaries(prev => {
-          const newSalaries = prev.map(s => {
-            if (s.id === id) {
-              if (s[field] !== updated[field]) {
-                return updated;
-              }
-              return s;
-            }
-            return s;
-          });
-          return newSalaries;
-        });
-        setShowToast(true);
-      } else {
-        console.error('Ошибка сохранения поля');
-        if (selectedEmployeeId) {
-          loadSalaries(selectedEmployeeId);
-        }
-      }
-    } catch (error) {
-      console.error('Ошибка при сохранении поля:', error);
-      if (selectedEmployeeId) {
-        loadSalaries(selectedEmployeeId);
-      }
-    }
-  }, [salaries, selectedEmployeeId, parseNumber, loadSalaries]);
-
   // Сохранение всей строки сразу
   const handleSaveRow = useCallback(async (id: string) => {
     // Проверяем, были ли изменения в этой строке
@@ -759,8 +708,7 @@ const SalariesTab = () => {
                             const newMonth = `${e.target.value}-01`;
                             handleUpdateSalary(salary.id, 'month', newMonth);
                           }}
-                          onBlur={(e) => {
-                            handleSaveRow(salary.id);
+                          onBlur={() => { handleSaveRow(salary.id);
                           }}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {
@@ -780,8 +728,7 @@ const SalariesTab = () => {
                               const numValue = parseNumber(e.target.value);
                               handleUpdateSalary(salary.id, 'salary', numValue);
                             }}
-                            onBlur={(e) => {
-                              handleSaveRow(salary.id);
+                            onBlur={() => { handleSaveRow(salary.id);
                             }}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter') {
@@ -822,8 +769,7 @@ const SalariesTab = () => {
                               const numValue = parseNumber(e.target.value);
                               handleUpdateSalary(salary.id, 'bonus', numValue);
                             }}
-                            onBlur={(e) => {
-                              handleSaveRow(salary.id);
+                            onBlur={() => { handleSaveRow(salary.id);
                             }}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter') {
@@ -1003,3 +949,4 @@ const SalariesTab = () => {
 };
 
 export default SalariesTab;
+
