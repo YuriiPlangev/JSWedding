@@ -570,7 +570,7 @@ const AdvancesTab = () => {
                         type="date"
                         value={advance.date}
                         onChange={(e) => handleUpdateAdvance(advance.id, 'date', e.target.value)}
-                        onBlur={(e) => handleSaveAdvance(advance.id, 'date', e.target.value)}
+                        onBlur={(e) => handleSaveRow(advance.id)}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
                             e.currentTarget.blur();
@@ -590,8 +590,7 @@ const AdvancesTab = () => {
                             handleUpdateAdvance(advance.id, 'amount', numValue);
                           }}
                           onBlur={(e) => {
-                            const numValue = parseNumber(e.target.value);
-                            handleSaveAdvance(advance.id, 'amount', numValue);
+                            handleSaveRow(advance.id);
                           }}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {
@@ -660,7 +659,7 @@ const AdvancesTab = () => {
                           input.style.width = 'auto';
                           input.style.width = `${Math.max(150, Math.min(textWidth + 20, window.innerWidth * 0.5))}px`;
                         }}
-                        onBlur={(e) => handleSaveAdvance(advance.id, 'purpose', e.target.value)}
+                        onBlur={(e) => handleSaveRow(advance.id)}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
                             e.currentTarget.blur();
@@ -694,7 +693,7 @@ const AdvancesTab = () => {
                       <select
                         value={advance.payment_method}
                         onChange={(e) => handleUpdateAdvance(advance.id, 'payment_method', e.target.value as 'крипта' | 'наличка' | 'карта')}
-                        onBlur={(e) => handleSaveAdvance(advance.id, 'payment_method', e.target.value as 'крипта' | 'наличка' | 'карта')}
+                        onBlur={(e) => handleSaveRow(advance.id)}
                         className="w-full px-1 py-0.5 border-0 focus:ring-2 focus:ring-black focus:outline-none font-forum text-[14px] max-[1599px]:text-[13px] bg-transparent cursor-pointer"
                       >
                         <option value="карта">Карта</option>

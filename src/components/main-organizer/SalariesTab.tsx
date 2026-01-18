@@ -760,8 +760,7 @@ const SalariesTab = () => {
                             handleUpdateSalary(salary.id, 'month', newMonth);
                           }}
                           onBlur={(e) => {
-                            const newMonth = `${e.target.value}-01`;
-                            handleSaveSalary(salary.id, 'month', newMonth);
+                            handleSaveRow(salary.id);
                           }}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {
@@ -782,8 +781,7 @@ const SalariesTab = () => {
                               handleUpdateSalary(salary.id, 'salary', numValue);
                             }}
                             onBlur={(e) => {
-                              const numValue = parseNumber(e.target.value);
-                              handleSaveSalary(salary.id, 'salary', numValue);
+                              handleSaveRow(salary.id);
                             }}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter') {
@@ -825,8 +823,7 @@ const SalariesTab = () => {
                               handleUpdateSalary(salary.id, 'bonus', numValue);
                             }}
                             onBlur={(e) => {
-                              const numValue = parseNumber(e.target.value);
-                              handleSaveSalary(salary.id, 'bonus', numValue);
+                              handleSaveRow(salary.id);
                             }}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter') {
