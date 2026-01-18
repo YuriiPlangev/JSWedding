@@ -173,7 +173,7 @@ const ContractorsPaymentsTab = () => {
   const handleCreatePayment = async (payment: Omit<ContractorPayment, 'id' | 'created_at' | 'updated_at' | 'to_pay'>) => {
     const created = await contractorPaymentService.createPayment(payment);
     if (created) {
-      setPayments(prev => [created, ...prev]);
+      setPayments(prev => [...prev, created]);
     }
   };
 
@@ -183,9 +183,9 @@ const ContractorsPaymentsTab = () => {
     setPayments(prev => prev.map(p => {
       if (p.id === id) {
         const updated = { ...p, [field]: value };
-        // Пересчитываем to_pay если изменились cost или advance
-        if (field === 'cost' || field === 'advance') {
-          updated.to_pay = (updated.cost || 0) - (updated.advance || 0);
+        // Пересчитываем to_pay если изменились cost, advance или percent
+        if (field === 'cost' || field === 'advance' || field === 'percent') {
+          updated.to_pay = (updated.cost || 0) - (updated.advance || 0) - (updated.percent || 0);
         }
         return updated;
       }
@@ -247,7 +247,10 @@ const ContractorsPaymentsTab = () => {
 
     const updated = await contractorPaymentService.updatePayment(id, { [field]: finalValue });
     if (updated) {
-      setPayments(prev => prev.map(p => p.id === id ? updated : p));
+      // Пересчитываем to_pay на клиенте для немедленного обновления
+      const recalculatedToPay = (updated.cost || 0) - (updated.advance || 0) - (updated.percent || 0);
+      const updatedWithRecalculatedToPay = { ...updated, to_pay: recalculatedToPay };
+      setPayments(prev => prev.map(p => p.id === id ? updatedWithRecalculatedToPay : p));
       setShowToast(true);
     } else {
       if (selectedEventId) {
@@ -277,7 +280,10 @@ const ContractorsPaymentsTab = () => {
     try {
       const updated = await contractorPaymentService.updatePayment(id, updateData);
       if (updated) {
-        setPayments(prev => prev.map(p => p.id === id ? updated : p));
+        // Пересчитываем to_pay на клиенте для немедленного обновления
+        const recalculatedToPay = (updated.cost || 0) - (updated.advance || 0) - (updated.percent || 0);
+        const updatedWithRecalculatedToPay = { ...updated, to_pay: recalculatedToPay };
+        setPayments(prev => prev.map(p => p.id === id ? updatedWithRecalculatedToPay : p));
         setShowToast(true);
       } else {
         console.error('Ошибка сохранения');
@@ -314,6 +320,7 @@ const ContractorsPaymentsTab = () => {
       payment.advance.toString() || '0',
       payment.date || '',
       payment.to_pay?.toString() || '0',
+      payment.comment || '',
     ]);
 
     const totalCost = payments.reduce((sum, p) => sum + (p.cost || 0), 0);
@@ -335,10 +342,39 @@ const ContractorsPaymentsTab = () => {
       totalAdvance.toFixed(2),
       '',
       totalToPay.toFixed(2),
+      '',
     ]);
+
+    // Вычисляем максимальную длину контента для каждого столбца (кроме комментариев)
+    const calculateColumnWidth = (columnIndex: number): number => {
+      const headerTexts = ['Услуга', 'Стоимость', '%', 'Аванс', 'Дата', 'К Оплате'];
+      let maxLength = headerTexts[columnIndex]?.length || 0;
+      
+      tableBody.forEach(row => {
+        const cellText = String(row[columnIndex] || '');
+        if (cellText.length > maxLength) {
+          maxLength = cellText.length;
+        }
+      });
+      
+      // Примерная ширина: ~7 пикселей на символ для шрифта 10pt
+      // Добавляем небольшой отступ (10-15px) для комфортного отображения
+      return Math.max(maxLength * 7 + 15, 30);
+    };
+
+    const columnWidths = [
+      calculateColumnWidth(0), // Услуга
+      calculateColumnWidth(1), // Стоимость
+      calculateColumnWidth(2), // %
+      calculateColumnWidth(3), // Аванс
+      calculateColumnWidth(4), // Дата
+      calculateColumnWidth(5), // К Оплате
+      '*', // Комментарий занимает все оставшееся место
+    ];
 
     // Создание документа pdfmake
     const docDefinition = {
+      pageMargins: [20, 40, 40, 40], // [left, top, right, bottom] - меньший отступ слева
       content: [
         {
           text: 'Оплаты подрядчикам',
@@ -348,25 +384,27 @@ const ContractorsPaymentsTab = () => {
         {
           table: {
             headerRows: 1,
-            widths: ['*', 'auto', 'auto', 'auto', 'auto', 'auto'],
+            widths: columnWidths, // Динамические ширины на основе контента
             body: [
               [
-                { text: 'Услуга', style: 'tableHeader' },
+                { text: 'Услуга', style: 'tableHeader', noWrap: true },
                 { text: 'Стоимость', style: 'tableHeader' },
                 { text: '%', style: 'tableHeader' },
                 { text: 'Аванс', style: 'tableHeader' },
                 { text: 'Дата', style: 'tableHeader' },
                 { text: 'К Оплате', style: 'tableHeader' },
+                { text: 'Комментарий', style: 'tableHeader' },
               ],
               ...tableBody.map((row, index) => {
                 const isTotal = index === tableBody.length - 1;
                 return [
-                  row[0],
+                  { text: row[0], noWrap: true }, // Услуга без переноса
                   { text: row[1], alignment: 'right', bold: isTotal },
                   { text: row[2], alignment: 'right', bold: isTotal },
                   { text: row[3], alignment: 'right', bold: isTotal },
                   row[4],
                   { text: row[5], alignment: 'right', bold: isTotal },
+                  { text: row[6] || '', margin: [2, 2, 2, 2] }, // Комментарий с отступами и автоматическим переносом
                 ];
               }),
             ],

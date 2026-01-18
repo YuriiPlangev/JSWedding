@@ -177,14 +177,14 @@ export interface ContractorPayment {
   service: string; // Услуга
   cost: number; // Стоимость
   cost_currency?: 'грн' | 'доллар' | 'евро'; // Валюта стоимости
-  percent: number; // %
-  percent_currency?: 'грн' | 'доллар' | 'евро'; // Валюта процента
+  percent: number; // Сумма организатора (конкретная сумма, не процент)
+  percent_currency?: 'грн' | 'доллар' | 'евро'; // Валюта суммы организатора
   advance: number; // Аванс
   advance_currency?: 'грн' | 'доллар' | 'евро'; // Валюта аванса
   date: string; // Дата
   currency?: 'грн' | 'доллар' | 'евро'; // Валюта (старое поле, для обратной совместимости)
   comment?: string | null; // Комментарий
-  to_pay: number; // К Оплате (вычисляемое поле: cost - advance)
+  to_pay: number; // К Оплате (вычисляемое поле: cost - advance - percent)
   created_at: string;
   updated_at: string;
 }
