@@ -23,6 +23,7 @@ const SalariesTab = () => {
   const [editingEmployeeId, setEditingEmployeeId] = useState<string | null>(null);
   const [editEmployeeName, setEditEmployeeName] = useState('');
   const [showToast, setShowToast] = useState(false);
+  const [changedFields, setChangedFields] = useState<Record<string, Set<string>>>({});
 
   const loadEmployees = async () => {
     if (!user?.id) return;
@@ -195,13 +196,42 @@ const SalariesTab = () => {
 
   // Обновление UI сразу, без сохранения
   const handleUpdateSalary = useCallback((id: string, field: keyof Salary, value: string | number | undefined) => {
+    // Находим текущее значение для сравнения
+    const salary = salaries.find(s => s.id === id);
+    if (!salary) return;
+
+    const currentValue = salary[field];
+    
+    // Проверяем, действительно ли изменилось значение
+    const hasChanged = currentValue !== value;
+    
+    // Обновляем отслеживание изменений
+    if (hasChanged) {
+      setChangedFields(prev => ({
+        ...prev,
+        [id]: new Set([...(prev[id] || []), field])
+      }));
+    } else {
+      // Если значение вернулось к исходному, удаляем из отслеживания
+      setChangedFields(prev => {
+        const updated = { ...prev };
+        if (updated[id]) {
+          updated[id].delete(field);
+          if (updated[id].size === 0) {
+            delete updated[id];
+          }
+        }
+        return updated;
+      });
+    }
+
     setSalaries(prev => prev.map(s => {
       if (s.id === id) {
         return { ...s, [field]: value };
       }
       return s;
     }));
-  }, []);
+  }, [salaries]);
 
   // Сохранение в Supabase при потере фокуса
   const handleSaveSalary = useCallback(async (id: string, field: keyof Salary, value: string | number) => {
@@ -256,6 +286,11 @@ const SalariesTab = () => {
 
   // Сохранение всей строки сразу
   const handleSaveRow = useCallback(async (id: string) => {
+    // Проверяем, были ли изменения в этой строке
+    if (!changedFields[id] || changedFields[id].size === 0) {
+      return;
+    }
+
     const salary = salaries.find(s => s.id === id);
     if (!salary) return;
 
@@ -271,6 +306,14 @@ const SalariesTab = () => {
       const updated = await salaryService.updateSalary(id, updateData);
       if (updated) {
         setSalaries(prev => prev.map(s => s.id === id ? updated : s));
+        
+        // Очищаем отслеживание изменений после успешного сохранения
+        setChangedFields(prev => {
+          const updated = { ...prev };
+          delete updated[id];
+          return updated;
+        });
+        
         setShowToast(true);
       } else {
         console.error('Ошибка сохранения');
@@ -284,7 +327,7 @@ const SalariesTab = () => {
         loadSalaries(selectedEmployeeId);
       }
     }
-  }, [salaries, selectedEmployeeId, parseNumber, loadSalaries]);
+  }, [salaries, selectedEmployeeId, parseNumber, loadSalaries, changedFields]);
 
   const handleDeleteSalary = async (id: string) => {
     if (!confirm('Вы точно хотите удалить эту зарплату?')) {

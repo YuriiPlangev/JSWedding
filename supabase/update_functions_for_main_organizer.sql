@@ -59,3 +59,5 @@ GRANT EXECUTE ON FUNCTION get_all_clients() TO authenticated;
 
 
 
+
+

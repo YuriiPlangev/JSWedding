@@ -44,3 +44,5 @@ GRANT EXECUTE ON FUNCTION get_wedding_by_id(UUID) TO authenticated;
 -- SELECT * FROM get_wedding_by_id('wedding-id-here'::UUID);
 
 
+
+

@@ -24,6 +24,8 @@ const ContractorsPaymentsTab = () => {
   const [totals, setTotals] = useState<{ грн: number; доллар: number; евро: number }>({ грн: 0, доллар: 0, евро: 0 });
   const [totalsByCurrency, setTotalsByCurrency] = useState<{ грн: number; доллар: number; евро: number }>({ грн: 0, доллар: 0, евро: 0 });
   const [showToast, setShowToast] = useState(false);
+  const [editingRowId, setEditingRowId] = useState<string | null>(null);
+  const [changedFields, setChangedFields] = useState<Record<string, Set<string>>>({});
 
   const loadEvents = async () => {
     if (!user?.id) return;
@@ -179,6 +181,35 @@ const ContractorsPaymentsTab = () => {
 
   // Обновление UI сразу, без сохранения
   const handleUpdatePayment = useCallback((id: string, field: keyof ContractorPayment, value: string | number | Currency | null) => {
+    // Находим текущее значение для сравнения
+    const payment = payments.find(p => p.id === id);
+    if (!payment) return;
+
+    const currentValue = payment[field];
+    
+    // Проверяем, действительно ли изменилось значение
+    const hasChanged = currentValue !== value;
+    
+    // Обновляем отслеживание изменений
+    if (hasChanged) {
+      setChangedFields(prev => ({
+        ...prev,
+        [id]: new Set([...(prev[id] || []), field])
+      }));
+    } else {
+      // Если значение вернулось к исходному, удаляем из отслеживания
+      setChangedFields(prev => {
+        const updated = { ...prev };
+        if (updated[id]) {
+          updated[id].delete(field);
+          if (updated[id].size === 0) {
+            delete updated[id];
+          }
+        }
+        return updated;
+      });
+    }
+
     // Оптимистичное обновление UI сразу
     setPayments(prev => prev.map(p => {
       if (p.id === id) {
@@ -191,7 +222,7 @@ const ContractorsPaymentsTab = () => {
       }
       return p;
     }));
-  }, []);
+  }, [payments]);
 
   // Функция для парсинга числа из строки
   const parseNumber = useCallback((value: string): number => {
@@ -261,6 +292,11 @@ const ContractorsPaymentsTab = () => {
 
   // Сохранение всей строки сразу
   const handleSaveRow = useCallback(async (id: string) => {
+    // Проверяем, были ли изменения в этой строке
+    if (!changedFields[id] || changedFields[id].size === 0) {
+      return;
+    }
+
     const payment = payments.find(p => p.id === id);
     if (!payment) return;
 
@@ -284,6 +320,14 @@ const ContractorsPaymentsTab = () => {
         const recalculatedToPay = (updated.cost || 0) - (updated.advance || 0) - (updated.percent || 0);
         const updatedWithRecalculatedToPay = { ...updated, to_pay: recalculatedToPay };
         setPayments(prev => prev.map(p => p.id === id ? updatedWithRecalculatedToPay : p));
+        
+        // Очищаем отслеживание изменений после успешного сохранения
+        setChangedFields(prev => {
+          const updated = { ...prev };
+          delete updated[id];
+          return updated;
+        });
+        
         setShowToast(true);
       } else {
         console.error('Ошибка сохранения');
@@ -297,7 +341,7 @@ const ContractorsPaymentsTab = () => {
         loadPaymentsByEvent(selectedEventId);
       }
     }
-  }, [payments, selectedEventId, loadPaymentsByEvent, parseNumber]);
+  }, [payments, selectedEventId, loadPaymentsByEvent, parseNumber, changedFields]);
 
   const handleDeletePayment = async (id: string) => {
     if (!confirm('Вы точно хотите удалить эту оплату подрядчику?')) {
@@ -345,30 +389,31 @@ const ContractorsPaymentsTab = () => {
       '',
     ]);
 
-    // Вычисляем максимальную длину контента для каждого столбца (кроме комментариев)
-    const calculateColumnWidth = (columnIndex: number): number => {
-      const headerTexts = ['Услуга', 'Стоимость', '%', 'Аванс', 'Дата', 'К Оплате'];
-      let maxLength = headerTexts[columnIndex]?.length || 0;
+    // Вычисляем максимальную ширину контента для каждого столбца (кроме комментария)
+    const calculateColumnWidth = (columnIndex: number, minWidth: number = 40): number => {
+      const headerWidths = [40, 50, 10, 35, 30, 50]; // Минимальная ширина заголовков
+      let maxWidth = Math.max(headerWidths[columnIndex] || minWidth, minWidth);
       
+      // Находим максимальную длину контента в столбце
       tableBody.forEach(row => {
         const cellText = String(row[columnIndex] || '');
-        if (cellText.length > maxLength) {
-          maxLength = cellText.length;
+        // Примерно 5.5 пикселей на символ для font size 10 + отступы
+        const textWidth = cellText.length * 5.5 + 10;
+        if (textWidth > maxWidth) {
+          maxWidth = textWidth;
         }
       });
       
-      // Примерная ширина: ~7 пикселей на символ для шрифта 10pt
-      // Добавляем небольшой отступ (10-15px) для комфортного отображения
-      return Math.max(maxLength * 7 + 15, 30);
+      return Math.max(maxWidth, minWidth);
     };
 
     const columnWidths = [
-      calculateColumnWidth(0), // Услуга
-      calculateColumnWidth(1), // Стоимость
-      calculateColumnWidth(2), // %
-      calculateColumnWidth(3), // Аванс
-      calculateColumnWidth(4), // Дата
-      calculateColumnWidth(5), // К Оплате
+      calculateColumnWidth(0, 60),  // Услуга
+      calculateColumnWidth(1, 50),  // Стоимость
+      calculateColumnWidth(2, 35),  // %
+      calculateColumnWidth(3, 50),  // Аванс
+      calculateColumnWidth(4, 75),  // Дата
+      calculateColumnWidth(5, 60),  // К Оплате
       '*', // Комментарий занимает все оставшееся место
     ];
 
@@ -384,7 +429,7 @@ const ContractorsPaymentsTab = () => {
         {
           table: {
             headerRows: 1,
-            widths: columnWidths, // Динамические ширины на основе контента
+            widths: columnWidths,
             body: [
               [
                 { text: 'Услуга', style: 'tableHeader', noWrap: true },
@@ -646,17 +691,33 @@ const ContractorsPaymentsTab = () => {
               </tr>
             ) : (
               payments.map((payment) => (
-                <tr key={payment.id} className="hover:bg-gray-50">
+                <tr 
+                  key={payment.id} 
+                  className="hover:bg-gray-50"
+                  onBlur={() => {
+                    // Сохраняем строку при потере фокуса любым элементом внутри
+                    handleSaveRow(payment.id);
+                  }}
+                  onMouseLeave={() => {
+                    // Дополнительная защита: сохраняем при наведении мыши
+                    if (editingRowId === payment.id) {
+                      handleSaveRow(payment.id);
+                      setEditingRowId(null);
+                    }
+                  }}
+                  onMouseEnter={() => setEditingRowId(payment.id)}
+                >
                   <td className="border border-[#00000033] p-0 sticky left-0 bg-white z-10">
                     <input
                       type="text"
                       value={payment.service || ''}
                       onChange={(e) => handleUpdatePayment(payment.id, 'service', e.target.value)}
-                      onBlur={(e) => handleSavePayment(payment.id, 'service', e.target.value)}
+                      onBlur={(e) => {
+                        handleSaveRow(payment.id);
+                      }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           e.currentTarget.blur();
-                          handleSaveRow(payment.id);
                         }
                       }}
                       className="w-full px-1 py-0.5 border-0 focus:ring-2 focus:ring-black focus:outline-none font-forum text-[14px] max-[1599px]:text-[13px] bg-transparent"
@@ -674,12 +735,11 @@ const ContractorsPaymentsTab = () => {
                         }}
                         onBlur={(e) => {
                           const numValue = parseNumber(e.target.value);
-                          handleSavePayment(payment.id, 'cost', numValue);
+                          handleSaveRow(payment.id);
                         }}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
                             e.currentTarget.blur();
-                            handleSaveRow(payment.id);
                           }
                         }}
                         className="flex-1 px-1 py-0.5 border-0 focus:ring-2 focus:ring-black focus:outline-none font-forum text-[14px] max-[1599px]:text-[13px] bg-transparent text-right"
@@ -692,6 +752,7 @@ const ContractorsPaymentsTab = () => {
                           const newCurrency = e.target.value as Currency;
                           handleUpdatePayment(payment.id, 'cost_currency', newCurrency);
                         }}
+                        onBlur={() => handleSaveRow(payment.id)}
                         className="px-0.5 py-0.5 -ml-0.5 border-0 focus:ring-2 focus:ring-black focus:outline-none font-forum text-[16px] max-[1599px]:text-[15px] bg-transparent cursor-pointer min-w-[35px]"
                         onClick={(e) => e.stopPropagation()}
                       >
@@ -711,13 +772,11 @@ const ContractorsPaymentsTab = () => {
                           handleUpdatePayment(payment.id, 'percent', numValue);
                         }}
                         onBlur={(e) => {
-                          const numValue = parseNumber(e.target.value);
-                          handleSavePayment(payment.id, 'percent', numValue);
+                          handleSaveRow(payment.id);
                         }}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
                             e.currentTarget.blur();
-                            handleSaveRow(payment.id);
                           }
                         }}
                         className="flex-1 px-1 py-0.5 border-0 focus:ring-2 focus:ring-black focus:outline-none font-forum text-[14px] max-[1599px]:text-[13px] bg-transparent text-right"
@@ -730,6 +789,7 @@ const ContractorsPaymentsTab = () => {
                           const newCurrency = e.target.value as Currency;
                           handleUpdatePayment(payment.id, 'percent_currency', newCurrency);
                         }}
+                        onBlur={() => handleSaveRow(payment.id)}
                         className="px-0.5 py-0.5 -ml-0.5 border-0 focus:ring-2 focus:ring-black focus:outline-none font-forum text-[16px] max-[1599px]:text-[15px] bg-transparent cursor-pointer min-w-[35px]"
                         onClick={(e) => e.stopPropagation()}
                       >
@@ -749,13 +809,11 @@ const ContractorsPaymentsTab = () => {
                           handleUpdatePayment(payment.id, 'advance', numValue);
                         }}
                         onBlur={(e) => {
-                          const numValue = parseNumber(e.target.value);
-                          handleSavePayment(payment.id, 'advance', numValue);
+                          handleSaveRow(payment.id);
                         }}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
                             e.currentTarget.blur();
-                            handleSaveRow(payment.id);
                           }
                         }}
                         className="flex-1 px-1 py-0.5 border-0 focus:ring-2 focus:ring-black focus:outline-none font-forum text-[14px] max-[1599px]:text-[13px] bg-transparent text-right"
@@ -768,6 +826,7 @@ const ContractorsPaymentsTab = () => {
                           const newCurrency = e.target.value as Currency;
                           handleUpdatePayment(payment.id, 'advance_currency', newCurrency);
                         }}
+                        onBlur={() => handleSaveRow(payment.id)}
                         className="px-0.5 py-0.5 -ml-0.5 border-0 focus:ring-2 focus:ring-black focus:outline-none font-forum text-[16px] max-[1599px]:text-[15px] bg-transparent cursor-pointer min-w-[35px]"
                         onClick={(e) => e.stopPropagation()}
                       >
@@ -782,11 +841,12 @@ const ContractorsPaymentsTab = () => {
                       type="date"
                       value={payment.date}
                       onChange={(e) => handleUpdatePayment(payment.id, 'date', e.target.value)}
-                      onBlur={(e) => handleSavePayment(payment.id, 'date', e.target.value)}
+                      onBlur={(e) => {
+                        handleSaveRow(payment.id);
+                      }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           e.currentTarget.blur();
-                          handleSaveRow(payment.id);
                         }
                       }}
                       className="w-full px-1 py-0.5 border-0 focus:ring-2 focus:ring-black focus:outline-none font-forum text-[14px] max-[1599px]:text-[13px] bg-transparent"
@@ -821,11 +881,12 @@ const ContractorsPaymentsTab = () => {
                         input.style.width = 'auto';
                         input.style.width = `${Math.max(150, Math.min(textWidth + 20, window.innerWidth * 0.5))}px`;
                       }}
-                      onBlur={(e) => handleSavePayment(payment.id, 'comment', e.target.value)}
+                      onBlur={(e) => {
+                        handleSaveRow(payment.id);
+                      }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           e.currentTarget.blur();
-                          handleSaveRow(payment.id);
                         }
                       }}
                       className="px-1 py-0.5 border-0 focus:ring-2 focus:ring-black focus:outline-none font-forum text-[14px] max-[1599px]:text-[13px] bg-transparent"

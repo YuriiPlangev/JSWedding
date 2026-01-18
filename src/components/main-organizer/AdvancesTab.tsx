@@ -23,6 +23,7 @@ const AdvancesTab = () => {
   const [editEventName, setEditEventName] = useState('');
   const [totals, setTotals] = useState<{ грн: number; доллар: number; евро: number }>({ грн: 0, доллар: 0, евро: 0 });
   const [showToast, setShowToast] = useState(false);
+  const [changedFields, setChangedFields] = useState<Record<string, Set<string>>>({});
 
   const loadEvents = async () => {
     if (!user?.id) return;
@@ -136,13 +137,42 @@ const AdvancesTab = () => {
 
   // Обновление UI сразу, без сохранения
   const handleUpdateAdvance = useCallback((id: string, field: keyof Omit<Advance, 'id' | 'created_at' | 'updated_at'>, value: string | number | null) => {
+    // Находим текущее значение для сравнения
+    const advance = advances.find(a => a.id === id);
+    if (!advance) return;
+
+    const currentValue = advance[field];
+    
+    // Проверяем, действительно ли изменилось значение
+    const hasChanged = currentValue !== value;
+    
+    // Обновляем отслеживание изменений
+    if (hasChanged) {
+      setChangedFields(prev => ({
+        ...prev,
+        [id]: new Set([...(prev[id] || []), field])
+      }));
+    } else {
+      // Если значение вернулось к исходному, удаляем из отслеживания
+      setChangedFields(prev => {
+        const updated = { ...prev };
+        if (updated[id]) {
+          updated[id].delete(field);
+          if (updated[id].size === 0) {
+            delete updated[id];
+          }
+        }
+        return updated;
+      });
+    }
+
     setAdvances(prev => prev.map(a => {
       if (a.id === id) {
         return { ...a, [field]: value };
       }
       return a;
     }));
-  }, []);
+  }, [advances]);
 
   // Сохранение в Supabase при потере фокуса
   const handleSaveAdvance = useCallback(async (id: string, field: keyof Omit<Advance, 'id' | 'created_at' | 'updated_at'>, value: string | number | null) => {
@@ -204,6 +234,11 @@ const AdvancesTab = () => {
 
   // Сохранение всей строки сразу
   const handleSaveRow = useCallback(async (id: string) => {
+    // Проверяем, были ли изменения в этой строке
+    if (!changedFields[id] || changedFields[id].size === 0) {
+      return;
+    }
+
     const advance = advances.find(a => a.id === id);
     if (!advance) return;
 
@@ -226,6 +261,14 @@ const AdvancesTab = () => {
           ).then(totals => setTotals(totals));
           return newAdvances;
         });
+        
+        // Очищаем отслеживание изменений после успешного сохранения
+        setChangedFields(prev => {
+          const updated = { ...prev };
+          delete updated[id];
+          return updated;
+        });
+        
         setShowToast(true);
       } else {
         console.error('Ошибка сохранения');
@@ -235,7 +278,7 @@ const AdvancesTab = () => {
       console.error('Ошибка при сохранении:', error);
       loadAdvances(selectedEventId || '');
     }
-  }, [advances, selectedEventId, parseNumber, loadAdvances]);
+  }, [advances, selectedEventId, parseNumber, loadAdvances, changedFields]);
 
   const handleDeleteAdvance = async (id: string) => {
     if (!confirm('Вы точно хотите удалить этот аванс?')) {
