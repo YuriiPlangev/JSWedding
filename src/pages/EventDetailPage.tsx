@@ -463,23 +463,6 @@ const EventDetailPage = () => {
       setUploadingPresentation(false);
     }
   };
-      
-      const presentation: Presentation = {
-        type: 'wedding',
-        title: `Презентация свадьбы: ${coupleName1} & ${coupleName2}`,
-        sections,
-      };
-
-      const success = await presentationService.updatePresentation(event.id, presentation);
-      if (success) {
-      setShowPresentationModal(false);
-    } catch (err) {
-      console.error('Error uploading presentation:', err);
-      setError('Ошибка при загрузке данных');
-    } finally {
-      setUploadingPresentation(false);
-    }
-  };
 
   if (loading) {
     return (
