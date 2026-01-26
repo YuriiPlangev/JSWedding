@@ -1388,7 +1388,7 @@ export const presentationService = {
     if (wedding.presentation && wedding.presentation.type === 'wedding') {
       const deletePromises = wedding.presentation.sections
         .filter((section: PresentationSection) => section.image_url)
-        .map((section: PresentationSection) => this.deletePresentationImage(section.image_url));
+        .map((section: PresentationSection) => this.deletePresentationImage(section.image_url!));
 
       await Promise.all(deletePromises);
     }
@@ -1423,10 +1423,9 @@ export const presentationService = {
   // Загрузить PDF файл презентации в Storage
   async uploadPresentationPDF(weddingId: string, file: File): Promise<string | null> {
     try {
-      const fileExt = file.name.split('.').pop();
       const fileName = `presentations/${weddingId}/${Date.now()}_${file.name}`;
 
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from('wedding-documents')
         .upload(fileName, file, {
           cacheControl: '3600',
@@ -1576,54 +1575,6 @@ export const presentationService = {
     } catch (error) {
       console.error('Error in createPresentation:', error);
       return null;
-    }
-  },
-
-  // Обновить презентацию
-  async updatePresentation(presentationId: string, updates: any): Promise<any | null> {
-    try {
-      const { data, error } = await supabase
-        .from('presentations')
-        .update(updates)
-        .eq('id', presentationId)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error updating presentation:', error);
-        return null;
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Error in updatePresentation:', error);
-      return null;
-    }
-  },
-
-  // Удалить презентацию
-  async deletePresentation(presentationId: string, filePath?: string): Promise<boolean> {
-    try {
-      // Удаляем файл из Storage если указан путь
-      if (filePath) {
-        await this.deletePresentationPDF(filePath);
-      }
-
-      // Удаляем презентацию (секции удалятся автоматически через CASCADE)
-      const { error } = await supabase
-        .from('presentations')
-        .delete()
-        .eq('id', presentationId);
-
-      if (error) {
-        console.error('Error deleting presentation:', error);
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Error in deletePresentation:', error);
-      return false;
     }
   },
 
@@ -2155,7 +2106,7 @@ export const presentationServiceExtended = {
     }
     
     const fileName = `presentations/${weddingId}/${Date.now()}_${pdfFile.name}`;
-    const { data, error } = await supabase.storage
+    const { error } = await supabase.storage
       .from('presentations')
       .upload(fileName, pdfFile, { contentType: 'application/pdf', upsert: true });
     
@@ -2371,7 +2322,7 @@ export const presentationServiceExtended = {
       const file = imageFiles[i];
       const fileName = `presentations/${weddingId}/${presentationId}/page_${i + 1}_${Date.now()}.jpg`;
 
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from('presentations')
         .upload(fileName, file, { contentType: 'image/jpeg', upsert: true });
 
