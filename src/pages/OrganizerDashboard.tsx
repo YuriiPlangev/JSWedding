@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { weddingService, taskService, documentService, clientService, presentationService, organizerService } from '../services/weddingService';
-import type { Wedding, Task, TaskGroup, Document, User, Presentation } from '../types';
-import { WeddingModal, TaskModal, OrganizerTaskModal, DocumentModal, PresentationModal, ClientModal } from '../components/modals';
+import { weddingService, taskService, documentService, clientService, organizerService } from '../services/weddingService';
+import type { Wedding, Task, TaskGroup, Document, User } from '../types';
+import { WeddingModal, TaskModal, OrganizerTaskModal, DocumentModal, ClientModal } from '../components/modals';
 import TaskViewModal from '../components/modals/TaskViewModal';
+import { OrganizerPresentations } from "../components/organizer";
 import { TaskColumn, ScrollbarStyles } from '../components/organizer';
 import { useTaskGroups, useTaskLogs, useTaskDragAndDrop, useGroupDragAndDrop } from '../hooks';
 import { hexToHsl, hslToHex } from '../utils/colorUtils';
@@ -80,12 +81,10 @@ const OrganizerDashboard = () => {
   const [showWeddingModal, setShowWeddingModal] = useState(false);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showDocumentModal, setShowDocumentModal] = useState(false);
-  const [showPresentationModal, setShowPresentationModal] = useState(false);
   const [showClientModal, setShowClientModal] = useState(false);
   const [editingWedding, setEditingWedding] = useState<Wedding | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editingDocument, setEditingDocument] = useState<Document | null>(null);
-  const [uploadingPresentation, setUploadingPresentation] = useState(false);
   
   // Состояния для drag and drop
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
@@ -1677,87 +1676,6 @@ const OrganizerDashboard = () => {
     }
   };
 
-  // Обработчики для презентации
-  const handleDeletePresentation = async () => {
-    if (!selectedWedding) return;
-
-    if (!confirm('Вы уверены, что хотите удалить эту презентацию?')) {
-      return;
-    }
-
-    try {
-      const success = await presentationService.deletePresentation(selectedWedding.id);
-      if (success) {
-        await loadWeddingDetails(selectedWedding.id);
-      } else {
-        setError('Не удалось удалить презентацию');
-      }
-    } catch (err) {
-      console.error('Error deleting presentation:', err);
-      setError('Ошибка при удалении презентации');
-    }
-  };
-
-  const handleUploadPresentation = async (files: FileList | null) => {
-    if (!selectedWedding || !files || files.length === 0) return;
-
-    setUploadingPresentation(true);
-    try {
-      const defaultPresentation = presentationService.getDefaultCompanyPresentation();
-      const sections: Presentation['sections'] = [];
-
-      // Загружаем изображения для каждой секции
-      for (let i = 0; i < Math.min(files.length, defaultPresentation.sections.length); i++) {
-        const file = files[i];
-        const imageUrl = await presentationService.uploadPresentationImage(
-          selectedWedding.id,
-          file,
-          i
-        );
-
-        if (imageUrl) {
-          sections.push({
-            id: i,
-            name: defaultPresentation.sections[i].name,
-            image_url: imageUrl,
-          });
-        }
-      }
-
-      // Если загружено меньше файлов, чем секций, заполняем остальные пустыми
-      for (let i = files.length; i < defaultPresentation.sections.length; i++) {
-        sections.push({
-          id: i,
-          name: defaultPresentation.sections[i].name,
-          image_url: '',
-        });
-      }
-
-      // Формируем название презентации
-      const coupleName1 = selectedWedding.couple_name_1_ru || selectedWedding.couple_name_1_en || '';
-      const coupleName2 = selectedWedding.couple_name_2_ru || selectedWedding.couple_name_2_en || '';
-      
-      const presentation: Presentation = {
-        type: 'wedding',
-        title: `Презентация свадьбы: ${coupleName1} & ${coupleName2}`,
-        sections,
-      };
-
-      const success = await presentationService.updatePresentation(selectedWedding.id, presentation);
-      if (success) {
-        await loadWeddingDetails(selectedWedding.id);
-        setShowPresentationModal(false);
-      } else {
-        setError('Ошибка при загрузке данных');
-      }
-    } catch (err) {
-      console.error('Error uploading presentation:', err);
-      setError('Ошибка при загрузке данных');
-    } finally {
-      setUploadingPresentation(false);
-    }
-  };
-
   const handleEditDocument = (document: Document) => {
     setEditingDocument(document);
     setShowDocumentModal(true);
@@ -2363,41 +2281,11 @@ const OrganizerDashboard = () => {
             </div>
 
             {/* Presentation */}
-            <div className="bg-white border border-[#00000033] rounded-lg p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-[26px] max-[1599px]:text-[22px] font-forum font-bold text-black">Презентация</h3>
-                <div className="flex gap-2">
-                  {selectedWedding.presentation && selectedWedding.presentation.type === 'wedding' && (
-                    <button
-                      onClick={handleDeletePresentation}
-                      className="px-4 md:px-6 py-2 md:py-3 bg-white border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors cursor-pointer text-[18px] max-[1599px]:text-[16px] font-forum"
-                    >
-                      Удалить презентацию
-                    </button>
-                  )}
-                  <button
-                    onClick={() => setShowPresentationModal(true)}
-                    className="px-4 md:px-6 py-2 md:py-3 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[18px] max-[1599px]:text-[16px] font-forum"
-                  >
-                    {selectedWedding.presentation && selectedWedding.presentation.type === 'wedding' 
-                      ? 'Изменить презентацию' 
-                      : 'Загрузить презентацию'}
-                  </button>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <p className="text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">
-                  {selectedWedding.presentation && selectedWedding.presentation.type === 'wedding' 
-                    ? `Тип: Презентация свадьбы - "${selectedWedding.presentation.title}"`
-                    : `Тип: Стандартная презентация компании`}
-                </p>
-                {selectedWedding.presentation && selectedWedding.presentation.sections && (
-                  <p className="text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">
-                    Секций: {selectedWedding.presentation.sections.length}
-                  </p>
-                )}
-              </div>
+            <div className="bg-white border border-[#00000033] rounded-lg p-6 mb-6">
+              <h3 className="text-[26px] max-[1599px]:text-[22px] font-forum font-bold text-black mb-4">Презентация</h3>
+              <OrganizerPresentations weddingId={selectedWedding.id} />
             </div>
+
             </div>
           </div>
         )}
@@ -2439,15 +2327,6 @@ const OrganizerDashboard = () => {
             setEditingDocument(null);
           }}
           onSave={handleSaveDocument}
-        />
-      )}
-
-      {/* Presentation Modal */}
-      {showPresentationModal && selectedWedding && (
-        <PresentationModal
-          onClose={() => setShowPresentationModal(false)}
-          onUpload={handleUploadPresentation}
-          uploading={uploadingPresentation}
         />
       )}
 

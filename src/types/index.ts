@@ -112,9 +112,35 @@ export interface Notification {
 
 // Типы для презентации
 export interface PresentationSection {
-  id: number;
+  id: number | string;
   name: string;
-  image_url: string; // URL изображения из Storage или внешний URL
+  image_url?: string; // URL изображения из Storage или внешний URL (для старого формата)
+}
+
+// Новые типы для улучшенной системы презентаций
+export interface CustomPresentationSection {
+  id: string;
+  presentation_id: string;
+  title: string;
+  page_number: number;
+  order_index: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CustomPresentation {
+  id: string;
+  wedding_id: string;
+  title: string;
+  type: 'company' | 'wedding';
+  pdf_url?: string; // URL для просмотра PDF
+  pdf_file_path?: string; // Путь в Storage
+  pdf_file_size?: number;
+  is_default: boolean;
+  order_index: number;
+  sections?: CustomPresentationSection[];
+  created_at: string;
+  updated_at: string;
 }
 
 // Типы для авансов
@@ -185,14 +211,29 @@ export interface ContractorPayment {
   currency?: 'грн' | 'доллар' | 'евро'; // Валюта (старое поле, для обратной совместимости)
   comment?: string | null; // Комментарий
   to_pay: number; // К Оплате (вычисляемое поле: cost - advance - percent)
+  order_index: number; // Порядковый индекс для стабильной сортировки
   created_at: string;
   updated_at: string;
 }
 
 export interface Presentation {
+  id?: string;
+  wedding_id?: string;
   type: 'company' | 'wedding'; // Тип презентации: компания или свадьба
   title: string; // Название презентации
-  sections: PresentationSection[]; // Секции презентации
+  pdf_file_path?: string; // Путь PDF файла в Storage
+  pdf_file_size?: number; // Размер файла в байтах
+  image_urls?: string[]; // Массив URL конвертированных из PDF изображений
+  sections?: PresentationSection[]; // Секции презентации
+  presentation_sections?: {
+    id: string | number;
+    title: string;
+    page_number: number;
+    order_index: number;
+  }[]; // Новые секции с номером страницы
+  is_default?: boolean; // Является ли презентацией компании по умолчанию
+  created_at?: string;
+  updated_at?: string;
 }
 
 // Типы для логов заданий организаторов

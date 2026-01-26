@@ -1417,6 +1417,300 @@ export const presentationService = {
 
     return true;
   },
+
+  // ============ НОВЫЕ ФУНКЦИИ ДЛЯ PDF ПРЕЗЕНТАЦИЙ ============
+
+  // Загрузить PDF файл презентации в Storage
+  async uploadPresentationPDF(weddingId: string, file: File): Promise<string | null> {
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `presentations/${weddingId}/${Date.now()}_${file.name}`;
+
+      const { data, error } = await supabase.storage
+        .from('wedding-documents')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false,
+        });
+
+      if (error) {
+        console.error('Error uploading PDF:', error);
+        return null;
+      }
+
+      // Создаем signed URL для PDF
+      const { data: urlData, error: urlError } = await supabase.storage
+        .from('wedding-documents')
+        .createSignedUrl(fileName, 31536000); // 1 год
+
+      if (urlError) {
+        console.error('Error creating signed URL:', urlError);
+        return null;
+      }
+
+      return urlData?.signedUrl || null;
+    } catch (error) {
+      console.error('Error in uploadPresentationPDF:', error);
+      return null;
+    }
+  },
+
+  // Удалить PDF файл из Storage
+  async deletePresentationPDF(filePath: string): Promise<boolean> {
+    if (!filePath) return true;
+
+    try {
+      const { error } = await supabase.storage
+        .from('wedding-documents')
+        .remove([filePath]);
+
+      if (error) {
+        console.error('Error deleting PDF:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error in deletePresentationPDF:', error);
+      return false;
+    }
+  },
+
+  // Получить все презентации для свадьбы
+  async getPresentationsByWedding(weddingId: string): Promise<any[]> {
+    try {
+      const { data, error } = await supabase
+        .from('presentations')
+        .select(`
+          *,
+          presentation_sections(*)
+        `)
+        .eq('wedding_id', weddingId)
+        .order('is_default', { ascending: false })
+        .order('order_index', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching presentations:', error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Error in getPresentationsByWedding:', error);
+      return [];
+    }
+  },
+
+  // Создать новую презентацию
+  async createPresentation(
+    weddingId: string,
+    title: string,
+    pdfUrl: string,
+    pdfFilePath: string,
+    pdfFileSize: number,
+    sections: Array<{ title: string; page_number: number }>
+  ): Promise<any | null> {
+    try {
+      // Получаем максимальный order_index для вычисления нового
+      const { data: presentations } = await supabase
+        .from('presentations')
+        .select('order_index')
+        .eq('wedding_id', weddingId)
+        .order('order_index', { ascending: false })
+        .limit(1);
+
+      const nextOrderIndex = (presentations && presentations[0]?.order_index || 0) + 1;
+
+      // Создаем презентацию
+      const { data: presentation, error } = await supabase
+        .from('presentations')
+        .insert({
+          wedding_id: weddingId,
+          title,
+          type: 'wedding',
+          pdf_url: pdfUrl,
+          pdf_file_path: pdfFilePath,
+          pdf_file_size: pdfFileSize,
+          is_default: false,
+          order_index: nextOrderIndex,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating presentation:', error);
+        return null;
+      }
+
+      // Создаем секции
+      if (sections && sections.length > 0) {
+        const sectionsToInsert = sections.map((section, index) => ({
+          presentation_id: presentation.id,
+          title: section.title,
+          page_number: section.page_number,
+          order_index: index,
+        }));
+
+        const { error: sectionsError } = await supabase
+          .from('presentation_sections')
+          .insert(sectionsToInsert);
+
+        if (sectionsError) {
+          console.error('Error creating presentation sections:', sectionsError);
+          // Не удаляем презентацию, так как секции опциональны
+        } else {
+          // Загружаем созданные секции
+          const { data: createdSections } = await supabase
+            .from('presentation_sections')
+            .select('*')
+            .eq('presentation_id', presentation.id);
+
+          presentation.presentation_sections = createdSections || [];
+        }
+      }
+
+      // Инвалидируем кеш
+      invalidateCache(`wedding_${weddingId}`);
+
+      return presentation;
+    } catch (error) {
+      console.error('Error in createPresentation:', error);
+      return null;
+    }
+  },
+
+  // Обновить презентацию
+  async updatePresentation(presentationId: string, updates: any): Promise<any | null> {
+    try {
+      const { data, error } = await supabase
+        .from('presentations')
+        .update(updates)
+        .eq('id', presentationId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating presentation:', error);
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error in updatePresentation:', error);
+      return null;
+    }
+  },
+
+  // Удалить презентацию
+  async deletePresentation(presentationId: string, filePath?: string): Promise<boolean> {
+    try {
+      // Удаляем файл из Storage если указан путь
+      if (filePath) {
+        await this.deletePresentationPDF(filePath);
+      }
+
+      // Удаляем презентацию (секции удалятся автоматически через CASCADE)
+      const { error } = await supabase
+        .from('presentations')
+        .delete()
+        .eq('id', presentationId);
+
+      if (error) {
+        console.error('Error deleting presentation:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error in deletePresentation:', error);
+      return false;
+    }
+  },
+
+  // Добавить секцию к презентации
+  async addPresentationSection(
+    presentationId: string,
+    title: string,
+    pageNumber: number
+  ): Promise<any | null> {
+    try {
+      // Получаем максимальный order_index
+      const { data: sections } = await supabase
+        .from('presentation_sections')
+        .select('order_index')
+        .eq('presentation_id', presentationId)
+        .order('order_index', { ascending: false })
+        .limit(1);
+
+      const nextOrderIndex = (sections && sections[0]?.order_index || -1) + 1;
+
+      const { data, error } = await supabase
+        .from('presentation_sections')
+        .insert({
+          presentation_id: presentationId,
+          title,
+          page_number: pageNumber,
+          order_index: nextOrderIndex,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error adding section:', error);
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error in addPresentationSection:', error);
+      return null;
+    }
+  },
+
+  // Удалить секцию
+  async deletePresentationSection(sectionId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('presentation_sections')
+        .delete()
+        .eq('id', sectionId);
+
+      if (error) {
+        console.error('Error deleting section:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error in deletePresentationSection:', error);
+      return false;
+    }
+  },
+
+  // Обновить порядок презентаций
+  async updatePresentationsOrder(updates: Array<{ id: string; order_index: number }>): Promise<boolean> {
+    try {
+      const updatePromises = updates.map(({ id, order_index }) =>
+        supabase
+          .from('presentations')
+          .update({ order_index })
+          .eq('id', id)
+      );
+
+      const results = await Promise.all(updatePromises);
+      const errors = results.filter(result => result.error);
+
+      if (errors.length > 0) {
+        console.error('Error updating presentations order:', errors);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error in updatePresentationsOrder:', error);
+      return false;
+    }
+  },
 };
 
 // Сервис для работы с авансами
@@ -1778,7 +2072,7 @@ export const contractorPaymentService = {
       .from('contractor_payments')
       .select('*')
       .eq('event_id', eventId)
-      .order('date', { ascending: false });
+      .order('order_index', { ascending: true });
 
     if (error) {
       console.error('Error fetching contractor payments by event:', error);
@@ -1789,10 +2083,21 @@ export const contractorPaymentService = {
   },
 
   // Создать оплату подрядчику
-  async createPayment(payment: Omit<ContractorPayment, 'id' | 'created_at' | 'updated_at' | 'to_pay'>): Promise<ContractorPayment | null> {
+  async createPayment(payment: Omit<ContractorPayment, 'id' | 'created_at' | 'updated_at' | 'to_pay' | 'order_index'>): Promise<ContractorPayment | null> {
+    // Получаем максимальный order_index для данного ивента
+    const { data: maxData } = await supabase
+      .from('contractor_payments')
+      .select('order_index')
+      .eq('event_id', payment.event_id)
+      .order('order_index', { ascending: false })
+      .limit(1)
+      .single();
+
+    const nextOrderIndex = (maxData?.order_index ?? 0) + 1;
+
     const { data, error } = await supabase
       .from('contractor_payments')
-      .insert(payment)
+      .insert({ ...payment, order_index: nextOrderIndex })
       .select()
       .single();
 
@@ -1837,3 +2142,262 @@ export const contractorPaymentService = {
   },
 };
 
+// ============ РАСШИРЕННЫЙ СЕРВИС ПРЕЗЕНТАЦИЙ ДЛЯ PDF-TO-IMAGES ============
+export const presentationServiceExtended = {
+  // Загрузить PDF файл в Supabase Storage
+  async uploadPresentationPdf(weddingId: string, pdfFile: File): Promise<string> {
+    // Валидация параметров
+    if (!weddingId || weddingId === 'undefined') {
+      throw new Error('Ошибка: ID свадьбы не определен (undefined)');
+    }
+    if (!pdfFile) {
+      throw new Error('Ошибка: PDF файл не выбран');
+    }
+    
+    const fileName = `presentations/${weddingId}/${Date.now()}_${pdfFile.name}`;
+    const { data, error } = await supabase.storage
+      .from('presentations')
+      .upload(fileName, pdfFile, { contentType: 'application/pdf', upsert: true });
+    
+    if (error) throw new Error(`Ошибка загрузки PDF: ${error.message}`);
+    return fileName;
+  },
+
+  // Создать запись презентации в БД
+  async createPresentation(
+    weddingId: string,
+    title: string,
+    pdfFilePath: string
+  ): Promise<{ id: string; wedding_id: string; title: string; pdf_file_path: string; image_urls?: string[] }> {
+    // Валидация параметров
+    console.log('createPresentation called with:', { weddingId, title, pdfFilePath });
+    
+    if (!weddingId || weddingId === 'undefined') {
+      throw new Error('Ошибка: ID свадьбы не определен (undefined)');
+    }
+    if (!title || title.trim() === '') {
+      throw new Error('Ошибка: Название презентации не может быть пустым');
+    }
+    if (!pdfFilePath || pdfFilePath === 'undefined') {
+      throw new Error('Ошибка: Путь к PDF файлу не определен (undefined)');
+    }
+
+    console.log('Inserting presentation into database with wedding_id:', weddingId);
+    const { data, error } = await supabase
+      .from('presentations')
+      .insert({
+        wedding_id: weddingId,
+        title,
+        pdf_file_path: pdfFilePath,
+        type: 'wedding',
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Database error in createPresentation:', error);
+      throw new Error(`Ошибка создания презентации: ${error.message}`);
+    }
+    
+    console.log('Presentation created successfully:', data);
+    return data;
+  },
+
+  // Вызвать Edge Function для конвертации PDF в изображения
+  async triggerPdfToImages(weddingId: string, presentationId: string): Promise<{ image_urls: string[] }> {
+    if (!weddingId || weddingId === 'undefined') {
+      throw new Error('Ошибка: ID свадьбы не определен (undefined)');
+    }
+    if (!presentationId || presentationId === 'undefined') {
+      throw new Error('Ошибка: ID презентации не определен (undefined)');
+    }
+
+    const response = await fetch('/functions/v1/pdf-to-images', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ wedding_id: weddingId, presentation_id: presentationId }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Ошибка конвертации PDF в изображения: ${errorText}`);
+    }
+
+    return response.json();
+  },
+
+  // Обновить секции презентации
+  async updatePresentationSections(
+    presentationId: string,
+    sections: Array<{ title: string; page_number: number }>
+  ): Promise<void> {
+    // Удаляем старые секции
+    await supabase
+      .from('presentation_sections')
+      .delete()
+      .eq('presentation_id', presentationId);
+
+    // Вставляем новые
+    const { error } = await supabase
+      .from('presentation_sections')
+      .insert(
+        sections.map((s, i) => ({
+          presentation_id: presentationId,
+          title: s.title,
+          page_number: s.page_number,
+          order_index: i,
+        }))
+      );
+
+    if (error) throw new Error(`Ошибка обновления секций: ${error.message}`);
+  },
+
+  // Получить все презентации для свадьбы (для клиента)
+  async getPresentationsByWedding(weddingId: string): Promise<any[]> {
+    // Валидация параметров
+    if (!weddingId || weddingId === 'undefined') {
+      console.error('getPresentationsByWedding: weddingId is undefined');
+      return [];
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('presentations')
+        .select('*, presentation_sections(*)')
+        .eq('wedding_id', weddingId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching presentations for wedding:', error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Error in getPresentationsByWedding:', error);
+      return [];
+    }
+  },
+
+  // Получить презентацию с секциями
+  async getPresentation(weddingId: string): Promise<any> {
+    // Валидация параметров
+    if (!weddingId || weddingId === 'undefined') {
+      console.error('getPresentation: weddingId is undefined or empty');
+      throw new Error('Ошибка: ID свадьбы не определен (undefined)');
+    }
+
+    console.log('getPresentation called with weddingId:', weddingId);
+    
+    const { data, error } = await supabase
+      .from('presentations')
+      .select('*, presentation_sections(*)')
+      .eq('wedding_id', weddingId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Database error in getPresentation:', error);
+      throw new Error(`Ошибка загрузки презентации: ${error.message}`);
+    }
+    
+    console.log('getPresentation result:', data);
+    return data;
+  },
+
+  // Удалить презентацию
+  async deletePresentation(presentationId: string): Promise<void> {
+    const { data: presentation, error: fetchError } = await supabase
+      .from('presentations')
+      .select('pdf_file_path, image_urls')
+      .eq('id', presentationId)
+      .single();
+
+    if (fetchError) throw new Error(`Ошибка получения презентации: ${fetchError.message}`);
+
+    // Удаляем файлы из Storage
+    const filesToDelete: string[] = [];
+    if (presentation.pdf_file_path) {
+      filesToDelete.push(presentation.pdf_file_path);
+    }
+    if (presentation.image_urls && Array.isArray(presentation.image_urls)) {
+      // Извлекаем пути из URL
+      presentation.image_urls.forEach((url: string) => {
+        const pathMatch = url.match(/presentations\/.+$/);
+        if (pathMatch) {
+          filesToDelete.push(pathMatch[0]);
+        }
+      });
+    }
+
+    if (filesToDelete.length > 0) {
+      const { error: deleteError } = await supabase.storage
+        .from('presentations')
+        .remove(filesToDelete);
+
+      if (deleteError) console.error('Error deleting files from storage:', deleteError);
+    }
+
+    // Удаляем запись из БД
+    const { error: dbError } = await supabase
+      .from('presentations')
+      .delete()
+      .eq('id', presentationId);
+
+    if (dbError) throw new Error(`Ошибка удаления презентации: ${dbError.message}`);
+  },
+
+  // Загрузить изображения презентации
+  async uploadPresentationImages(
+    weddingId: string,
+    presentationId: string,
+    imageFiles: File[]
+  ): Promise<string[]> {
+    if (!weddingId || weddingId === 'undefined') {
+      throw new Error('Ошибка: ID свадьбы не определен (undefined)');
+    }
+    if (!presentationId || presentationId === 'undefined') {
+      throw new Error('Ошибка: ID презентации не определен (undefined)');
+    }
+    if (!imageFiles || imageFiles.length === 0) {
+      throw new Error('Ошибка: Изображения не выбраны');
+    }
+
+    const uploadedUrls: string[] = [];
+
+    // Загружаем каждое изображение
+    for (let i = 0; i < imageFiles.length; i++) {
+      const file = imageFiles[i];
+      const fileName = `presentations/${weddingId}/${presentationId}/page_${i + 1}_${Date.now()}.jpg`;
+
+      const { data, error } = await supabase.storage
+        .from('presentations')
+        .upload(fileName, file, { contentType: 'image/jpeg', upsert: true });
+
+      if (error) {
+        throw new Error(`Ошибка загрузки изображения ${i + 1}: ${error.message}`);
+      }
+
+      // Получаем публичный URL
+      const { data: publicData } = supabase.storage
+        .from('presentations')
+        .getPublicUrl(fileName);
+
+      uploadedUrls.push(publicData.publicUrl);
+    }
+
+    // Обновляем таблицу presentations с URLs изображений
+    const { error: updateError } = await supabase
+      .from('presentations')
+      .update({ image_urls: uploadedUrls })
+      .eq('id', presentationId);
+
+    if (updateError) {
+      throw new Error(`Ошибка сохранения URL изображений: ${updateError.message}`);
+    }
+
+    console.log('Images uploaded successfully:', uploadedUrls);
+    return uploadedUrls;
+  },
+};

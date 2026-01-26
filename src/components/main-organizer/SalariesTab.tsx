@@ -161,7 +161,7 @@ const SalariesTab = () => {
     
     const created = await salaryService.createSalary(salary);
     if (created) {
-      setSalaries(prev => [created, ...prev].sort((a, b) => b.month.localeCompare(a.month)));
+      setSalaries(prev => [...prev, created].sort((a, b) => b.month.localeCompare(a.month)));
       // Автоматически создаем одну координацию для новой зарплаты
       const newCoordination: Omit<CoordinationPayment, 'id' | 'created_at' | 'updated_at'> = {
         salary_id: created.id,

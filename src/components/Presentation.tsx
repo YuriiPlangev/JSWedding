@@ -52,11 +52,13 @@ const Presentation = ({ presentation, currentLanguage = 'ua' }: PresentationProp
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Все изображения для слайдера (18 слайдов от 1 до 18)
-  const allSlides = [
-    pres1, pres2, pres3, pres4, pres5, pres6, pres7, pres8, pres9,
-    pres10, pres11, pres12, pres13, pres14, pres15, pres16, pres17, pres18
-  ];
+  // Изображения: берем из Supabase, если есть, иначе дефолтные png
+  const dynamicSlides = presentation?.image_urls && presentation.image_urls.length > 0
+    ? presentation.image_urls
+    : [
+        pres1, pres2, pres3, pres4, pres5, pres6, pres7, pres8, pres9,
+        pres10, pres11, pres12, pres13, pres14, pres15, pres16, pres17, pres18
+      ];
 
   // Меню быстрого доступа (только выбранные секции)
   // Каждая секция указывает на номер слайда (индекс + 1, так как слайды нумеруются с 1)
@@ -72,11 +74,24 @@ const Presentation = ({ presentation, currentLanguage = 'ua' }: PresentationProp
   // Если есть презентация из БД, используем её структуру
   // Иначе используем меню по умолчанию
   let menuSections = defaultMenuSections;
-  if (presentation?.sections && presentation.sections.length > 0) {
-    // Преобразуем секции из БД в формат меню
+
+  // Новые секции с page_number из презентаций Supabase
+  if (presentation?.presentation_sections && presentation.presentation_sections.length > 0) {
+    menuSections = presentation.presentation_sections.map((section) => {
+      const slideIndex = Math.min(
+        Math.max((section.page_number || 1) - 1, 0),
+        dynamicSlides.length - 1
+      );
+      return {
+        id: section.id,
+        name: section.title,
+        slideIndex,
+      };
+    });
+  } else if (presentation?.sections && presentation.sections.length > 0) {
+    // Старые секции с image_url
     menuSections = presentation.sections.map((section, index) => {
-      // Находим индекс слайда по image_url
-      const slideIndex = allSlides.findIndex(slide => slide === section.image_url);
+      const slideIndex = dynamicSlides.findIndex(slide => slide === section.image_url);
       return {
         id: section.id,
         name: section.name,
@@ -168,7 +183,7 @@ const Presentation = ({ presentation, currentLanguage = 'ua' }: PresentationProp
   };
 
   const handleNext = () => {
-    setActiveIndex((prev) => (prev < allSlides.length - 1 ? prev + 1 : prev));
+    setActiveIndex((prev) => (prev < dynamicSlides.length - 1 ? prev + 1 : prev));
   };
 
   // Обработчики для свайпа по картинкам
@@ -265,7 +280,7 @@ const Presentation = ({ presentation, currentLanguage = 'ua' }: PresentationProp
     if (Math.abs(diffY) > threshold) {
       if (diffY > 0) {
         // Свайп вверх - следующий слайд
-        if (fullscreenIndex < allSlides.length - 1) {
+        if (fullscreenIndex < dynamicSlides.length - 1) {
           setFullscreenIndex(fullscreenIndex + 1);
         }
       } else {
@@ -290,7 +305,7 @@ const Presentation = ({ presentation, currentLanguage = 'ua' }: PresentationProp
         handleCloseFullscreen();
       } else if (e.key === 'ArrowUp' && fullscreenIndex > 0) {
         setFullscreenIndex(fullscreenIndex - 1);
-      } else if (e.key === 'ArrowDown' && fullscreenIndex < allSlides.length - 1) {
+      } else if (e.key === 'ArrowDown' && fullscreenIndex < dynamicSlides.length - 1) {
         setFullscreenIndex(fullscreenIndex + 1);
       }
     };
@@ -394,7 +409,7 @@ const Presentation = ({ presentation, currentLanguage = 'ua' }: PresentationProp
               transform: `translateX(-${activeIndex * 100}%)`,
             }}
           >
-            {allSlides.map((slideImage, index) => (
+            {dynamicSlides.map((slideImage, index) => (
               <div
                 key={index}
                 className="h-full shrink-0 relative"
@@ -463,7 +478,7 @@ const Presentation = ({ presentation, currentLanguage = 'ua' }: PresentationProp
             </button>
 
             <div className="flex gap-1 sm:gap-1.5 md:gap-2 px-2 overflow-x-auto max-w-full">
-              {allSlides.map((_, index) => (
+              {dynamicSlides.map((_, index) => (
                 <button
                   key={index}
                   onClick={() => setActiveIndex(index)}
@@ -479,9 +494,9 @@ const Presentation = ({ presentation, currentLanguage = 'ua' }: PresentationProp
 
             <button
               onClick={handleNext}
-              disabled={activeIndex === allSlides.length - 1}
+              disabled={activeIndex === dynamicSlides.length - 1}
               className={`text-[20px] sm:text-[24px] md:text-[28px] lg:text-[28px] xl:text-[32px] 2xl:text-[36px] font-forum font-light transition-opacity cursor-pointer px-3 sm:px-4 md:px-6 lg:px-6 xl:px-8 border-l border-[#00000033] h-full ${
-                activeIndex === allSlides.length - 1
+                activeIndex === dynamicSlides.length - 1
                   ? 'text-[#00000033] cursor-not-allowed'
                   : 'text-black hover:opacity-70'
               }`}
@@ -531,7 +546,7 @@ const Presentation = ({ presentation, currentLanguage = 'ua' }: PresentationProp
           )}
 
           {/* Стрелка вниз (следующий слайд) */}
-          {fullscreenIndex < allSlides.length - 1 && (
+          {fullscreenIndex < dynamicSlides.length - 1 && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -557,7 +572,7 @@ const Presentation = ({ presentation, currentLanguage = 'ua' }: PresentationProp
                 transition: 'transform 0.3s ease-in-out',
               }}
             >
-              {allSlides.map((slideImage, index) => (
+              {dynamicSlides.map((slideImage, index) => (
                 <div
                   key={index}
                   className="w-full h-full shrink-0 flex items-center justify-center"
@@ -592,7 +607,7 @@ const Presentation = ({ presentation, currentLanguage = 'ua' }: PresentationProp
             className="absolute left-4 top-1/2 z-[10000] flex flex-col gap-2"
             style={{ transform: 'translateY(-50%)' }}
           >
-            {allSlides.map((_, index) => (
+            {dynamicSlides.map((_, index) => (
               <div
                 key={index}
                 className={`w-2 h-2 rounded-full transition-all ${

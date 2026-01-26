@@ -172,7 +172,7 @@ const ContractorsPaymentsTab = () => {
     await handleCreatePayment(newPayment);
   };
 
-  const handleCreatePayment = async (payment: Omit<ContractorPayment, 'id' | 'created_at' | 'updated_at' | 'to_pay'>) => {
+  const handleCreatePayment = async (payment: Omit<ContractorPayment, 'id' | 'created_at' | 'updated_at' | 'to_pay' | 'order_index'>) => {
     const created = await contractorPaymentService.createPayment(payment);
     if (created) {
       setPayments(prev => [...prev, created]);
@@ -210,15 +210,10 @@ const ContractorsPaymentsTab = () => {
       });
     }
 
-    // Оптимистичное обновление UI сразу
+    // Оптимистичное обновление UI сразу (но БЕЗ пересчета to_pay)
     setPayments(prev => prev.map(p => {
       if (p.id === id) {
-        const updated = { ...p, [field]: value };
-        // Пересчитываем to_pay если изменились cost, advance или percent
-        if (field === 'cost' || field === 'advance' || field === 'percent') {
-          updated.to_pay = (updated.cost || 0) - (updated.advance || 0) - (updated.percent || 0);
-        }
-        return updated;
+        return { ...p, [field]: value };
       }
       return p;
     }));
@@ -267,10 +262,21 @@ const ContractorsPaymentsTab = () => {
     try {
       const updated = await contractorPaymentService.updatePayment(id, updateData);
       if (updated) {
-        // Пересчитываем to_pay на клиенте для немедленного обновления
+        // Убедимся, что to_pay правильно вычислен (cost - advance - percent)
+        // Это гарантирует правильное значение даже если триггер на сервере не сработал
         const recalculatedToPay = (updated.cost || 0) - (updated.advance || 0) - (updated.percent || 0);
-        const updatedWithRecalculatedToPay = { ...updated, to_pay: recalculatedToPay };
-        setPayments(prev => prev.map(p => p.id === id ? updatedWithRecalculatedToPay : p));
+        const finalUpdated = { ...updated, to_pay: recalculatedToPay };
+        
+        console.log('Updated payment:', {
+          id,
+          cost: updated.cost,
+          advance: updated.advance,
+          percent: updated.percent,
+          to_pay_from_server: updated.to_pay,
+          to_pay_calculated: recalculatedToPay
+        });
+        
+        setPayments(prev => prev.map(p => p.id === id ? finalUpdated : p));
         
         // Очищаем отслеживание изменений после успешного сохранения
         setChangedFields(prev => {
@@ -280,6 +286,13 @@ const ContractorsPaymentsTab = () => {
         });
         
         setShowToast(true);
+        
+        // Перезагружаем все данные с сервера чтобы гарантировать правильный to_pay из триггера
+        if (selectedEventId) {
+          setTimeout(() => {
+            loadPaymentsByEvent(selectedEventId);
+          }, 100);
+        }
       } else {
         console.error('Ошибка сохранения');
         if (selectedEventId) {
