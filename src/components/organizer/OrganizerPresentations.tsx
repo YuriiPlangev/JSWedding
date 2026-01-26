@@ -71,7 +71,6 @@ const OrganizerPresentations = ({ weddingId }: OrganizerPresentationsProps) => {
       }
 
       setToastMessage('Презентация успешно загружена');
-      setToastType('success');
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
 
@@ -81,7 +80,6 @@ const OrganizerPresentations = ({ weddingId }: OrganizerPresentationsProps) => {
       console.error('Error in handleUploadPresentation:', error);
       const message = error instanceof Error ? error.message : 'Ошибка при загрузке презентации';
       setToastMessage(message);
-      setToastType('error');
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
     } finally {
@@ -97,14 +95,12 @@ const OrganizerPresentations = ({ weddingId }: OrganizerPresentationsProps) => {
     try {
       await presentationServiceExtended.deletePresentation(presentationId);
       setToastMessage('Презентация удалена');
-      setToastType('success');
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
       refetch();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Ошибка при удалении';
       setToastMessage(message);
-      setToastType('error');
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
     }
