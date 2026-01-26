@@ -154,7 +154,7 @@ const ContractorsPaymentsTab = () => {
   const addRow = async () => {
     if (!user?.id || !selectedEventId) return;
     
-    const newPayment: Omit<ContractorPayment, 'id' | 'created_at' | 'updated_at' | 'to_pay'> = {
+    const newPayment: Omit<ContractorPayment, 'id' | 'created_at' | 'updated_at' | 'to_pay' | 'order_index'> = {
       created_by: user.id,
       event_id: selectedEventId,
       service: '',

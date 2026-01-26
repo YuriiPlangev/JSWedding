@@ -20,7 +20,7 @@ interface PresentationViewerProps {
   currentLanguage?: 'en' | 'ru' | 'ua';
 }
 
-const PresentationViewer: React.FC<PresentationViewerProps> = ({ presentations, currentLanguage = 'ua' }) => {
+const PresentationViewer: React.FC<PresentationViewerProps> = ({ presentations }) => {
   const [selectedPresentationId, setSelectedPresentationId] = useState<string>(presentations[0]?.id || '');
   const [currentPageByPresentation, setCurrentPageByPresentation] = useState<{ [key: string]: number }>({});
 

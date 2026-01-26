@@ -263,7 +263,7 @@ const PresentationUploadModal = ({ isOpen, onClose, onUpload, isLoading = false 
         </div>
       </div>
 
-      {showToast && <Toast message={toastMessage} type="success" />}
+      {showToast && <Toast message={toastMessage} show={showToast} onClose={() => setShowToast(false)} />}
     </>
   );
 };

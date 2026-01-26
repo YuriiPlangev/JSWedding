@@ -14,7 +14,6 @@ interface PresentationModalProps {
 
 const PresentationModal = ({ onClose, onUpload, uploading }: PresentationModalProps) => {
   const currentLanguage = getInitialLanguage();
-  const t = getTranslation(currentLanguage);
 
   const [title, setTitle] = useState('');
   const [pdfFile, setPdfFile] = useState<File | null>(null);

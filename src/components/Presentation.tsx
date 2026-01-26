@@ -62,7 +62,7 @@ const Presentation = ({ presentation, currentLanguage = 'ua' }: PresentationProp
 
   // Меню быстрого доступа (только выбранные секции)
   // Каждая секция указывает на номер слайда (индекс + 1, так как слайды нумеруются с 1)
-  const defaultMenuSections = [
+  const defaultMenuSections: Array<{ id: number; name: string; slideIndex: number }> = [
     { id: 0, name: 'Ваш організатор - Юлія Солодченко', slideIndex: 1 }, // слайд 2 (индекс 1)
     { id: 1, name: 'Про нас', slideIndex: 3 }, // слайд 4 (индекс 3)
     { id: 2, name: 'Чому обирають нас?', slideIndex: 6 }, // слайд 7 (индекс 6)
@@ -73,17 +73,23 @@ const Presentation = ({ presentation, currentLanguage = 'ua' }: PresentationProp
 
   // Если есть презентация из БД, используем её структуру
   // Иначе используем меню по умолчанию
-  let menuSections = defaultMenuSections;
+  let menuSections: Array<{ id: number; name: string; slideIndex: number }> = defaultMenuSections;
 
   // Новые секции с page_number из презентаций Supabase
   if (presentation?.presentation_sections && presentation.presentation_sections.length > 0) {
-    menuSections = presentation.presentation_sections.map((section) => {
+    menuSections = presentation.presentation_sections.map((section, index) => {
       const slideIndex = Math.min(
         Math.max((section.page_number || 1) - 1, 0),
         dynamicSlides.length - 1
       );
+      // Преобразуем id в number, если это строка используем hash
+      const numericId = typeof section.id === 'number' 
+        ? section.id 
+        : typeof section.id === 'string'
+          ? parseInt(section.id, 10) || index
+          : index;
       return {
-        id: section.id,
+        id: numericId,
         name: section.title,
         slideIndex,
       };
@@ -92,8 +98,14 @@ const Presentation = ({ presentation, currentLanguage = 'ua' }: PresentationProp
     // Старые секции с image_url
     menuSections = presentation.sections.map((section, index) => {
       const slideIndex = dynamicSlides.findIndex(slide => slide === section.image_url);
+      // Преобразуем id в number
+      const numericId = typeof section.id === 'number' 
+        ? section.id 
+        : typeof section.id === 'string'
+          ? parseInt(section.id, 10) || index
+          : index;
       return {
-        id: section.id,
+        id: numericId,
         name: section.name,
         slideIndex: slideIndex >= 0 ? slideIndex : index,
       };
