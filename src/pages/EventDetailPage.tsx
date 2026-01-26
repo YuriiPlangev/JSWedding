@@ -443,41 +443,26 @@ const EventDetailPage = () => {
     }
   };
 
-  const handleUploadPresentation = async (files: FileList | null) => {
-    if (!event || !files || files.length === 0) return;
+  const handleUploadPresentation = async (data: {
+    title: string;
+    pdfFile: File;
+    sections: Array<{ title: string; page_number: number }>;
+  }) => {
+    if (!event) return;
 
     setUploadingPresentation(true);
     try {
-      const defaultPresentation = presentationService.getDefaultCompanyPresentation();
-      const sections: Presentation['sections'] = [];
-
-      for (let i = 0; i < Math.min(files.length, defaultPresentation.sections.length); i++) {
-        const file = files[i];
-        const imageUrl = await presentationService.uploadPresentationImage(
-          event.id,
-          file,
-          i
-        );
-
-        if (imageUrl) {
-          sections.push({
-            id: i,
-            name: defaultPresentation.sections[i].name,
-            image_url: imageUrl,
-          });
-        }
-      }
-
-      for (let i = files.length; i < defaultPresentation.sections.length; i++) {
-        sections.push({
-          id: i,
-          name: defaultPresentation.sections[i].name,
-          image_url: '',
-        });
-      }
-
-      const coupleName1 = event.couple_name_1_ru || event.couple_name_1_en || '';
-      const coupleName2 = event.couple_name_2_ru || event.couple_name_2_en || '';
+      // TODO: Реализовать загрузку PDF и конвертацию в изображения
+      console.log('Uploading presentation:', data);
+      
+      setShowPresentationModal(false);
+    } catch (err) {
+      console.error('Error uploading presentation:', err);
+      setError('Ошибка при загрузке данных');
+    } finally {
+      setUploadingPresentation(false);
+    }
+  };
       
       const presentation: Presentation = {
         type: 'wedding',
@@ -487,11 +472,7 @@ const EventDetailPage = () => {
 
       const success = await presentationService.updatePresentation(event.id, presentation);
       if (success) {
-        await loadEventDetails();
-        setShowPresentationModal(false);
-      } else {
-        setError('Ошибка при загрузке данных');
-      }
+      setShowPresentationModal(false);
     } catch (err) {
       console.error('Error uploading presentation:', err);
       setError('Ошибка при загрузке данных');

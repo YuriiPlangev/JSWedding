@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { weddingService, taskService, documentService, clientService, presentationService } from '../services/weddingService';
-import type { Wedding, Task, Document, User, Presentation } from '../types';
+import type { Wedding, Task, Document, User } from '../types';
 import { WeddingModal, TaskModal, DocumentModal, PresentationModal, ClientModal } from '../components/modals';
 import { TasksPage, WeddingsList, WeddingDetails, AdvancesTab, SalariesTab, ContractorsPaymentsTab } from '../components/main-organizer';
 import logoV3 from '../assets/logoV3.svg';
@@ -1007,7 +1007,7 @@ const MainOrganizerDashboard = () => {
 
         {viewMode === 'wedding-details' && selectedWedding && (
           <WeddingDetails
-            selectedWedding={selectedWedding}
+            selectedWedding={selectedWedding as any}
             draggedDocumentId={draggedDocumentId}
             onBack={() => {
               setViewMode('weddings');

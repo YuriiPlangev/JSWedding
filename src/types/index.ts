@@ -136,9 +136,11 @@ export interface CustomPresentation {
   pdf_url?: string; // URL для просмотра PDF
   pdf_file_path?: string; // Путь в Storage
   pdf_file_size?: number;
+  image_urls?: string[]; // Массив URL конвертированных из PDF изображений
   is_default: boolean;
   order_index: number;
   sections?: CustomPresentationSection[];
+  presentation_sections?: Array<{ id: string | number; title: string; page_number: number; order_index?: number }>;
   created_at: string;
   updated_at: string;
 }
