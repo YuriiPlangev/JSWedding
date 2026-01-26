@@ -3,7 +3,6 @@ import { useCustomPresentations } from '../../hooks';
 import { presentationServiceExtended } from '../../services/weddingService';
 import { convertPdfToImages, dataUrlToFile } from '../../utils/pdfToImages';
 import PresentationUploadModal from '../modals/PresentationUploadModal';
-import PresentationViewer from '../PresentationViewer';
 import Toast from '../Toast';
 
 interface OrganizerPresentationsProps {
@@ -160,7 +159,7 @@ const OrganizerPresentations = ({ weddingId }: OrganizerPresentationsProps) => {
                   <p className="text-[11px] font-forum text-[#00000080] mb-2">Разделы:</p>
                   <div className="flex flex-wrap gap-1">
                     {presentation.presentation_sections
-                      .sort((a, b) => a.order_index - b.order_index)
+                      .sort((a, b) => (a.order_index || 0) - (b.order_index || 0))
                       .map((section) => (
                         <span
                           key={section.id}
@@ -192,7 +191,13 @@ const OrganizerPresentations = ({ weddingId }: OrganizerPresentationsProps) => {
       />
 
       {/* Toast сообщения */}
-      {showToast && <Toast message={toastMessage} type={toastType} />}
+      {showToast && (
+        <Toast 
+          message={toastMessage} 
+          show={showToast} 
+          onClose={() => setShowToast(false)} 
+        />
+      )}
     </div>
   );
 };

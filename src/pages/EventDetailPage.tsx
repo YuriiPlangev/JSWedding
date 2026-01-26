@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { weddingService, taskService, documentService, clientService, presentationService } from '../services/weddingService';
-import type { Wedding, Task, Document, User, Presentation } from '../types';
+import type { Wedding, Task, Document, User } from '../types';
 import { TaskModal, DocumentModal, PresentationModal } from '../components/modals';
 import Header from '../components/Header';
 

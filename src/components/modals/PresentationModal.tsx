@@ -1,6 +1,4 @@
 import { useState } from 'react';
-import { getTranslation } from '../../utils/translations';
-import { getInitialLanguage } from '../../utils/languageUtils';
 
 interface PresentationModalProps {
   onClose: () => void;
@@ -13,8 +11,6 @@ interface PresentationModalProps {
 }
 
 const PresentationModal = ({ onClose, onUpload, uploading }: PresentationModalProps) => {
-  const currentLanguage = getInitialLanguage();
-
   const [title, setTitle] = useState('');
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [sections, setSections] = useState<Array<{ title: string; page_number: number }>>([]);
