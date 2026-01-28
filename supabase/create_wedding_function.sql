@@ -22,19 +22,17 @@ BEGIN
   -- Получаем текущего пользователя
   current_user_id := auth.uid();
   
-  -- Проверяем, что пользователь существует и является организатором
+  -- Проверяем, что пользователь существует и является организатором или главным организатором
   SELECT p.role INTO current_user_role
   FROM profiles p
   WHERE p.id = current_user_id;
   
-  IF current_user_role IS NULL OR current_user_role != 'organizer' THEN
+  IF current_user_role IS NULL OR current_user_role NOT IN ('organizer', 'main_organizer') THEN
     RAISE EXCEPTION 'Only organizers can create weddings';
   END IF;
   
-  -- Проверяем, что organizer_id в данных совпадает с текущим пользователем
-  IF (wedding_data->>'organizer_id')::UUID != current_user_id THEN
-    RAISE EXCEPTION 'Organizer ID must match current user';
-  END IF;
+  -- Любой организатор может создать свадьбу для любого организатора
+  -- Проверка organizer_id не требуется
   
   -- Проверяем обязательные поля
   -- Требуем только первое имя, второе может быть пустым
