@@ -1379,9 +1379,9 @@ const OrganizerDashboard = () => {
     setShowClientModal(true);
   };
 
-  const handleSaveClient = async (clientData: { email: string; password: string }) => {
+  const handleSaveClient = async (clientData: { email: string; password: string; role: 'client' | 'organizer' | 'main_organizer' }) => {
     try {
-      await clientService.createClient(clientData.email, clientData.password);
+      await clientService.createClient(clientData.email, clientData.password, clientData.role);
       setShowClientModal(false);
       await loadData(); // Перезагружаем данные, чтобы обновить список клиентов
     } catch (err: unknown) {

@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { getTranslation } from '../../utils/translations';
 import { getInitialLanguage } from '../../utils/languageUtils';
+import type { UserRole } from '../../types';
 
 interface ClientModalProps {
   onClose: () => void;
-  onSave: (data: { email: string; password: string;  }) => void;
+  onSave: (data: { email: string; password: string; role: UserRole }) => void;
 }
 
 const ClientModal = ({ onClose, onSave }: ClientModalProps) => {
@@ -14,6 +15,7 @@ const ClientModal = ({ onClose, onSave }: ClientModalProps) => {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
+    role: 'client' as UserRole,
   });
   const [error, setError] = useState<string | null>(null);
 
@@ -34,6 +36,7 @@ const ClientModal = ({ onClose, onSave }: ClientModalProps) => {
     onSave({
       email: formData.email.trim(),
       password: formData.password,
+      role: formData.role,
     });
   };
 
@@ -84,9 +87,22 @@ const ClientModal = ({ onClose, onSave }: ClientModalProps) => {
                 className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white placeholder:text-[#00000060]"
                 placeholder="Минимум 6 символов"
               />
-              <p className="text-[12px] max-[1599px]:text-[11px] font-forum font-light text-[#00000060] mt-1">
-                Минимум 6 символов. Клиент сможет изменить пароль после первого входа.
-              </p>
+              
+            </div>
+
+            <div>
+              <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
+                Роль *
+              </label>
+              <select
+                value={formData.role}
+                onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
+                className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white"
+              >
+                <option value="client">Клиент</option>
+                <option value="organizer">Организатор</option>
+                <option value="main_organizer">Главный организатор</option>
+              </select>
             </div>
 
 

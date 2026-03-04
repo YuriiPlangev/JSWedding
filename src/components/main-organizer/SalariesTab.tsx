@@ -37,7 +37,7 @@ const SalariesTab = () => {
 
   const loadSalaries = useCallback(async (employeeId: string) => {
     const data = await salaryService.getSalariesByEmployee(employeeId);
-    setSalaries(data);
+    setSalaries(data.sort((a, b) => a.month.localeCompare(b.month)));
     
     // Загружаем координации для каждой зарплаты
     const coordinations: Record<string, CoordinationPayment[]> = {};
@@ -160,7 +160,7 @@ const SalariesTab = () => {
     
     const created = await salaryService.createSalary(salary);
     if (created) {
-      setSalaries(prev => [created, ...prev].sort((a, b) => b.month.localeCompare(a.month)));
+      setSalaries(prev => [...prev, created].sort((a, b) => a.month.localeCompare(b.month)));
       // Автоматически создаем одну координацию для новой зарплаты
       const newCoordination: Omit<CoordinationPayment, 'id' | 'created_at' | 'updated_at'> = {
         salary_id: created.id,

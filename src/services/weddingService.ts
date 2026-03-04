@@ -1135,8 +1135,8 @@ export const clientService = {
     };
   },
 
-  // Создать клиента в auth и profiles
-  async createClient(email: string, password: string): Promise<User | null> {
+  // Создать пользователя в auth и profiles
+  async createClient(email: string, password: string, role: UserRole = 'client'): Promise<User | null> {
     // Сохраняем текущую сессию организатора
     const { data: currentSession } = await supabase.auth.getSession();
     const currentAccessToken = currentSession?.session?.access_token;
@@ -1153,7 +1153,7 @@ export const clientService = {
         options: {
           data: {
             name: defaultName,
-            role: 'client',
+            role,
           },
         },
       });
@@ -1186,7 +1186,7 @@ export const clientService = {
         user_id: userId,
         user_email: email,
         user_name: defaultName,
-        user_role: 'client'
+        user_role: role
       });
 
       if (rpcError) {
@@ -1206,7 +1206,7 @@ export const clientService = {
         id: userId,
         email: email,
         name: defaultName,
-        role: 'client' as const,
+        role,
       };
     } catch (error) {
       // В случае ошибки также пытаемся восстановить сессию организатора
