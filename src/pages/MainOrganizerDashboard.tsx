@@ -2,8 +2,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { weddingService, taskService, documentService, clientService, presentationService } from '../services/weddingService';
-import type { Wedding, Task, Document, User, Presentation } from '../types';
+import type { Wedding, Task, Document, User, Presentation, UserRole } from '../types';
 import { WeddingModal, TaskModal, DocumentModal, PresentationModal, ClientModal } from '../components/modals';
+import ContractorManagementModal from '../components/modals/ContractorManagementModal';
 import { TasksPage, WeddingsList, WeddingDetails, AdvancesTab, SalariesTab, ContractorsPaymentsTab } from '../components/main-organizer';
 import logoV3 from '../assets/logoV3.svg';
 
@@ -79,6 +80,7 @@ const MainOrganizerDashboard = () => {
   const [showDocumentModal, setShowDocumentModal] = useState(false);
   const [showPresentationModal, setShowPresentationModal] = useState(false);
   const [showClientModal, setShowClientModal] = useState(false);
+  const [showContractorModal, setShowContractorModal] = useState(false);
   const [editingWedding, setEditingWedding] = useState<Wedding | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editingDocument, setEditingDocument] = useState<Document | null>(null);
@@ -470,7 +472,7 @@ const MainOrganizerDashboard = () => {
     setShowClientModal(true);
   };
 
-  const handleSaveClient = async (clientData: { email: string; password: string; role: 'client' | 'organizer' | 'main_organizer' }) => {
+  const handleSaveClient = async (clientData: { email: string; password: string; role: UserRole }) => {
     try {
       await clientService.createClient(clientData.email, clientData.password, clientData.role);
       await loadData();
@@ -1068,6 +1070,7 @@ const MainOrganizerDashboard = () => {
             onDocumentDragEnd={handleDocumentDragEnd}
             onDeletePresentation={handleDeletePresentation}
             onOpenPresentationModal={() => setShowPresentationModal(true)}
+            onOpenContractorModal={() => setShowContractorModal(true)}
           />
         )}
 
@@ -1125,6 +1128,25 @@ const MainOrganizerDashboard = () => {
         <ClientModal
           onClose={() => setShowClientModal(false)}
           onSave={handleSaveClient}
+        />
+      )}
+
+      {/* Contractor Management Modal */}
+      {showContractorModal && selectedWedding && (
+        <ContractorManagementModal
+          weddingId={selectedWedding.id}
+          existingContractorToken={selectedWedding.contractor_token || null}
+          existingContractorPassword={selectedWedding.contractor_password_hash ? 'configured' : null}
+          initialSettings={{
+            dressCode: selectedWedding.contractor_dress_code,
+            organizerContacts: selectedWedding.contractor_organizer_contacts,
+            coordinatorContacts: selectedWedding.contractor_coordinator_contacts,
+          }}
+          onClose={() => setShowContractorModal(false)}
+          onSave={async () => {
+            // Reload wedding data after saving contractor settings
+            await loadWeddingDetails(selectedWedding.id);
+          }}
         />
       )}
     </div>

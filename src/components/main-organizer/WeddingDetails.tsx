@@ -32,6 +32,7 @@ interface WeddingDetailsProps {
   onDocumentDragEnd: () => void;
   onDeletePresentation: () => void;
   onOpenPresentationModal: () => void;
+  onOpenContractorModal: () => void;
 }
 
 const WeddingDetails = ({
@@ -55,6 +56,7 @@ const WeddingDetails = ({
   onDocumentDragEnd,
   onDeletePresentation,
   onOpenPresentationModal,
+  onOpenContractorModal,
 }: WeddingDetailsProps) => {
   return (
     <div className="h-full flex flex-col">
@@ -226,6 +228,65 @@ const WeddingDetails = ({
             </div>
           ) : (
             <p className="text-[18px] font-forum font-light text-[#00000080]">Задач пока нет</p>
+          )}
+        </div>
+
+        {/* Contractor Management */}
+        <div className="bg-white border border-[#00000033] rounded-lg p-6 mb-6">
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <h3 className="text-[26px] max-[1599px]:text-[22px] font-forum font-bold text-black">Подрядчики</h3>
+              <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000060] mt-1">
+                Доступ по уникальной ссылке и паролю для всех подрядчиков события
+              </p>
+            </div>
+            <button
+              onClick={onOpenContractorModal}
+              className="px-4 md:px-6 py-2 md:py-3 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[18px] max-[1599px]:text-[16px] font-forum"
+            >
+              {selectedWedding.contractor_token ? 'Управление' : '+ Настроить'}
+            </button>
+          </div>
+          {selectedWedding.contractor_token ? (
+            <div className="space-y-3">
+              <div className="bg-[#eae6db] border border-[#00000033] rounded-lg p-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-[14px] sm:text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">Статус</p>
+                    <p className="text-[18px] sm:text-[20px] max-[1599px]:text-[18px] font-forum font-bold text-green-600 mt-1">
+                      Настроен
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[14px] sm:text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">Ссылка для подрядчиков</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <a
+                        href={`${window.location.origin}/contractor/${selectedWedding.contractor_token}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[16px] sm:text-[18px] max-[1599px]:text-[16px] font-forum text-black hover:underline cursor-pointer break-all"
+                      >
+                        {`${window.location.origin}/contractor/${selectedWedding.contractor_token}`}
+                      </a>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(
+                            `${window.location.origin}/contractor/${selectedWedding.contractor_token}`
+                          );
+                        }}
+                        className="px-3 py-1 bg-white border border-[#00000033] rounded hover:bg-gray-50 transition-colors cursor-pointer text-[14px] font-forum whitespace-nowrap"
+                      >
+                        Копировать
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p className="text-[18px] font-forum font-light text-[#00000080]">
+              Доступ для подрядчиков не настроен. Нажмите "Настроить" для создания доступа.
+            </p>
           )}
         </div>
 

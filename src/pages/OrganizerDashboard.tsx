@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { weddingService, taskService, documentService, clientService, presentationService, organizerService } from '../services/weddingService';
-import type { Wedding, Task, TaskGroup, Document, User, Presentation } from '../types';
+import type { Wedding, Task, TaskGroup, Document, User, Presentation, UserRole } from '../types';
 import { WeddingModal, TaskModal, OrganizerTaskModal, DocumentModal, PresentationModal, ClientModal } from '../components/modals';
 import TaskViewModal from '../components/modals/TaskViewModal';
 import ContractorManagementModal from '../components/modals/ContractorManagementModal';
@@ -1381,7 +1381,7 @@ const OrganizerDashboard = () => {
     setShowClientModal(true);
   };
 
-  const handleSaveClient = async (clientData: { email: string; password: string; role: 'client' | 'organizer' | 'main_organizer' }) => {
+  const handleSaveClient = async (clientData: { email: string; password: string; role: UserRole }) => {
     try {
       await clientService.createClient(clientData.email, clientData.password, clientData.role);
       setShowClientModal(false);
