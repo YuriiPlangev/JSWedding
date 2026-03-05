@@ -5,6 +5,7 @@ import { weddingService, taskService, documentService, clientService, presentati
 import type { Wedding, Task, TaskGroup, Document, User, Presentation } from '../types';
 import { WeddingModal, TaskModal, OrganizerTaskModal, DocumentModal, PresentationModal, ClientModal } from '../components/modals';
 import TaskViewModal from '../components/modals/TaskViewModal';
+import ContractorManagementModal from '../components/modals/ContractorManagementModal';
 import { TaskColumn, ScrollbarStyles } from '../components/organizer';
 import { useTaskGroups, useTaskLogs, useTaskDragAndDrop, useGroupDragAndDrop } from '../hooks';
 import { hexToHsl, hslToHex } from '../utils/colorUtils';
@@ -82,6 +83,7 @@ const OrganizerDashboard = () => {
   const [showDocumentModal, setShowDocumentModal] = useState(false);
   const [showPresentationModal, setShowPresentationModal] = useState(false);
   const [showClientModal, setShowClientModal] = useState(false);
+  const [showContractorModal, setShowContractorModal] = useState(false);
   const [editingWedding, setEditingWedding] = useState<Wedding | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editingDocument, setEditingDocument] = useState<Document | null>(null);
@@ -2195,6 +2197,59 @@ const OrganizerDashboard = () => {
               </div>
             )}
 
+            {/* Contractor Management */}
+            <div className="bg-white border border-[#00000033] rounded-lg p-6 mb-6">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <h3 className="text-[26px] max-[1599px]:text-[22px] font-forum font-bold text-black">Подрядчики</h3>
+                  <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000060] mt-1">
+                    Доступ по уникальной ссылке и паролю для всех подрядчиков события
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowContractorModal(true)}
+                  className="px-4 md:px-6 py-2 md:py-3 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[18px] max-[1599px]:text-[16px] font-forum"
+                >
+                  {selectedWedding.contractor_token ? 'Управление' : '+ Настроить'}
+                </button>
+              </div>
+              {selectedWedding.contractor_token ? (
+                <div className="space-y-3">
+                  <div className="bg-[#eae6db] border border-[#00000033] rounded-lg p-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-[14px] sm:text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">Статус</p>
+                        <p className="text-[18px] sm:text-[20px] max-[1599px]:text-[18px] font-forum font-bold text-green-600 mt-1">
+                          Настроен
+                        </p>
+                      </div>
+                      {selectedWedding.contractor_dress_code && (
+                        <div>
+                          <p className="text-[14px] sm:text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">Дресс-код</p>
+                          <p className="text-[16px] max-[1599px]:text-[15px] font-forum font-light text-black mt-1">
+                            {selectedWedding.contractor_dress_code.substring(0, 50)}
+                            {selectedWedding.contractor_dress_code.length > 50 ? '...' : ''}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080] mt-3">
+                      Нажмите "Управление", чтобы изменить пароль, настройки, контакты или документы
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-[#FBF9F5] border border-[#00000033] rounded-lg p-6 text-center">
+                  <p className="text-[18px] max-[1599px]:text-[16px] font-forum font-light text-[#00000080]">
+                    Подрядчики еще не настроены для этого события
+                  </p>
+                  <p className="text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000060] mt-2">
+                    Создайте уникальную ссылку и пароль для доступа подрядчиков к информации о событии
+                  </p>
+                </div>
+              )}
+            </div>
+
             {/* Tasks */}
             <div className="bg-white border border-[#00000033] rounded-lg p-6 mb-6">
               <div className="flex justify-between items-center mb-4">
@@ -2456,6 +2511,25 @@ const OrganizerDashboard = () => {
         <ClientModal
           onClose={() => setShowClientModal(false)}
           onSave={handleSaveClient}
+        />
+      )}
+
+      {/* Contractor Management Modal */}
+      {showContractorModal && selectedWedding && (
+        <ContractorManagementModal
+          weddingId={selectedWedding.id}
+          existingContractorToken={selectedWedding.contractor_token || null}
+          existingContractorPassword={selectedWedding.contractor_password_hash ? 'configured' : null}
+          initialSettings={{
+            dressCode: selectedWedding.contractor_dress_code,
+            organizerContacts: selectedWedding.contractor_organizer_contacts,
+            coordinatorContacts: selectedWedding.contractor_coordinator_contacts,
+          }}
+          onClose={() => setShowContractorModal(false)}
+          onSave={async () => {
+            // Reload wedding data after saving contractor settings
+            await loadWeddingDetails(selectedWedding.id);
+          }}
         />
       )}
     </div>

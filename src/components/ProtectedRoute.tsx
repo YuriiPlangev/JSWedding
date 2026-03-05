@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 
 interface ProtectedRouteProps {
   children: ReactNode;
-  requiredRole?: 'client' | 'organizer' | 'main_organizer';
+  requiredRole?: 'client' | 'organizer' | 'main_organizer' | 'contractor';
 }
 
 const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
@@ -25,14 +25,17 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
     return <Navigate to="/login" replace />;
   }
 
-  // Если пользователь загружен и это организатор или главный организатор, но он на странице без requiredRole
+  // Если пользователь загружен и это организатор, главный организатор или подрядчик, но он на странице без requiredRole
   // и находится на /dashboard или /client, перенаправляем на соответствующую страницу
-  if (user && (user.role === 'organizer' || user.role === 'main_organizer') && !requiredRole) {
-    // Проверяем, не пытается ли организатор попасть на страницу клиента
+  if (user && (user.role === 'organizer' || user.role === 'main_organizer' || user.role === 'contractor') && !requiredRole) {
+    // Проверяем, не пытается ли организатор/подрядчик попасть на страницу клиента
     // Это обрабатывается в AppRoutes, но добавим дополнительную защиту
     if (location.pathname === '/dashboard' || location.pathname === '/client') {
       if (user.role === 'main_organizer') {
         return <Navigate to="/main-organizer" replace />;
+      }
+      if (user.role === 'contractor') {
+        return <Navigate to="/contractor" replace />;
       }
       return <Navigate to="/organizer" replace />;
     }
@@ -53,6 +56,13 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
         return <>{children}</>;
       }
       return <Navigate to="/organizer" replace />;
+    }
+    if (user?.role === 'contractor') {
+      // Если пользователь уже на /contractor, не делаем редирект
+      if (location.pathname === '/contractor') {
+        return <>{children}</>;
+      }
+      return <Navigate to="/contractor" replace />;
     }
     // Если пользователь уже на /dashboard, не делаем редирект
     if (location.pathname === '/dashboard') {

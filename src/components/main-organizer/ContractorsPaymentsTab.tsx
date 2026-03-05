@@ -303,20 +303,42 @@ const ContractorsPaymentsTab = () => {
     }
   };
 
+  // Функция для преобразования валюты в символ
+  const getCurrencySymbol = (currency: Currency): string => {
+    switch (currency) {
+      case 'грн':
+        return '₴';
+      case 'доллар':
+        return '$';
+      case 'евро':
+        return '€';
+      default:
+        return '€';
+    }
+  };
+
   const handleDownloadPDF = async () => {
     if (payments.length === 0) return;
 
     // Подготовка данных таблицы
-    const tableBody = payments.map(payment => [
-      payment.service || '',
-      payment.cost.toString() || '0',
-      payment.percent.toString() || '0',
-      payment.advance.toString() || '0',
-      payment.date || '',
-      payment.to_pay?.toString() || '0',
-    ]);
+    const tableBody = payments.map(payment => {
+      const costCurrency = payment.cost_currency || payment.currency || 'евро';
+      const percentCurrency = payment.percent_currency || 'евро';
+      const advanceCurrency = payment.advance_currency || 'евро';
+      
+      return [
+        payment.service || '',
+        `${(payment.cost || 0).toFixed(2)} ${getCurrencySymbol(costCurrency as Currency)}`,
+        `${(payment.percent || 0).toFixed(2)} ${getCurrencySymbol(percentCurrency as Currency)}`,
+        `${(payment.advance || 0).toFixed(2)} ${getCurrencySymbol(advanceCurrency as Currency)}`,
+        payment.date || '',
+        `${(payment.to_pay || 0).toFixed(2)} ${getCurrencySymbol(costCurrency as Currency)}`,
+      ];
+    });
 
+    // Вычисляем итоги
     const totalCost = payments.reduce((sum, p) => sum + (p.cost || 0), 0);
+    const totalPercent = payments.reduce((sum, p) => sum + (p.percent || 0), 0);
     const totalAdvance = payments.reduce((sum, p) => sum + (p.advance || 0), 0);
     const totalToPay = payments.reduce((sum, p) => sum + (p.to_pay || 0), 0);
 
@@ -328,13 +350,17 @@ const ContractorsPaymentsTab = () => {
       }))
     );
 
+    // Получаем преобладающую валюту для итогов
+    const firstPaymentCurrency = (payments[0]?.cost_currency || payments[0]?.currency || 'евро') as Currency;
+    const costCurrencySymbol = getCurrencySymbol(firstPaymentCurrency);
+
     tableBody.push([
       'ИТОГО',
-      totalCost.toFixed(2),
+      `${totalCost.toFixed(2)} ${costCurrencySymbol}`,
+      `${totalPercent.toFixed(2)} %`,
+      `${totalAdvance.toFixed(2)} ${costCurrencySymbol}`,
       '',
-      totalAdvance.toFixed(2),
-      '',
-      totalToPay.toFixed(2),
+      `${totalToPay.toFixed(2)} ${costCurrencySymbol}`,
     ]);
 
     // Создание документа pdfmake

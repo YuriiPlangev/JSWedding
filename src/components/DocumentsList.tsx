@@ -121,7 +121,7 @@ const DocumentsList = ({ documents, currentLanguage = 'ru' }: DocumentsListProps
           if (url.pathname.includes('/document/')) {
             fileExtension = '.pdf';
           } else if (url.pathname.includes('/spreadsheets/')) {
-            fileExtension = '.xlsx';
+            fileExtension = '.pdf';
           } else if (url.pathname.includes('/presentation/')) {
             fileExtension = '.pdf';
           }

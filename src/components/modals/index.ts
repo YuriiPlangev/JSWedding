@@ -4,4 +4,5 @@ export { default as OrganizerTaskModal } from './OrganizerTaskModal';
 export { default as DocumentModal } from './DocumentModal';
 export { default as PresentationModal } from './PresentationModal';
 export { default as ClientModal } from './ClientModal';
+export { default as ContractorManagementModal } from './ContractorManagementModal';
 

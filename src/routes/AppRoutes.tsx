@@ -3,6 +3,8 @@ import LoginPage from '../pages/LoginPage';
 import ClientDashboard from '../pages/ClientDashboard';
 import OrganizerDashboard from '../pages/OrganizerDashboard';
 import MainOrganizerDashboard from '../pages/MainOrganizerDashboard';
+import ContractorDashboard from '../pages/ContractorDashboard';
+import ContractorAccessPage from '../pages/ContractorAccessPage';
 import EventDetailPage from '../pages/EventDetailPage';
 import ProtectedRoute from '../components/ProtectedRoute';
 import { useAuth } from '../context/AuthContext';
@@ -28,6 +30,9 @@ const AppRoutes = () => {
             ) : user.role === 'organizer' ? (
               // Если организатор, перенаправляем на /organizer
               <Navigate to="/organizer" replace />
+            ) : user.role === 'contractor' ? (
+              // Если подрядчик, перенаправляем на /contractor
+              <Navigate to="/contractor" replace />
             ) : (
               // Иначе показываем ClientDashboard
               <ClientDashboard />
@@ -59,6 +64,15 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/contractor"
+        element={
+          <ProtectedRoute requiredRole="contractor">
+            <ContractorDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route path="/contractor/:token" element={<ContractorAccessPage />} />
       <Route
         path="/main-organizer/event/:eventId"
         element={

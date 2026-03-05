@@ -1,5 +1,5 @@
 // Типы пользователей
-export type UserRole = 'client' | 'organizer' | 'main_organizer';
+export type UserRole = 'client' | 'organizer' | 'main_organizer' | 'contractor';
 
 export interface User {
   id: string;
@@ -28,6 +28,14 @@ export interface Wedding {
   guest_count: number; // Число гостей
   chat_link?: string; // Ссылка на чат с организатором
   notes?: string; // Заметки клиента о свадьбе
+  dress_code?: string; // Дресс-код события
+  timing?: string; // Тайминг события
+  organizer_contacts?: string; // Контакты организатора (телефон, email и т.д.)
+  contractor_token?: string; // Токен уникальной ссылки для подрядчиков
+  contractor_password_hash?: string; // Хеш пароля доступа подрядчиков
+  contractor_dress_code?: string; // Дресс-код для подрядчиков
+  contractor_organizer_contacts?: string; // Контакты организатора для подрядчиков
+  contractor_coordinator_contacts?: string; // Контакты координаторов для подрядчиков
   welcome_message_en?: string; // Кастомное приветственное сообщение на английском (для основного приветствия)
   splash_welcome_text_en?: string; // Полный текст приветствия в заглушке на английском (включая имена)
   full_welcome_text_en?: string; // Полный текст приветствия в основном контенте на английском (включая имена)
@@ -96,6 +104,19 @@ export interface Document {
   file_url?: string; // URL для скачивания
   file_size?: number; // Размер файла в байтах
   mime_type?: string; // MIME тип (например, application/pdf)
+  created_at: string;
+  updated_at: string;
+}
+
+// Типы для документов подрядчиков
+export interface ContractorDocument {
+  id: string;
+  wedding_id: string; // ID свадьбы
+  name?: string; // Название документа (для обратной совместимости)
+  name_en?: string; // Название документа на английском
+  name_ru?: string; // Название документа на русском
+  name_ua?: string; // Название документа на украинском
+  link: string; // Ссылка на документ (Google Drive, Dropbox и т.д.)
   created_at: string;
   updated_at: string;
 }

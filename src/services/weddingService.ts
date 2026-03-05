@@ -798,7 +798,7 @@ function generateDownloadUrl(link: string): string | null {
     if (url.hostname.includes('docs.google.com') && url.pathname.includes('/spreadsheets/d/')) {
       const sheetIdMatch = url.pathname.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
       if (sheetIdMatch) {
-        return `https://docs.google.com/spreadsheets/d/${sheetIdMatch[1]}/export?format=xlsx`;
+        return `https://docs.google.com/spreadsheets/d/${sheetIdMatch[1]}/export?format=pdf`;
       }
     }
 
