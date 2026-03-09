@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useCustomPresentations } from '../../hooks';
-import { presentationServiceExtended } from '../../services/weddingService';
+import { presentationService } from '../../services/weddingService';
 import { convertPdfToImages, dataUrlToFile } from '../../utils/pdfToImages';
 import PresentationUploadModal from '../modals/PresentationUploadModal';
 import Toast from '../Toast';
@@ -27,7 +27,7 @@ const OrganizerPresentations = ({ weddingId }: OrganizerPresentationsProps) => {
 
       // 1. Загружаем PDF файл в Storage
       console.log('Step 1: Uploading PDF file...');
-      const pdfFilePath = await presentationServiceExtended.uploadPresentationPdf(
+      const pdfFilePath = await presentationService.uploadPresentationPdf(
         weddingId,
         data.pdfFile
       );
@@ -35,7 +35,7 @@ const OrganizerPresentations = ({ weddingId }: OrganizerPresentationsProps) => {
 
       // 2. Создаем запись презентации в БД
       console.log('Step 2: Creating presentation record...');
-      const presentation = await presentationServiceExtended.createPresentation(
+      const presentation = await presentationService.createPresentation(
         weddingId,
         data.title,
         pdfFilePath
@@ -53,7 +53,7 @@ const OrganizerPresentations = ({ weddingId }: OrganizerPresentationsProps) => {
         dataUrlToFile(dataUrl, `page_${index + 1}.jpg`)
       );
       
-      const imageUrls = await presentationServiceExtended.uploadPresentationImages(
+      const imageUrls = await presentationService.uploadPresentationImages(
         weddingId,
         presentation.id,
         imageFiles
@@ -63,7 +63,7 @@ const OrganizerPresentations = ({ weddingId }: OrganizerPresentationsProps) => {
       // 5. Сохраняем секции презентации
       if (data.sections && data.sections.length > 0) {
         console.log('Step 5: Saving', data.sections.length, 'sections...');
-        await presentationServiceExtended.updatePresentationSections(
+        await presentationService.updatePresentationSections(
           presentation.id,
           data.sections
         );
@@ -93,7 +93,7 @@ const OrganizerPresentations = ({ weddingId }: OrganizerPresentationsProps) => {
     }
 
     try {
-      await presentationServiceExtended.deletePresentation(presentationId);
+      await presentationService.deletePresentation(presentationId);
       setToastMessage('Презентация удалена');
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);

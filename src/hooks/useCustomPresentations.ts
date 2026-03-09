@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { presentationServiceExtended } from '../services/weddingService';
+import { presentationService } from '../services/weddingService';
 import type { CustomPresentation } from '../types';
 
 export const useCustomPresentations = (weddingId: string | undefined) => {
@@ -7,7 +7,7 @@ export const useCustomPresentations = (weddingId: string | undefined) => {
     queryKey: ['presentations', weddingId],
     queryFn: async () => {
       if (!weddingId) return [];
-      return await presentationServiceExtended.getPresentationsByWedding(weddingId);
+      return await presentationService.getPresentationsByWedding(weddingId);
     },
     enabled: !!weddingId,
     staleTime: 5 * 60 * 1000, // 5 минут
