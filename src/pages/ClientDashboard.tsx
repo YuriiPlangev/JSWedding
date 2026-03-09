@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
 import { taskService } from '../services/weddingService';
 import type { Task } from '../types';
-import { useClientWedding, useWeddingTasks, useWeddingDocuments } from '../hooks';
+import { useClientWedding, useWeddingTasks, useWeddingDocuments, useCustomPresentations } from '../hooks';
 import Header from '../components/Header';
 import TasksList from '../components/TasksList';
 import DocumentsList from '../components/DocumentsList';
@@ -23,6 +23,7 @@ const ClientDashboard = () => {
   const { data: wedding, isLoading: weddingLoading, error: weddingError } = useClientWedding(user?.id);
   const { data: tasks = [] } = useWeddingTasks(wedding?.id);
   const { data: documents = [] } = useWeddingDocuments(wedding?.id);
+  const { data: customPresentations = [] } = useCustomPresentations(wedding?.id);
   
   const error = weddingError ? 'Ошибка при загрузке данных. Попробуйте обновить страницу.' : null;
   
@@ -433,8 +434,28 @@ const ClientDashboard = () => {
       </div>
       )}
 
-      {/* Презентация - на всю высоту экрана */}
-      {wedding && <Presentation presentation={wedding.presentation} currentLanguage={currentLanguage} />}
+      {/* Новые PDF презентации (используем тот же компонент Presentation) */}
+      {customPresentations && customPresentations.length > 0 && (
+        customPresentations.map((p) => (
+          <Presentation
+            key={p.id}
+            presentation={{
+              id: p.id,
+              wedding_id: p.wedding_id,
+              type: 'wedding',
+              title: p.title,
+              image_urls: p.image_urls,
+              presentation_sections: (p as any).presentation_sections,
+            } as any}
+            currentLanguage={currentLanguage}
+          />
+        ))
+      )}
+
+      {/* Старая презентация компании (обратная совместимость) */}
+      {wedding && (
+        <Presentation presentation={wedding.presentation} currentLanguage={currentLanguage} />
+      )}
     </div>
   );
 };

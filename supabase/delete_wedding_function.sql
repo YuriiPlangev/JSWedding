@@ -26,23 +26,23 @@ BEGIN
   -- Получаем текущего пользователя
   current_user_id := auth.uid();
   
-  -- Проверяем, что пользователь существует и является организатором
+  -- Проверяем, что пользователь существует и является организатором или главным организатором
   SELECT p.role INTO current_user_role
   FROM profiles p
   WHERE p.id = current_user_id;
   
-  IF current_user_role IS NULL OR current_user_role != 'organizer' THEN
+  IF current_user_role IS NULL OR current_user_role NOT IN ('organizer', 'main_organizer') THEN
     RAISE EXCEPTION 'Only organizers can delete weddings';
   END IF;
   
-  -- Проверяем, что свадьба существует и принадлежит этому организатору
+  -- Любой организатор может удалить любую свадьбу
+  -- Проверяем только существование свадьбы
   SELECT w.client_id INTO wedding_client_id
   FROM weddings w
-  WHERE w.id = v_wedding_id
-  AND w.organizer_id = current_user_id;
+  WHERE w.id = v_wedding_id;
   
   IF wedding_client_id IS NULL THEN
-    RAISE EXCEPTION 'Wedding not found or access denied';
+    RAISE EXCEPTION 'Wedding not found';
   END IF;
   
   -- Удаляем все связанные задачи

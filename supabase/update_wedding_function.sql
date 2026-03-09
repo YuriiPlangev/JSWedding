@@ -22,22 +22,22 @@ BEGIN
   -- Получаем текущего пользователя
   current_user_id := auth.uid();
   
-  -- Проверяем, что пользователь существует и является организатором
+  -- Проверяем, что пользователь существует и является организатором или главным организатором
   SELECT p.role INTO current_user_role
   FROM profiles p
   WHERE p.id = current_user_id;
   
-  IF current_user_role IS NULL OR current_user_role != 'organizer' THEN
+  IF current_user_role IS NULL OR current_user_role NOT IN ('organizer', 'main_organizer') THEN
     RAISE EXCEPTION 'Only organizers can update weddings';
   END IF;
   
-  -- Проверяем, что свадьба принадлежит этому организатору
+  -- Любой организатор может редактировать любую свадьбу
+  -- Проверяем только существование свадьбы
   IF NOT EXISTS (
     SELECT 1 FROM weddings w
     WHERE w.id = wedding_id
-    AND w.organizer_id = current_user_id
   ) THEN
-    RAISE EXCEPTION 'Wedding not found or access denied';
+    RAISE EXCEPTION 'Wedding not found';
   END IF;
   
   -- Исключаем поля, которые не должны обновляться

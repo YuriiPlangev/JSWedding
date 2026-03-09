@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   id UUID REFERENCES auth.users(id) PRIMARY KEY,
   email TEXT,
   name TEXT,
-  role TEXT CHECK (role IN ('client', 'organizer')) DEFAULT 'client',
+  role TEXT CHECK (role IN ('client', 'organizer', 'main_organizer')) DEFAULT 'client',
   avatar_url TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
