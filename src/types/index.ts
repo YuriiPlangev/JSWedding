@@ -216,6 +216,28 @@ export interface Presentation {
   sections: PresentationSection[]; // Секции презентации
 }
 
+// Тип для секций презентации из БД (с page_number)
+export interface CustomPresentationSection {
+  id: string | number;
+  presentation_id?: string;
+  title: string;
+  page_number: number;
+  order_index?: number;
+}
+
+// Тип для документов презентаций в БД
+export interface CustomPresentation {
+  id: string;
+  wedding_id: string;
+  title: string;
+  pdf_file_path?: string;
+  image_urls?: string[];
+  type?: string;
+  presentation_sections?: CustomPresentationSection[];
+  created_at?: string;
+  updated_at?: string;
+}
+
 // Типы для логов заданий организаторов
 export interface OrganizerTaskLog {
   id: string;

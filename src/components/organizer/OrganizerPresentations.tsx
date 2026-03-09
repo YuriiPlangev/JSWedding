@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useCustomPresentations } from '../../hooks';
-import { presentationService } from '../../services/weddingService';
+import { presentationServiceExtended } from '../../services/weddingService';
 import { convertPdfToImages, dataUrlToFile } from '../../utils/pdfToImages';
 import PresentationUploadModal from '../modals/PresentationUploadModal';
 import Toast from '../Toast';
@@ -27,7 +27,7 @@ const OrganizerPresentations = ({ weddingId }: OrganizerPresentationsProps) => {
 
       // 1. Загружаем PDF файл в Storage
       console.log('Step 1: Uploading PDF file...');
-      const pdfFilePath = await presentationService.uploadPresentationPdf(
+      const pdfFilePath = await presentationServiceExtended.uploadPresentationPdf(
         weddingId,
         data.pdfFile
       );
@@ -35,7 +35,7 @@ const OrganizerPresentations = ({ weddingId }: OrganizerPresentationsProps) => {
 
       // 2. Создаем запись презентации в БД
       console.log('Step 2: Creating presentation record...');
-      const presentation = await presentationService.createPresentation(
+      const presentation = await presentationServiceExtended.createPresentation(
         weddingId,
         data.title,
         pdfFilePath
@@ -53,7 +53,7 @@ const OrganizerPresentations = ({ weddingId }: OrganizerPresentationsProps) => {
         dataUrlToFile(dataUrl, `page_${index + 1}.jpg`)
       );
       
-      const imageUrls = await presentationService.uploadPresentationImages(
+      const imageUrls = await presentationServiceExtended.uploadPresentationImages(
         weddingId,
         presentation.id,
         imageFiles
@@ -63,7 +63,7 @@ const OrganizerPresentations = ({ weddingId }: OrganizerPresentationsProps) => {
       // 5. Сохраняем секции презентации
       if (data.sections && data.sections.length > 0) {
         console.log('Step 5: Saving', data.sections.length, 'sections...');
-        await presentationService.updatePresentationSections(
+        await presentationServiceExtended.updatePresentationSections(
           presentation.id,
           data.sections
         );
@@ -93,7 +93,7 @@ const OrganizerPresentations = ({ weddingId }: OrganizerPresentationsProps) => {
     }
 
     try {
-      await presentationService.deletePresentation(presentationId);
+      await presentationServiceExtended.deletePresentation(presentationId);
       setToastMessage('Презентация удалена');
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
@@ -154,8 +154,8 @@ const OrganizerPresentations = ({ weddingId }: OrganizerPresentationsProps) => {
                   <p className="text-[11px] font-forum text-[#00000080] mb-2">Разделы:</p>
                   <div className="flex flex-wrap gap-1">
                     {presentation.presentation_sections
-                      .sort((a, b) => (a.order_index || 0) - (b.order_index || 0))
-                      .map((section) => (
+                      .sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0))
+                      .map((section: any) => (
                         <span
                           key={section.id}
                           className="inline-block px-2 py-1 bg-black text-white text-[11px] font-forum rounded"

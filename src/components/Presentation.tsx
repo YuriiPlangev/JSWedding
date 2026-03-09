@@ -24,7 +24,7 @@ import pres17 from '../assets/presentation/17.png';
 import pres18 from '../assets/presentation/18.png';
 
 interface PresentationProps {
-  presentation?: PresentationType; // Данные презентации из БД
+  presentation?: PresentationType | any; // Данные презентации из БД (может быть Presentation или CustomPresentation)
   currentLanguage?: 'en' | 'ru' | 'ua'; // Текущий язык
 }
 
@@ -77,7 +77,7 @@ const Presentation = ({ presentation, currentLanguage = 'ua' }: PresentationProp
 
   // Новые секции с page_number из презентаций Supabase
   if (presentation?.presentation_sections && presentation.presentation_sections.length > 0) {
-    menuSections = presentation.presentation_sections.map((section, index) => {
+    menuSections = presentation.presentation_sections.map((section: any, index: number) => {
       const slideIndex = Math.min(
         Math.max((section.page_number || 1) - 1, 0),
         dynamicSlides.length - 1
@@ -96,8 +96,8 @@ const Presentation = ({ presentation, currentLanguage = 'ua' }: PresentationProp
     });
   } else if (presentation?.sections && presentation.sections.length > 0) {
     // Старые секции с image_url
-    menuSections = presentation.sections.map((section, index) => {
-      const slideIndex = dynamicSlides.findIndex(slide => slide === section.image_url);
+    menuSections = presentation.sections.map((section: any, index: number) => {
+      const slideIndex = dynamicSlides.findIndex((slide: any) => slide === section.image_url);
       // Преобразуем id в number
       const numericId = typeof section.id === 'number' 
         ? section.id 
@@ -344,7 +344,7 @@ const Presentation = ({ presentation, currentLanguage = 'ua' }: PresentationProp
             }}
           >
             <div className="flex gap-1 sm:gap-2 px-2 sm:px-3 md:px-4 py-2 sm:py-2.5 md:py-3">
-              {menuSections.map((section) => (
+              {menuSections.map((section: any) => (
                 <button
                   key={section.id}
                   ref={(el) => {
@@ -421,7 +421,7 @@ const Presentation = ({ presentation, currentLanguage = 'ua' }: PresentationProp
               transform: `translateX(-${activeIndex * 100}%)`,
             }}
           >
-            {dynamicSlides.map((slideImage, index) => (
+            {dynamicSlides.map((slideImage: any, index: number) => (
               <div
                 key={index}
                 className="h-full shrink-0 relative"
@@ -490,7 +490,7 @@ const Presentation = ({ presentation, currentLanguage = 'ua' }: PresentationProp
             </button>
 
             <div className="flex gap-1 sm:gap-1.5 md:gap-2 px-2 overflow-x-auto max-w-full">
-              {dynamicSlides.map((_, index) => (
+              {dynamicSlides.map((_: any, index: number) => (
                 <button
                   key={index}
                   onClick={() => setActiveIndex(index)}
@@ -584,7 +584,7 @@ const Presentation = ({ presentation, currentLanguage = 'ua' }: PresentationProp
                 transition: 'transform 0.3s ease-in-out',
               }}
             >
-              {dynamicSlides.map((slideImage, index) => (
+              {dynamicSlides.map((slideImage: any, index: number) => (
                 <div
                   key={index}
                   className="w-full h-full shrink-0 flex items-center justify-center"
@@ -619,7 +619,7 @@ const Presentation = ({ presentation, currentLanguage = 'ua' }: PresentationProp
             className="absolute left-4 top-1/2 z-[10000] flex flex-col gap-2"
             style={{ transform: 'translateY(-50%)' }}
           >
-            {dynamicSlides.map((_, index) => (
+            {dynamicSlides.map((_: any, index: number) => (
               <div
                 key={index}
                 className={`w-2 h-2 rounded-full transition-all ${

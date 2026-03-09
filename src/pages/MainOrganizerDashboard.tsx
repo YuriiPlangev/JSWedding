@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { weddingService, taskService, documentService, clientService, presentationService } from '../services/weddingService';
-import type { Wedding, Task, Document, User, Presentation, UserRole } from '../types';
+import { weddingService, taskService, documentService, clientService, presentationService, presentationServiceExtended } from '../services/weddingService';
+import type { Wedding, Task, Document, User, UserRole } from '../types';
 import { WeddingModal, TaskModal, DocumentModal, PresentationModal, ClientModal } from '../components/modals';
 import ContractorManagementModal from '../components/modals/ContractorManagementModal';
 import { TasksPage, WeddingsList, WeddingDetails, AdvancesTab, SalariesTab, ContractorsPaymentsTab } from '../components/main-organizer';
@@ -791,58 +791,35 @@ const MainOrganizerDashboard = () => {
     }
   };
 
-  const handleUploadPresentation = async (files: FileList | null) => {
-    if (!selectedWedding || !files || files.length === 0) return;
+  const handleUploadPresentation = async (data: {
+    title: string;
+    pdfFile: File;
+    sections: Array<{ title: string; page_number: number }>;
+  }) => {
+    if (!selectedWedding) return;
 
     setUploadingPresentation(true);
     try {
-      const defaultPresentation = presentationService.getDefaultCompanyPresentation();
-      const sections: Presentation['sections'] = [];
+      const pdfFilePath = await presentationServiceExtended.uploadPresentationPdf(
+        selectedWedding.id,
+        data.pdfFile
+      );
 
-      // Загружаем изображения для каждой секции
-      for (let i = 0; i < Math.min(files.length, defaultPresentation.sections.length); i++) {
-        const file = files[i];
-        const imageUrl = await presentationService.uploadPresentationImage(
-          selectedWedding.id,
-          file,
-          i
+      const presentation = await presentationServiceExtended.createPresentation(
+        selectedWedding.id,
+        data.title,
+        pdfFilePath
+      );
+
+      if (data.sections && data.sections.length > 0) {
+        await presentationServiceExtended.updatePresentationSections(
+          presentation.id,
+          data.sections
         );
-
-        if (imageUrl) {
-          sections.push({
-            id: i,
-            name: defaultPresentation.sections[i].name,
-            image_url: imageUrl,
-          });
-        }
       }
 
-      // Если загружено меньше файлов, чем секций, заполняем остальные пустыми
-      for (let i = files.length; i < defaultPresentation.sections.length; i++) {
-        sections.push({
-          id: i,
-          name: defaultPresentation.sections[i].name,
-          image_url: '',
-        });
-      }
-
-      // Формируем название презентации
-      const coupleName1 = selectedWedding.couple_name_1_ru || selectedWedding.couple_name_1_en || '';
-      const coupleName2 = selectedWedding.couple_name_2_ru || selectedWedding.couple_name_2_en || '';
-      
-      const presentation: Presentation = {
-        type: 'wedding',
-        title: `Презентация свадьбы: ${coupleName1} & ${coupleName2}`,
-        sections,
-      };
-
-      const success = await presentationService.updatePresentation(selectedWedding.id, presentation);
-      if (success) {
-        await loadWeddingDetails(selectedWedding.id);
-        setShowPresentationModal(false);
-      } else {
-        setError('Ошибка при загрузке данных');
-      }
+      await loadWeddingDetails(selectedWedding.id);
+      setShowPresentationModal(false);
     } catch (err) {
       console.error('Error uploading presentation:', err);
       setError('Ошибка при загрузке данных');
