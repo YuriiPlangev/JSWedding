@@ -89,9 +89,9 @@ const ContractorDashboard = () => {
 
   const getCoupleName = () => {
     if (!wedding) return '';
-    const name1 = currentLanguage === 'ru' && wedding.couple_name_1_ru ? wedding.couple_name_1_ru : wedding.couple_name_1_en;
-    const name2 = currentLanguage === 'ru' && wedding.couple_name_2_ru ? wedding.couple_name_2_ru : wedding.couple_name_2_en;
-    return `${name1} & ${name2}`;
+    const name1 = currentLanguage === 'ru' && wedding.couple_name_1_ru ? wedding.couple_name_1_ru : wedding.couple_name_1_en || '';
+    const name2 = currentLanguage === 'ru' && wedding.couple_name_2_ru ? wedding.couple_name_2_ru : wedding.couple_name_2_en || '';
+    return [name1, name2].map((s) => (s || '').trim()).filter(Boolean).join(' & ');
   };
 
   const translations = {
@@ -102,7 +102,7 @@ const ContractorDashboard = () => {
       coupleNames: 'couple names',
       dressCode: 'Dress Code',
       documents: 'Documents',
-      attachedDocuments: 'Attached documents',
+      attachedDocuments: '',
       organizerAndCoordinators: 'Organizer and Coordinators',
       organizer: 'Organizer',
       coordinators: 'Coordinators',
@@ -114,7 +114,7 @@ const ContractorDashboard = () => {
       coupleNames: 'имена пары',
       dressCode: 'Дресс-код',
       documents: 'Документы',
-      attachedDocuments: 'Прикрепленные документы',
+      attachedDocuments: '',
       organizerAndCoordinators: 'Контакты организатора и координаторов',
       organizer: 'Организатор',
       coordinators: 'Координаторы',
@@ -126,7 +126,7 @@ const ContractorDashboard = () => {
       coupleNames: 'імена пари',
       dressCode: 'Дрес-код',
       documents: 'Документи',
-      attachedDocuments: 'Прикріплені документи',
+      attachedDocuments: '',
       organizerAndCoordinators: 'Контакти організатора і координаторів',
       organizer: 'Організатор',
       coordinators: 'Координатори',
@@ -183,6 +183,19 @@ const ContractorDashboard = () => {
       />
 
       <main className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 lg:px-[30px] xl:px-[30px] min-[1500px]:px-[60px] py-2 sm:py-3">
+        <section className="mb-4 sm:mb-6 text-center">
+          <h1 className="text-[20px] sm:text-[24px] lg:text-[28px] font-forum font-bold">
+            {currentLanguage === 'en' && 'Contractor page'}
+            {currentLanguage === 'ru' && 'Страница для подрядчиков'}
+            {currentLanguage === 'ua' && 'Сторінка для підрядників'}
+          </h1>
+          <p className="mt-1 text-[13px] sm:text-[14px] lg:text-[16px] font-forum text-[#00000080]">
+            {currentLanguage === 'en' && 'Access to key event information and documents'}
+            {currentLanguage === 'ru' && 'Доступ ко всей ключевой информации и документам по ивенту'}
+            {currentLanguage === 'ua' && 'Доступ до всієї ключової інформації та документів події'}
+          </p>
+        </section>
+
         <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 border border-[#00000033]">
           <article className="min-h-[100px] p-3 sm:p-4 border-b sm:border-b border-[#00000033] xl:border-b-0 xl:border-r flex flex-col items-center justify-center text-center">
             <p className="text-[12px] sm:text-[13px] text-[#00000080] font-forum tracking-wide">{t.date}</p>
@@ -213,7 +226,6 @@ const ContractorDashboard = () => {
         <section className="-mt-px grid grid-cols-1 lg:grid-cols-2 border border-[#00000033]">
           <article className="p-3 sm:p-4 border-b lg:border-b-0 border-[#00000033] lg:border-r text-center">
             <h2 className="text-[24px] sm:text-[28px] lg:text-[34px] font-forum leading-tight">{t.documents}</h2>
-            <p className="text-[12px] sm:text-[13px] text-[#00000080] font-forum mt-1">{t.attachedDocuments}</p>
             <ul className="mt-2 space-y-1">
               {documents.map((doc) => (
                 <li key={doc.id} className="py-1 flex items-center justify-center gap-2">

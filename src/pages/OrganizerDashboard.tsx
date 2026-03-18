@@ -1090,7 +1090,10 @@ const OrganizerDashboard = () => {
       setSelectedWedding(weddingData);
 
       // Добавляем вкладку, если её еще нет
-      const coupleName = `${wedding.couple_name_1_ru || wedding.couple_name_1_en || ''} & ${wedding.couple_name_2_ru || wedding.couple_name_2_en || ''}`;
+      const coupleName = [wedding.couple_name_1_ru || wedding.couple_name_1_en || '', wedding.couple_name_2_ru || wedding.couple_name_2_en || '']
+        .map(s => s.trim())
+        .filter(Boolean)
+        .join(' & ');
 
       setOpenTabs(prevTabs => {
         // Проверяем, есть ли уже такая вкладка
@@ -1340,7 +1343,10 @@ const OrganizerDashboard = () => {
         }
 
         // Обновляем название вкладки, если свадьба открыта
-        const coupleName = `${weddingData.couple_name_1_ru || weddingData.couple_name_1_en || ''} & ${weddingData.couple_name_2_ru || weddingData.couple_name_2_en || ''}`;
+        const coupleName = [weddingData.couple_name_1_ru || weddingData.couple_name_1_en || '', weddingData.couple_name_2_ru || weddingData.couple_name_2_en || '']
+          .map(s => s.trim())
+          .filter(Boolean)
+          .join(' & ');
 
         setOpenTabs(prevTabs => {
           const updatedTabs = prevTabs.map(tab => 
@@ -2004,14 +2010,14 @@ const OrganizerDashboard = () => {
                       <div className="flex justify-between items-start mb-4">
                         <div className="flex-1 min-w-0">
                           <h3 className="text-[18px] sm:text-[20px] md:text-[22px] max-[1599px]:text-[20px] font-forum font-bold text-black mb-3 break-words" style={{ fontWeight: 'bold' }}>
-                            {wedding.project_name || `${wedding.couple_name_1_ru || wedding.couple_name_1_en || ''} & ${wedding.couple_name_2_ru || wedding.couple_name_2_en || ''}`}
+                            {wedding.project_name || [wedding.couple_name_1_ru || wedding.couple_name_1_en || '', wedding.couple_name_2_ru || wedding.couple_name_2_en || ''].map(s => s.trim()).filter(Boolean).join(' & ')}
                           </h3>
                           
                           {/* Информация как в деталях свадьбы на странице клиента */}
                           <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                             <div>
                               <p className="text-[12px] sm:text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080] mb-1">
-                                Дата свадьбы
+                                Дата события
                               </p>
                               <p className="text-[16px] sm:text-[18px] max-[1599px]:text-[17px] font-forum font-bold text-black">
                                 {formatDate(wedding.wedding_date)}
@@ -2029,7 +2035,7 @@ const OrganizerDashboard = () => {
                             
                             <div>
                               <p className="text-[12px] sm:text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080] mb-1">
-                                Место
+                                Локация
                               </p>
                               <p className="text-[16px] sm:text-[18px] max-[1599px]:text-[17px] font-forum font-bold text-black break-words">
                                 {wedding.venue}
@@ -2119,13 +2125,13 @@ const OrganizerDashboard = () => {
               <h3 className="text-[20px] sm:text-[22px] md:text-[26px] max-[1599px]:text-[22px] font-forum font-bold text-black mb-3 sm:mb-4">Информация об ивенте</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <p className="text-[14px] sm:text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">Дата свадьбы</p>
+                  <p className="text-[14px] sm:text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">Дата события</p>
                   <p className="text-[18px] sm:text-[20px] max-[1599px]:text-[18px] font-forum font-bold text-black mt-1 break-words">
                     {new Date(selectedWedding.wedding_date).toLocaleDateString('ru-RU')}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[14px] sm:text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">Дней до свадьбы</p>
+                  <p className="text-[14px] sm:text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">Дней до ивента</p>
                   <p className="text-[18px] sm:text-[20px] max-[1599px]:text-[18px] font-forum font-bold text-black mt-1 break-words">
                     {(() => {
                       const today = new Date();
@@ -2145,7 +2151,7 @@ const OrganizerDashboard = () => {
                   </p>
                 </div>
                 <div>
-                  <p className="text-[14px] sm:text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">Место</p>
+                  <p className="text-[14px] sm:text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">Локация</p>
                   <p className="text-[18px] sm:text-[20px] max-[1599px]:text-[18px] font-forum font-bold text-black mt-1 break-words">{selectedWedding.venue}</p>
                 </div>
                 <div>

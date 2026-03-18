@@ -87,14 +87,14 @@ const WeddingsList = ({ weddings, onWeddingClick, onEditWedding, onCreateClient,
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex-1 min-w-0">
                       <h3 className="text-[18px] sm:text-[20px] md:text-[22px] max-[1599px]:text-[20px] font-forum font-bold text-black mb-2 break-words" style={{ fontWeight: 'bold' }}>
-                        {wedding.project_name || `${wedding.couple_name_1_ru || wedding.couple_name_1_en || ''} & ${wedding.couple_name_2_ru || wedding.couple_name_2_en || ''}`}
+                        {wedding.project_name || [wedding.couple_name_1_ru || wedding.couple_name_1_en || '', wedding.couple_name_2_ru || wedding.couple_name_2_en || ''].map(s => s.trim()).filter(Boolean).join(' & ')}
                       </h3>
                       
                       {/* Информация как в деталях свадьбы на странице клиента */}
                       <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
                         <div>
                           <p className="text-[12px] sm:text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080] mb-0.5">
-                            Дата свадьбы
+                            Дата события
                           </p>
                           <p className="text-[16px] sm:text-[18px] max-[1599px]:text-[17px] font-forum font-bold text-black">
                             {formatDate(wedding.wedding_date)}
@@ -112,7 +112,7 @@ const WeddingsList = ({ weddings, onWeddingClick, onEditWedding, onCreateClient,
                         
                         <div>
                           <p className="text-[12px] sm:text-[14px] max-[1599px]:text-[13px] font-forum font-light text-[#00000080] mb-0.5">
-                            Место
+                            Локация
                           </p>
                           <p className="text-[16px] sm:text-[18px] max-[1599px]:text-[17px] font-forum font-bold text-black break-words">
                             {wedding.venue}

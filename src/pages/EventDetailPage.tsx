@@ -529,7 +529,7 @@ const EventDetailPage = () => {
             ← Назад к списку ивентов
           </button>
           <h2 className="text-[28px] sm:text-[32px] md:text-[36px] lg:text-[54px] max-[1599px]:text-[40px] lg:max-[1599px]:text-[36px] min-[1300px]:max-[1599px]:text-[42px] font-forum font-bold leading-tight text-black break-words">
-            {event.project_name || `${event.couple_name_1_ru || event.couple_name_1_en || ''} & ${event.couple_name_2_ru || event.couple_name_2_en || ''}`}
+            {event.project_name || [event.couple_name_1_ru || event.couple_name_1_en || '', event.couple_name_2_ru || event.couple_name_2_en || ''].map(s => s.trim()).filter(Boolean).join(' & ')}
           </h2>
         </div>
 
@@ -540,13 +540,13 @@ const EventDetailPage = () => {
             <h3 className="text-[20px] sm:text-[22px] md:text-[26px] max-[1599px]:text-[22px] font-forum font-bold text-black mb-3 sm:mb-4">Информация об ивенте</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <p className="text-[14px] sm:text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">Дата свадьбы</p>
+                <p className="text-[14px] sm:text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">Дата события</p>
                 <p className="text-[18px] sm:text-[20px] max-[1599px]:text-[18px] font-forum font-bold text-black mt-1 break-words">
                   {new Date(event.wedding_date).toLocaleDateString('ru-RU')}
                 </p>
               </div>
               <div>
-                <p className="text-[14px] sm:text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">Дней до свадьбы</p>
+                <p className="text-[14px] sm:text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">Дней до ивента</p>
                 <p className="text-[18px] sm:text-[20px] max-[1599px]:text-[18px] font-forum font-bold text-black mt-1 break-words">
                   {(() => {
                     const today = new Date();
@@ -566,7 +566,7 @@ const EventDetailPage = () => {
                 </p>
               </div>
               <div>
-                <p className="text-[14px] sm:text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">Место</p>
+                <p className="text-[14px] sm:text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">Локация</p>
                 <p className="text-[18px] sm:text-[20px] max-[1599px]:text-[18px] font-forum font-bold text-black mt-1 break-words">{event.venue}</p>
               </div>
               <div>

@@ -162,9 +162,15 @@ const ContractorAccessPage = () => {
 
   const getCoupleName = () => {
     if (!wedding) return '';
-    const name1 = currentLanguage === 'ru' && wedding.couple_name_1_ru ? wedding.couple_name_1_ru : wedding.couple_name_1_en;
-    const name2 = currentLanguage === 'ru' && wedding.couple_name_2_ru ? wedding.couple_name_2_ru : wedding.couple_name_2_en;
-    return `${name1} & ${name2}`;
+    const name1 =
+      currentLanguage === 'ru' && wedding.couple_name_1_ru
+        ? wedding.couple_name_1_ru
+        : wedding.couple_name_1_en || '';
+    const name2 =
+      currentLanguage === 'ru' && wedding.couple_name_2_ru
+        ? wedding.couple_name_2_ru
+        : wedding.couple_name_2_en || '';
+    return [name1, name2].map((s) => (s || '').trim()).filter(Boolean).join(' & ');
   };
 
   const translations = {
@@ -178,7 +184,7 @@ const ContractorAccessPage = () => {
       coupleNames: 'couple names',
       dressCode: 'Dress Code',
       documents: 'Documents',
-      attachedDocuments: 'Attached documents',
+      attachedDocuments: '',
       organizerAndCoordinators: 'Organizer and Coordinators',
       organizer: 'Organizer',
       coordinators: 'Coordinators',
@@ -193,7 +199,7 @@ const ContractorAccessPage = () => {
       coupleNames: 'имена пары',
       dressCode: 'Дресс-код',
       documents: 'Документы',
-      attachedDocuments: 'Прикрепленные документы',
+      attachedDocuments: '',
       organizerAndCoordinators: 'Контакты организатора и координаторов',
       organizer: 'Организатор',
       coordinators: 'Координаторы',
@@ -208,7 +214,7 @@ const ContractorAccessPage = () => {
       coupleNames: 'імена пари',
       dressCode: 'Дрес-код',
       documents: 'Документи',
-      attachedDocuments: 'Прикріплені документи',
+      attachedDocuments: '',
       organizerAndCoordinators: 'Контакти організатора і координаторів',
       organizer: 'Організатор',
       coordinators: 'Координатори',
@@ -277,9 +283,16 @@ const ContractorAccessPage = () => {
   return (
     <div className="min-h-screen bg-[#eae6db]">
       <main className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 lg:px-[30px] xl:px-[30px] min-[1500px]:px-[60px] py-4">
-        {/* Header with logo and language switcher */}
-        <div className="flex justify-between items-center mb-6">
-          <img src={logo} alt="logo" className="h-12 w-auto" />
+        {/* Header with logo, language switcher and description */}
+        <header className="flex items-center justify-between mb-6 py-2 sm:py-3">
+          <img src={logo} alt="logo" className="h-14 sm:h-16 w-auto" />
+          <div className="flex-1 mx-4 text-center hidden sm:block">
+            <p className="text-[13px] sm:text-[14px] font-forum text-[#00000080]">
+              {currentLanguage === 'en' && 'Contractor page – key information and documents for your event'}
+              {currentLanguage === 'ru' && 'Страница для подрядчиков — вся ключевая информация и документы по ивенту'}
+              {currentLanguage === 'ua' && 'Сторінка для підрядників — уся ключова інформація та документи події'}
+            </p>
+          </div>
           <select
             value={currentLanguage}
             onChange={(e) => {
@@ -293,7 +306,7 @@ const ContractorAccessPage = () => {
             <option value="ru">RU</option>
             <option value="ua">UA</option>
           </select>
-        </div>
+        </header>
 
         {/* Wedding details grid */}
         <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 border border-[#00000033]">
@@ -321,7 +334,9 @@ const ContractorAccessPage = () => {
         <section className="-mt-px grid grid-cols-1 lg:grid-cols-2 border border-[#00000033]">
           <article className="p-3 sm:p-4 border-b lg:border-b-0 border-[#00000033] lg:border-r text-center">
             <h2 className="text-[24px] sm:text-[28px] lg:text-[34px] font-forum leading-tight">{t.documents}</h2>
-            <p className="text-[12px] sm:text-[13px] text-[#00000080] font-forum mt-1">{t.attachedDocuments}</p>
+            {t.attachedDocuments && (
+              <p className="text-[12px] sm:text-[13px] text-[#00000080] font-forum mt-1">{t.attachedDocuments}</p>
+            )}
             {documents.length > 0 ? (
               <ul className="mt-2 space-y-1">
                 {documents.map((doc) => (
