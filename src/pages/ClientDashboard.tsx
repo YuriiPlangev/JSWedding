@@ -452,8 +452,8 @@ const ClientDashboard = () => {
         ))
       )}
 
-      {/* Старая презентация компании (обратная совместимость) */}
-      {wedding && (!customPresentations || customPresentations.length === 0) && (
+      {/* Базовая презентация компании (всегда ниже загруженных PDF) */}
+      {wedding && (
         <Presentation presentation={wedding.presentation} currentLanguage={currentLanguage} />
       )}
     </div>
