@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { weddingService, taskService, documentService, clientService, presentationService, presentationServiceExtended } from '../services/weddingService';
 import type { Wedding, Task, Document, User, UserRole } from '../types';
-import { WeddingModal, TaskModal, DocumentModal, PresentationModal, ClientModal } from '../components/modals';
+import { WeddingModal, TaskModal, DocumentModal, PresentationModal, EditPresentationModal, ClientModal } from '../components/modals';
 import ContractorManagementModal from '../components/modals/ContractorManagementModal';
 import { TasksPage, WeddingsList, WeddingDetails, AdvancesTab, SalariesTab, ContractorsPaymentsTab } from '../components/main-organizer';
+import { convertPdfToImages, dataUrlToFile } from '../utils/pdfToImages';
+import { useCustomPresentations } from '../hooks';
 import logoV3 from '../assets/logoV3.svg';
 
 type ViewMode = 'weddings' | 'tasks' | 'wedding-details' | 'advances' | 'salaries' | 'contractors-payments';
@@ -85,6 +87,9 @@ const MainOrganizerDashboard = () => {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editingDocument, setEditingDocument] = useState<Document | null>(null);
   const [uploadingPresentation, setUploadingPresentation] = useState(false);
+  const [editingCustomPresentationId, setEditingCustomPresentationId] = useState<string | null>(null);
+  const [savingCustomPresentation, setSavingCustomPresentation] = useState(false);
+  const { data: customPresentations = [], refetch: refetchCustomPresentations } = useCustomPresentations(selectedWedding?.id);
   
   // Состояния для drag and drop
   const [draggedWeddingTaskId, setDraggedWeddingTaskId] = useState<string | null>(null);
@@ -811,6 +816,17 @@ const MainOrganizerDashboard = () => {
         pdfFilePath
       );
 
+      const imageDataUrls = await convertPdfToImages(data.pdfFile);
+      const imageFiles = imageDataUrls.map((dataUrl, index) =>
+        dataUrlToFile(dataUrl, `page_${index + 1}.jpg`)
+      );
+
+      await presentationServiceExtended.uploadPresentationImages(
+        selectedWedding.id,
+        presentation.id,
+        imageFiles
+      );
+
       if (data.sections && data.sections.length > 0) {
         await presentationServiceExtended.updatePresentationSections(
           presentation.id,
@@ -819,12 +835,48 @@ const MainOrganizerDashboard = () => {
       }
 
       await loadWeddingDetails(selectedWedding.id);
+      await refetchCustomPresentations();
       setShowPresentationModal(false);
     } catch (err) {
       console.error('Error uploading presentation:', err);
       setError('Ошибка при загрузке данных');
     } finally {
       setUploadingPresentation(false);
+    }
+  };
+
+  const handleEditCustomPresentation = (presentationId: string) => {
+    setEditingCustomPresentationId(presentationId);
+  };
+
+  const handleDeleteCustomPresentation = async (presentationId: string) => {
+    if (!confirm('Вы уверены, что хотите удалить эту презентацию?')) {
+      return;
+    }
+    try {
+      await presentationServiceExtended.deletePresentation(presentationId);
+      await refetchCustomPresentations();
+    } catch (err) {
+      console.error('Error deleting custom presentation:', err);
+      setError('Ошибка при удалении презентации');
+    }
+  };
+
+  const handleSaveCustomPresentation = async (data: {
+    title: string;
+    sections: Array<{ title: string; page_number: number }>;
+  }) => {
+    if (!editingCustomPresentationId) return;
+    setSavingCustomPresentation(true);
+    try {
+      await presentationServiceExtended.updatePresentationMeta(editingCustomPresentationId, {
+        title: data.title,
+      });
+      await presentationServiceExtended.updatePresentationSections(editingCustomPresentationId, data.sections);
+      await refetchCustomPresentations();
+      setEditingCustomPresentationId(null);
+    } finally {
+      setSavingCustomPresentation(false);
     }
   };
 
@@ -1025,6 +1077,8 @@ const MainOrganizerDashboard = () => {
         {viewMode === 'wedding-details' && selectedWedding && (
           <WeddingDetails
             selectedWedding={selectedWedding}
+            customPresentation={customPresentations[0] || null}
+            customPresentations={customPresentations}
             draggedDocumentId={draggedDocumentId}
             onBack={() => {
               setViewMode('weddings');
@@ -1047,6 +1101,8 @@ const MainOrganizerDashboard = () => {
             onDocumentDragEnd={handleDocumentDragEnd}
             onDeletePresentation={handleDeletePresentation}
             onOpenPresentationModal={() => setShowPresentationModal(true)}
+            onEditCustomPresentation={handleEditCustomPresentation}
+            onDeleteCustomPresentation={handleDeleteCustomPresentation}
             onOpenContractorModal={() => setShowContractorModal(true)}
           />
         )}
@@ -1098,6 +1154,17 @@ const MainOrganizerDashboard = () => {
           uploading={uploadingPresentation}
           onClose={() => setShowPresentationModal(false)}
           onUpload={handleUploadPresentation}
+        />
+      )}
+
+      {editingCustomPresentationId && (
+        <EditPresentationModal
+          isOpen={!!editingCustomPresentationId}
+          isSaving={savingCustomPresentation}
+          initialTitle={customPresentations.find((p) => p.id === editingCustomPresentationId)?.title || ''}
+          initialSections={customPresentations.find((p) => p.id === editingCustomPresentationId)?.presentation_sections || []}
+          onClose={() => setEditingCustomPresentationId(null)}
+          onSave={handleSaveCustomPresentation}
         />
       )}
 

@@ -1899,6 +1899,29 @@ export const presentationServiceExtended = {
     return data;
   },
 
+  async updatePresentationMeta(
+    presentationId: string,
+    payload: { title?: string }
+  ): Promise<void> {
+    if (!presentationId || presentationId === 'undefined') {
+      throw new Error('Ошибка: ID презентации не предоставлен');
+    }
+
+    const updateData: { title?: string } = {};
+    if (typeof payload.title === 'string' && payload.title.trim() !== '') {
+      updateData.title = payload.title.trim();
+    }
+
+    const { error } = await supabase
+      .from('presentations')
+      .update(updateData)
+      .eq('id', presentationId);
+
+    if (error) {
+      throw new Error(`Ошибка обновления презентации: ${error.message}`);
+    }
+  },
+
   // Вызвать Edge Function для преобразования PDF в изображения
   async triggerPdfToImages(weddingId: string, presentationId: string): Promise<{ image_urls: string[] }> {
     if (!weddingId || weddingId === 'undefined') {
@@ -1957,9 +1980,9 @@ export const presentationServiceExtended = {
     }
 
     try {
-      const { data, error } = await supabase
+      const { data: presentations, error } = await supabase
         .from('presentations')
-        .select('*, presentation_sections(*)')
+        .select('*')
         .eq('wedding_id', weddingId)
         .order('created_at', { ascending: false });
 
@@ -1968,7 +1991,33 @@ export const presentationServiceExtended = {
         return [];
       }
 
-      return data || [];
+      const list = presentations || [];
+      if (list.length === 0) return [];
+
+      const ids = list.map((p: any) => p.id);
+      const { data: sections, error: sectionsError } = await supabase
+        .from('presentation_sections')
+        .select('*')
+        .in('presentation_id', ids)
+        .order('order_index', { ascending: true });
+
+      if (sectionsError) {
+        console.error('Error fetching presentation sections:', sectionsError);
+      }
+
+      const sectionsByPresentationId = new Map<string, any[]>();
+      (sections || []).forEach((section: any) => {
+        const key = section.presentation_id;
+        if (!sectionsByPresentationId.has(key)) {
+          sectionsByPresentationId.set(key, []);
+        }
+        sectionsByPresentationId.get(key)!.push(section);
+      });
+
+      return list.map((presentation: any) => ({
+        ...presentation,
+        presentation_sections: sectionsByPresentationId.get(presentation.id) || [],
+      }));
     } catch (error) {
       console.error('Error in getPresentationsByWedding:', error);
       return [];
@@ -1987,7 +2036,7 @@ export const presentationServiceExtended = {
 
     const { data, error } = await supabase
       .from('presentations')
-      .select('*, presentation_sections(*)')
+      .select('*')
       .eq('wedding_id', weddingId)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -1998,8 +2047,28 @@ export const presentationServiceExtended = {
       throw new Error(`Ошибка получения презентации: ${error.message}`);
     }
 
-    console.log('getPresentation result:', data);
-    return data;
+    if (!data) {
+      console.log('getPresentation result: null');
+      return null;
+    }
+
+    const { data: sections, error: sectionsError } = await supabase
+      .from('presentation_sections')
+      .select('*')
+      .eq('presentation_id', data.id)
+      .order('order_index', { ascending: true });
+
+    if (sectionsError) {
+      console.error('Error fetching presentation sections for latest presentation:', sectionsError);
+    }
+
+    const result = {
+      ...data,
+      presentation_sections: sections || [],
+    };
+
+    console.log('getPresentation result:', result);
+    return result;
   },
 
   // Удалить презентацию

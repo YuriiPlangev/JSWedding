@@ -71,6 +71,9 @@ const Presentation = ({ presentation, currentLanguage = 'ua' }: PresentationProp
     { id: 5, name: 'Контакти', slideIndex: 17 }, // слайд 18 (индекс 17)
   ];
 
+  const slideTitlePrefix = currentLanguage === 'en' ? 'Slide' : 'Слайд';
+  const hasUploadedSlides = Array.isArray(presentation?.image_urls) && presentation.image_urls.length > 0;
+
   // Если есть презентация из БД, используем её структуру
   // Иначе используем меню по умолчанию
   let menuSections: Array<{ id: number; name: string; slideIndex: number }> = defaultMenuSections;
@@ -110,6 +113,14 @@ const Presentation = ({ presentation, currentLanguage = 'ua' }: PresentationProp
         slideIndex: slideIndex >= 0 ? slideIndex : index,
       };
     });
+  } else if (hasUploadedSlides) {
+    // For uploaded PDF presentations without explicit sections,
+    // generate neutral slide labels instead of default company menu.
+    menuSections = dynamicSlides.map((_slide: string, index: number) => ({
+      id: index,
+      name: `${slideTitlePrefix} ${index + 1}`,
+      slideIndex: index,
+    }));
   }
 
   const title = presentation?.title || translations.presentation.title;

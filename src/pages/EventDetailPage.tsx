@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { weddingService, taskService, documentService, clientService, presentationService } from '../services/weddingService';
+import { weddingService, taskService, documentService, clientService, presentationService, presentationServiceExtended } from '../services/weddingService';
 import type { Wedding, Task, Document, User } from '../types';
 import { TaskModal, DocumentModal, PresentationModal } from '../components/modals';
 import Header from '../components/Header';
+import { convertPdfToImages, dataUrlToFile } from '../utils/pdfToImages';
 
 interface SelectedWedding extends Wedding {
   client?: User;
@@ -452,10 +453,37 @@ const EventDetailPage = () => {
 
     setUploadingPresentation(true);
     try {
-      // TODO: Реализовать загрузку PDF и конвертацию в изображения
-      console.log('Uploading presentation:', data);
-      
+      const pdfFilePath = await presentationServiceExtended.uploadPresentationPdf(
+        event.id,
+        data.pdfFile
+      );
+
+      const presentation = await presentationServiceExtended.createPresentation(
+        event.id,
+        data.title,
+        pdfFilePath
+      );
+
+      const imageDataUrls = await convertPdfToImages(data.pdfFile);
+      const imageFiles = imageDataUrls.map((dataUrl, index) =>
+        dataUrlToFile(dataUrl, `page_${index + 1}.jpg`)
+      );
+
+      await presentationServiceExtended.uploadPresentationImages(
+        event.id,
+        presentation.id,
+        imageFiles
+      );
+
+      if (data.sections && data.sections.length > 0) {
+        await presentationServiceExtended.updatePresentationSections(
+          presentation.id,
+          data.sections
+        );
+      }
+
       setShowPresentationModal(false);
+      await loadEventDetails();
     } catch (err) {
       console.error('Error uploading presentation:', err);
       setError('Ошибка при загрузке данных');

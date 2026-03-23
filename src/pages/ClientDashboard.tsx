@@ -453,7 +453,7 @@ const ClientDashboard = () => {
       )}
 
       {/* Старая презентация компании (обратная совместимость) */}
-      {wedding && (
+      {wedding && (!customPresentations || customPresentations.length === 0) && (
         <Presentation presentation={wedding.presentation} currentLanguage={currentLanguage} />
       )}
     </div>

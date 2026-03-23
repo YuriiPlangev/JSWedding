@@ -13,6 +13,18 @@ interface SelectedWedding extends Omit<Wedding, 'presentation'> {
 
 interface WeddingDetailsProps {
   selectedWedding: SelectedWedding;
+  customPresentation?: {
+    id: string;
+    title: string;
+    image_urls?: string[];
+    presentation_sections?: Array<{ id: string | number; title: string; page_number: number; order_index?: number }>;
+  } | null;
+  customPresentations?: Array<{
+    id: string;
+    title: string;
+    image_urls?: string[];
+    presentation_sections?: Array<{ id: string | number; title: string; page_number: number; order_index?: number }>;
+  }>;
   draggedDocumentId: string | null;
   onBack: () => void;
   onEditWedding: (wedding: SelectedWedding) => void;
@@ -32,11 +44,15 @@ interface WeddingDetailsProps {
   onDocumentDragEnd: () => void;
   onDeletePresentation: () => void;
   onOpenPresentationModal: () => void;
+  onEditCustomPresentation?: (presentationId: string) => void;
+  onDeleteCustomPresentation?: (presentationId: string) => void;
   onOpenContractorModal: () => void;
 }
 
 const WeddingDetails = ({
   selectedWedding,
+  customPresentation,
+  customPresentations = [],
   draggedDocumentId,
   onBack,
   onEditWedding,
@@ -56,6 +72,8 @@ const WeddingDetails = ({
   onDocumentDragEnd,
   onDeletePresentation,
   onOpenPresentationModal,
+  onEditCustomPresentation,
+  onDeleteCustomPresentation,
   onOpenContractorModal,
 }: WeddingDetailsProps) => {
   return (
@@ -68,7 +86,7 @@ const WeddingDetails = ({
           >
             Вернуться к ивентам
           </button>
-          <h2 className="text-[28px] sm:text-[32px] md:text-[36px] lg:text-[54px] max-[1599px]:text-[40px] lg:max-[1599px]:text-[36px] min-[1300px]:max-[1599px]:text-[42px] font-forum font-bold leading-tight text-black break-words">
+          <h2 className="text-[24px] sm:text-[28px] md:text-[32px] lg:text-[36px] max-[1599px]:text-[28px] lg:max-[1599px]:text-[26px] min-[1300px]:max-[1599px]:text-[30px] font-forum font-bold leading-tight text-black break-words">
             {selectedWedding.project_name || 'Без названия'}
           </h2>
         </div>
@@ -384,22 +402,58 @@ const WeddingDetails = ({
                 onClick={onOpenPresentationModal}
                 className="px-4 md:px-6 py-2 md:py-3 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[18px] max-[1599px]:text-[16px] font-forum"
               >
-                {selectedWedding.presentation && selectedWedding.presentation.type === 'wedding' 
-                  ? 'Изменить презентацию' 
-                  : 'Загрузить презентацию'}
+                + Загрузить презентацию
               </button>
             </div>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-3">
             <p className="text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">
-              {selectedWedding.presentation && selectedWedding.presentation.type === 'wedding' 
+              {customPresentation
+                ? `Тип: Загруженная PDF презентация - "${customPresentation.title}"`
+                : selectedWedding.presentation && selectedWedding.presentation.type === 'wedding'
                 ? `Тип: Презентация свадьбы - "${selectedWedding.presentation.title}"`
                 : `Тип: Стандартная презентация компании`}
             </p>
-            {selectedWedding.presentation && selectedWedding.presentation.sections && (
+            {customPresentation ? (
               <p className="text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">
-                Секций: {selectedWedding.presentation.sections.length}
+                {`Слайдов: ${customPresentation.image_urls?.length || 0}${customPresentation.presentation_sections && customPresentation.presentation_sections.length > 0 ? ` • Секций: ${customPresentation.presentation_sections.length}` : ''}`}
               </p>
+            ) : (
+              selectedWedding.presentation && selectedWedding.presentation.sections && (
+                <p className="text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">
+                  Секций: {selectedWedding.presentation.sections.length}
+                </p>
+              )
+            )}
+            {customPresentations.length > 0 && (
+              <div className="pt-2 border-t border-[#00000022] space-y-2">
+                {customPresentations.map((presentation) => (
+                  <div key={presentation.id} className="flex items-center justify-between gap-3 bg-[#00000005] border border-[#00000022] rounded-lg p-3">
+                    <div className="min-w-0">
+                      <p className="text-[16px] max-[1599px]:text-[15px] font-forum font-bold text-black break-words">
+                        {presentation.title}
+                      </p>
+                      <p className="text-[13px] font-forum font-light text-[#00000080]">
+                        {`Слайдов: ${presentation.image_urls?.length || 0}${presentation.presentation_sections && presentation.presentation_sections.length > 0 ? ` • Секций: ${presentation.presentation_sections.length}` : ''}`}
+                      </p>
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <button
+                        onClick={() => onEditCustomPresentation?.(presentation.id)}
+                        className="px-3 py-1 bg-white border border-[#00000033] text-black rounded hover:bg-gray-50 transition-colors cursor-pointer text-[14px] font-forum"
+                      >
+                        Редактировать
+                      </button>
+                      <button
+                        onClick={() => onDeleteCustomPresentation?.(presentation.id)}
+                        className="px-3 py-1 bg-white border border-red-300 text-red-600 rounded hover:bg-red-50 transition-colors cursor-pointer text-[14px] font-forum"
+                      >
+                        Удалить
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         </div>

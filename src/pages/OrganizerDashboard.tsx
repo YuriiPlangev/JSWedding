@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { weddingService, taskService, documentService, clientService, presentationService, presentationServiceExtended, organizerService } from '../services/weddingService';
 import type { Wedding, Task, TaskGroup, Document, User, UserRole } from '../types';
-import { WeddingModal, TaskModal, OrganizerTaskModal, DocumentModal, PresentationModal, ClientModal } from '../components/modals';
+import { WeddingModal, TaskModal, OrganizerTaskModal, DocumentModal, PresentationModal, EditPresentationModal, ClientModal } from '../components/modals';
 import TaskViewModal from '../components/modals/TaskViewModal';
 import ContractorManagementModal from '../components/modals/ContractorManagementModal';
 import { TaskColumn, ScrollbarStyles } from '../components/organizer';
-import { useTaskGroups, useTaskLogs, useTaskDragAndDrop, useGroupDragAndDrop } from '../hooks';
+import { useTaskGroups, useTaskLogs, useTaskDragAndDrop, useGroupDragAndDrop, useCustomPresentations } from '../hooks';
 import { hexToHsl, hslToHex } from '../utils/colorUtils';
 import { splitTasksByStatus } from '../utils/taskUtils';
+import { convertPdfToImages, dataUrlToFile } from '../utils/pdfToImages';
 import logoV3 from '../assets/logoV3.svg';
 
 type ViewMode = 'weddings' | 'tasks' | 'wedding-details';
@@ -88,6 +89,9 @@ const OrganizerDashboard = () => {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editingDocument, setEditingDocument] = useState<Document | null>(null);
   const [uploadingPresentation, setUploadingPresentation] = useState(false);
+  const [editingCustomPresentationId, setEditingCustomPresentationId] = useState<string | null>(null);
+  const [savingCustomPresentation, setSavingCustomPresentation] = useState(false);
+  const { data: customPresentations = [], refetch: refetchCustomPresentations } = useCustomPresentations(selectedWedding?.id);
   
   // Состояния для drag and drop
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
@@ -1726,6 +1730,17 @@ const OrganizerDashboard = () => {
         pdfFilePath
       );
 
+      const imageDataUrls = await convertPdfToImages(data.pdfFile);
+      const imageFiles = imageDataUrls.map((dataUrl, index) =>
+        dataUrlToFile(dataUrl, `page_${index + 1}.jpg`)
+      );
+
+      await presentationServiceExtended.uploadPresentationImages(
+        selectedWedding.id,
+        presentation.id,
+        imageFiles
+      );
+
       if (data.sections && data.sections.length > 0) {
         await presentationServiceExtended.updatePresentationSections(
           presentation.id,
@@ -1734,12 +1749,48 @@ const OrganizerDashboard = () => {
       }
 
       await loadWeddingDetails(selectedWedding.id);
+      await refetchCustomPresentations();
       setShowPresentationModal(false);
     } catch (err) {
       console.error('Error uploading presentation:', err);
       setError('Ошибка при загрузке данных');
     } finally {
       setUploadingPresentation(false);
+    }
+  };
+
+  const handleEditCustomPresentation = (presentationId: string) => {
+    setEditingCustomPresentationId(presentationId);
+  };
+
+  const handleDeleteCustomPresentation = async (presentationId: string) => {
+    if (!confirm('Вы уверены, что хотите удалить эту презентацию?')) {
+      return;
+    }
+    try {
+      await presentationServiceExtended.deletePresentation(presentationId);
+      await refetchCustomPresentations();
+    } catch (err) {
+      console.error('Error deleting custom presentation:', err);
+      setError('Ошибка при удалении презентации');
+    }
+  };
+
+  const handleSaveCustomPresentation = async (data: {
+    title: string;
+    sections: Array<{ title: string; page_number: number }>;
+  }) => {
+    if (!editingCustomPresentationId) return;
+    setSavingCustomPresentation(true);
+    try {
+      await presentationServiceExtended.updatePresentationMeta(editingCustomPresentationId, {
+        title: data.title,
+      });
+      await presentationServiceExtended.updatePresentationSections(editingCustomPresentationId, data.sections);
+      await refetchCustomPresentations();
+      setEditingCustomPresentationId(null);
+    } finally {
+      setSavingCustomPresentation(false);
     }
   };
 
@@ -1824,12 +1875,32 @@ const OrganizerDashboard = () => {
               <p className="text-[14px] sm:text-[16px] md:text-[18px] max-[1599px]:text-[16px] lg:max-[1599px]:text-[15px] min-[1300px]:max-[1599px]:text-[16px] font-forum font-light text-[#00000080] leading-tight mt-1">Добро пожаловать, {user?.name}</p>
               </div>
             </div>
-            <button
-              onClick={logout}
-              className="px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 md:py-3 text-[14px] sm:text-[16px] md:text-[18px] max-[1599px]:text-[16px] font-forum text-[#00000080] hover:text-black transition-colors cursor-pointer border border-[#00000033] rounded-lg hover:bg-white w-full sm:w-auto"
-            >
-              Выйти
-            </button>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              {viewMode === 'weddings' && (
+                <>
+                  <button
+                    onClick={handleCreateClient}
+                    className="px-2 py-1.5 bg-white border border-[#00000033] text-black rounded-lg hover:bg-gray-50 transition-colors cursor-pointer text-[12px] max-[1599px]:text-[11px] font-forum"
+                    title="Создать клиента"
+                  >
+                    + Клиент
+                  </button>
+                  <button
+                    onClick={handleCreateWedding}
+                    className="px-2 py-1.5 bg-white border border-[#00000033] text-black rounded-lg hover:bg-gray-50 transition-colors cursor-pointer text-[12px] max-[1599px]:text-[11px] font-forum"
+                    title="Добавить ивент"
+                  >
+                    + Ивент
+                  </button>
+                </>
+              )}
+              <button
+                onClick={logout}
+                className="px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 md:py-3 text-[14px] sm:text-[16px] md:text-[18px] max-[1599px]:text-[16px] font-forum text-[#00000080] hover:text-black transition-colors cursor-pointer border border-[#00000033] rounded-lg hover:bg-white w-full sm:w-auto"
+              >
+                Выйти
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -1934,24 +2005,6 @@ const OrganizerDashboard = () => {
 
         {viewMode === 'weddings' && (
           <div className="h-full flex flex-col">
-            {/* Кнопки над списком ивентов слева сверху */}
-            <div className="flex gap-2 mb-4 flex-shrink-0">
-              <button
-                onClick={handleCreateClient}
-                className="px-2 py-1.5 bg-white border border-[#00000033] text-black rounded-lg hover:bg-gray-50 transition-colors cursor-pointer text-[12px] max-[1599px]:text-[11px] font-forum"
-                title="Создать клиента"
-              >
-                + Клиент
-              </button>
-              <button
-                onClick={handleCreateWedding}
-                className="px-2 py-1.5 bg-white border border-[#00000033] text-black rounded-lg hover:bg-gray-50 transition-colors cursor-pointer text-[12px] max-[1599px]:text-[11px] font-forum"
-                title="Добавить ивент"
-              >
-                + Ивент
-              </button>
-            </div>
-
             {weddings.length > 0 ? (
               <div className="flex-1 overflow-y-auto">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
@@ -2106,7 +2159,7 @@ const OrganizerDashboard = () => {
                 >
                   Вернуться к ивентам
                 </button>
-                <h2 className="text-[28px] sm:text-[32px] md:text-[36px] lg:text-[54px] max-[1599px]:text-[40px] lg:max-[1599px]:text-[36px] min-[1300px]:max-[1599px]:text-[42px] font-forum font-bold leading-tight text-black break-words">
+                <h2 className="text-[24px] sm:text-[28px] md:text-[32px] lg:text-[36px] max-[1599px]:text-[28px] lg:max-[1599px]:text-[26px] min-[1300px]:max-[1599px]:text-[30px] font-forum font-bold leading-tight text-black break-words">
                   {selectedWedding.project_name || 'Без названия'}
                 </h2>
               </div>
@@ -2417,24 +2470,60 @@ const OrganizerDashboard = () => {
                     onClick={() => setShowPresentationModal(true)}
                     className="px-4 md:px-6 py-2 md:py-3 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[18px] max-[1599px]:text-[16px] font-forum"
                   >
-                    {selectedWedding.presentation && selectedWedding.presentation.type === 'wedding' 
-                      ? 'Изменить презентацию' 
-                      : 'Загрузить презентацию'}
+                    + Загрузить презентацию
                   </button>
                 </div>
               </div>
-              <div className="space-y-2">
+            <div className="space-y-3">
+              <p className="text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">
+                {customPresentations[0]
+                  ? `Тип: Загруженная PDF презентация - "${customPresentations[0].title}"`
+                  : selectedWedding.presentation && selectedWedding.presentation.type === 'wedding'
+                  ? `Тип: Презентация свадьбы - "${selectedWedding.presentation.title}"`
+                  : `Тип: Стандартная презентация компании`}
+              </p>
+              {customPresentations[0] ? (
                 <p className="text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">
-                  {selectedWedding.presentation && selectedWedding.presentation.type === 'wedding' 
-                    ? `Тип: Презентация свадьбы - "${selectedWedding.presentation.title}"`
-                    : `Тип: Стандартная презентация компании`}
+                  {`Слайдов: ${customPresentations[0].image_urls?.length || 0}${customPresentations[0].presentation_sections && customPresentations[0].presentation_sections.length > 0 ? ` • Секций: ${customPresentations[0].presentation_sections.length}` : ''}`}
                 </p>
-                {selectedWedding.presentation && selectedWedding.presentation.sections && (
+              ) : (
+                selectedWedding.presentation && selectedWedding.presentation.sections && (
                   <p className="text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">
                     Секций: {selectedWedding.presentation.sections.length}
                   </p>
-                )}
-              </div>
+                )
+              )}
+              {customPresentations.length > 0 && (
+                <div className="pt-2 border-t border-[#00000022] space-y-2">
+                  {customPresentations.map((presentation) => (
+                    <div key={presentation.id} className="flex items-center justify-between gap-3 bg-[#00000005] border border-[#00000022] rounded-lg p-3">
+                      <div className="min-w-0">
+                        <p className="text-[16px] max-[1599px]:text-[15px] font-forum font-bold text-black break-words">
+                          {presentation.title}
+                        </p>
+                        <p className="text-[13px] font-forum font-light text-[#00000080]">
+                          {`Слайдов: ${presentation.image_urls?.length || 0}${presentation.presentation_sections && presentation.presentation_sections.length > 0 ? ` • Секций: ${presentation.presentation_sections.length}` : ''}`}
+                        </p>
+                      </div>
+                      <div className="flex gap-2 shrink-0">
+                        <button
+                          onClick={() => handleEditCustomPresentation(presentation.id)}
+                          className="px-3 py-1 bg-white border border-[#00000033] text-black rounded hover:bg-gray-50 transition-colors cursor-pointer text-[14px] font-forum"
+                        >
+                          Редактировать
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCustomPresentation(presentation.id)}
+                          className="px-3 py-1 bg-white border border-red-300 text-red-600 rounded hover:bg-red-50 transition-colors cursor-pointer text-[14px] font-forum"
+                        >
+                          Удалить
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             </div>
             </div>
           </div>
@@ -2486,6 +2575,17 @@ const OrganizerDashboard = () => {
           onClose={() => setShowPresentationModal(false)}
           onUpload={handleUploadPresentation}
           uploading={uploadingPresentation}
+        />
+      )}
+
+      {editingCustomPresentationId && (
+        <EditPresentationModal
+          isOpen={!!editingCustomPresentationId}
+          isSaving={savingCustomPresentation}
+          initialTitle={customPresentations.find((p) => p.id === editingCustomPresentationId)?.title || ''}
+          initialSections={customPresentations.find((p) => p.id === editingCustomPresentationId)?.presentation_sections || []}
+          onClose={() => setEditingCustomPresentationId(null)}
+          onSave={handleSaveCustomPresentation}
         />
       )}
 
