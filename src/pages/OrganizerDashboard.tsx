@@ -1879,24 +1879,22 @@ const OrganizerDashboard = () => {
               </div>
             </div>
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              {viewMode === 'weddings' && (
-                <div className="flex flex-col justify-between h-[44px] sm:h-[50px] md:h-[54px]">
-                  <button
-                    onClick={handleCreateClient}
-                    className="px-3 sm:px-4 md:px-5 text-[12px] max-[1599px]:text-[11px] font-forum text-[#00000080] hover:text-black transition-colors cursor-pointer border border-[#00000033] rounded-lg hover:bg-white bg-transparent h-[20px] sm:h-[23px] md:h-[25px] leading-none"
-                    title="Создать клиента"
-                  >
-                    + Клиент
-                  </button>
-                  <button
-                    onClick={handleCreateWedding}
-                    className="px-3 sm:px-4 md:px-5 text-[12px] max-[1599px]:text-[11px] font-forum text-[#00000080] hover:text-black transition-colors cursor-pointer border border-[#00000033] rounded-lg hover:bg-white bg-transparent h-[20px] sm:h-[23px] md:h-[25px] leading-none"
-                    title="Добавить ивент"
-                  >
-                    + Ивент
-                  </button>
-                </div>
-              )}
+              <div className="flex flex-col justify-between h-[42px]">
+                <button
+                  onClick={handleCreateClient}
+                  className="px-3 sm:px-4 text-[12px] max-[1599px]:text-[11px] font-forum text-[#00000080] hover:text-black transition-colors cursor-pointer border border-[#00000033] rounded-lg hover:bg-white bg-transparent h-[20px] leading-none"
+                  title="Создать клиента"
+                >
+                  + Клиент
+                </button>
+                <button
+                  onClick={handleCreateWedding}
+                  className="px-3 sm:px-4 text-[12px] max-[1599px]:text-[11px] font-forum text-[#00000080] hover:text-black transition-colors cursor-pointer border border-[#00000033] rounded-lg hover:bg-white bg-transparent h-[20px] leading-none"
+                  title="Добавить ивент"
+                >
+                  + Ивент
+                </button>
+              </div>
               <button
                 onClick={logout}
                 className="px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 md:py-3 text-[14px] sm:text-[16px] md:text-[18px] max-[1599px]:text-[16px] font-forum text-[#00000080] hover:text-black transition-colors cursor-pointer border border-[#00000033] rounded-lg hover:bg-white w-full sm:w-auto"
@@ -2151,14 +2149,14 @@ const OrganizerDashboard = () => {
 
         {viewMode === 'wedding-details' && selectedWedding && (
           <div className="h-full flex flex-col">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 mb-4 sm:mb-5 md:mb-6 flex-shrink-0">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0 flex-shrink-0">
               <div className="w-full sm:w-auto min-w-0">
                 <button
                   onClick={() => {
                     setViewMode('weddings');
                     setSelectedWedding(null);
                   }}
-                  className="text-[16px] sm:text-[18px] max-[1599px]:text-[16px] font-forum text-[#00000080] hover:text-black transition-colors mb-2 cursor-pointer"
+                  className="text-[16px] sm:text-[18px] max-[1599px]:text-[16px] font-forum text-[#00000080] hover:text-black transition-colors mb-0.5 cursor-pointer"
                 >
                   Вернуться к ивентам
                 </button>
