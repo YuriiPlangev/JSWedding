@@ -13,12 +13,6 @@ interface SelectedWedding extends Omit<Wedding, 'presentation'> {
 
 interface WeddingDetailsProps {
   selectedWedding: SelectedWedding;
-  customPresentation?: {
-    id: string;
-    title: string;
-    image_urls?: string[];
-    presentation_sections?: Array<{ id: string | number; title: string; page_number: number; order_index?: number }>;
-  } | null;
   customPresentations?: Array<{
     id: string;
     title: string;
@@ -42,7 +36,6 @@ interface WeddingDetailsProps {
   onDocumentDragOver: (e: React.DragEvent) => void;
   onDocumentDrop: (e: React.DragEvent, targetDocumentId: string) => void;
   onDocumentDragEnd: () => void;
-  onDeletePresentation: () => void;
   onOpenPresentationModal: () => void;
   onEditCustomPresentation?: (presentationId: string) => void;
   onDeleteCustomPresentation?: (presentationId: string) => void;
@@ -53,7 +46,6 @@ interface WeddingDetailsProps {
 
 const WeddingDetails = ({
   selectedWedding,
-  customPresentation,
   customPresentations = [],
   draggedDocumentId,
   onBack,
@@ -72,7 +64,6 @@ const WeddingDetails = ({
   onDocumentDragOver,
   onDocumentDrop,
   onDocumentDragEnd,
-  onDeletePresentation,
   onOpenPresentationModal,
   onEditCustomPresentation,
   onDeleteCustomPresentation,

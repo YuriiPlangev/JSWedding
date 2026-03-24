@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { weddingService, taskService, documentService, clientService, presentationService, presentationServiceExtended, organizerService } from '../services/weddingService';
+import { weddingService, taskService, documentService, clientService, presentationServiceExtended, organizerService } from '../services/weddingService';
 import type { Wedding, Task, TaskGroup, Document, User, UserRole } from '../types';
 import { WeddingModal, TaskModal, OrganizerTaskModal, DocumentModal, PresentationModal, EditPresentationModal, ClientModal } from '../components/modals';
 import TaskViewModal from '../components/modals/TaskViewModal';
@@ -439,7 +439,7 @@ const OrganizerDashboard = () => {
         e.stopPropagation();
       }
       
-      if (!user?.id || !newTaskText.trim() || !groupId) return;
+      if (!user?.id || !newTaskText.trim()) return;
 
       const taskText = newTaskText.trim();
       
@@ -1689,27 +1689,6 @@ const OrganizerDashboard = () => {
     }
   };
 
-  // Обработчики для презентации
-  const handleDeletePresentation = async () => {
-    if (!selectedWedding) return;
-
-    if (!confirm('Вы уверены, что хотите удалить эту презентацию?')) {
-      return;
-    }
-
-    try {
-      const success = await presentationService.deletePresentation(selectedWedding.id);
-      if (success) {
-        await loadWeddingDetails(selectedWedding.id);
-      } else {
-        setError('Не удалось удалить презентацию');
-      }
-    } catch (err) {
-      console.error('Error deleting presentation:', err);
-      setError('Ошибка при удалении презентации');
-    }
-  };
-
   const handleUploadPresentation = async (data: {
     title: string;
     pdfFile: File;
@@ -1901,22 +1880,22 @@ const OrganizerDashboard = () => {
             </div>
             <div className="flex items-center gap-2 w-full sm:w-auto">
               {viewMode === 'weddings' && (
-                <>
+                <div className="flex flex-col justify-between h-[44px] sm:h-[50px] md:h-[54px]">
                   <button
                     onClick={handleCreateClient}
-                    className="px-2 py-1.5 bg-white border border-[#00000033] text-black rounded-lg hover:bg-gray-50 transition-colors cursor-pointer text-[12px] max-[1599px]:text-[11px] font-forum"
+                    className="px-3 sm:px-4 md:px-5 text-[12px] max-[1599px]:text-[11px] font-forum text-[#00000080] hover:text-black transition-colors cursor-pointer border border-[#00000033] rounded-lg hover:bg-white bg-transparent h-[20px] sm:h-[23px] md:h-[25px] leading-none"
                     title="Создать клиента"
                   >
                     + Клиент
                   </button>
                   <button
                     onClick={handleCreateWedding}
-                    className="px-2 py-1.5 bg-white border border-[#00000033] text-black rounded-lg hover:bg-gray-50 transition-colors cursor-pointer text-[12px] max-[1599px]:text-[11px] font-forum"
+                    className="px-3 sm:px-4 md:px-5 text-[12px] max-[1599px]:text-[11px] font-forum text-[#00000080] hover:text-black transition-colors cursor-pointer border border-[#00000033] rounded-lg hover:bg-white bg-transparent h-[20px] sm:h-[23px] md:h-[25px] leading-none"
                     title="Добавить ивент"
                   >
                     + Ивент
                   </button>
-                </>
+                </div>
               )}
               <button
                 onClick={logout}

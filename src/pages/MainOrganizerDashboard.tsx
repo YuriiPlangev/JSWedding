@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { weddingService, taskService, documentService, clientService, presentationService, presentationServiceExtended } from '../services/weddingService';
+import { weddingService, taskService, documentService, clientService, presentationServiceExtended } from '../services/weddingService';
 import type { Wedding, Task, Document, User, UserRole } from '../types';
 import { WeddingModal, TaskModal, DocumentModal, PresentationModal, EditPresentationModal, ClientModal } from '../components/modals';
 import ContractorManagementModal from '../components/modals/ContractorManagementModal';
@@ -775,27 +775,6 @@ const MainOrganizerDashboard = () => {
     }
   };
 
-  // Обработчики для презентации
-  const handleDeletePresentation = async () => {
-    if (!selectedWedding) return;
-
-    if (!confirm('Вы уверены, что хотите удалить эту презентацию?')) {
-      return;
-    }
-
-    try {
-      const success = await presentationService.deletePresentation(selectedWedding.id);
-      if (success) {
-        await loadWeddingDetails(selectedWedding.id);
-      } else {
-        setError('Не удалось удалить презентацию');
-      }
-    } catch (err) {
-      console.error('Error deleting presentation:', err);
-      setError('Ошибка при удалении презентации');
-    }
-  };
-
   const handleUploadPresentation = async (data: {
     title: string;
     pdfFile: File;
@@ -1101,7 +1080,6 @@ const MainOrganizerDashboard = () => {
         {viewMode === 'wedding-details' && selectedWedding && (
           <WeddingDetails
             selectedWedding={selectedWedding}
-            customPresentation={customPresentations[0] || null}
             customPresentations={customPresentations}
             draggedDocumentId={draggedDocumentId}
             onBack={() => {
@@ -1123,7 +1101,6 @@ const MainOrganizerDashboard = () => {
             onDocumentDragOver={handleDocumentDragOver}
             onDocumentDrop={handleDocumentDrop}
             onDocumentDragEnd={handleDocumentDragEnd}
-            onDeletePresentation={handleDeletePresentation}
             onOpenPresentationModal={() => setShowPresentationModal(true)}
             onEditCustomPresentation={handleEditCustomPresentation}
             onDeleteCustomPresentation={handleDeleteCustomPresentation}
