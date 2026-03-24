@@ -46,6 +46,8 @@ interface WeddingDetailsProps {
   onOpenPresentationModal: () => void;
   onEditCustomPresentation?: (presentationId: string) => void;
   onDeleteCustomPresentation?: (presentationId: string) => void;
+  isStandardPresentationHidden?: boolean;
+  onToggleStandardPresentationVisibility?: () => void;
   onOpenContractorModal: () => void;
 }
 
@@ -74,6 +76,8 @@ const WeddingDetails = ({
   onOpenPresentationModal,
   onEditCustomPresentation,
   onDeleteCustomPresentation,
+  isStandardPresentationHidden = false,
+  onToggleStandardPresentationVisibility,
   onOpenContractorModal,
 }: WeddingDetailsProps) => {
   return (
@@ -388,16 +392,8 @@ const WeddingDetails = ({
         {/* Presentation */}
         <div className="bg-white border border-[#00000033] rounded-lg p-6">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-[26px] max-[1599px]:text-[22px] font-forum font-bold text-black">Презентация</h3>
+            <h3 className="text-[26px] max-[1599px]:text-[22px] font-forum font-bold text-black">Презентации</h3>
             <div className="flex gap-2">
-              {selectedWedding.presentation && selectedWedding.presentation.type === 'wedding' && (
-                <button
-                  onClick={onDeletePresentation}
-                  className="px-4 md:px-6 py-2 md:py-3 bg-white border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors cursor-pointer text-[18px] max-[1599px]:text-[16px] font-forum"
-                >
-                  Удалить презентацию
-                </button>
-              )}
               <button
                 onClick={onOpenPresentationModal}
                 className="px-4 md:px-6 py-2 md:py-3 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[18px] max-[1599px]:text-[16px] font-forum"
@@ -406,55 +402,52 @@ const WeddingDetails = ({
               </button>
             </div>
           </div>
-          <div className="space-y-3">
-            <p className="text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">
-              {customPresentation
-                ? `Тип: Загруженная PDF презентация - "${customPresentation.title}"`
-                : selectedWedding.presentation && selectedWedding.presentation.type === 'wedding'
-                ? `Тип: Презентация свадьбы - "${selectedWedding.presentation.title}"`
-                : `Тип: Стандартная презентация компании`}
-            </p>
-            {customPresentation ? (
-              <p className="text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">
-                {`Слайдов: ${customPresentation.image_urls?.length || 0}${customPresentation.presentation_sections && customPresentation.presentation_sections.length > 0 ? ` • Секций: ${customPresentation.presentation_sections.length}` : ''}`}
-              </p>
-            ) : (
-              selectedWedding.presentation && selectedWedding.presentation.sections && (
-                <p className="text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">
-                  Секций: {selectedWedding.presentation.sections.length}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-3 bg-[#00000005] border border-[#00000022] rounded-lg p-3">
+              <div className="min-w-0">
+                <p className="text-[16px] max-[1599px]:text-[15px] font-forum font-bold text-black break-words">
+                  Стандартная презентация компании
                 </p>
-              )
-            )}
-            {customPresentations.length > 0 && (
-              <div className="pt-2 border-t border-[#00000022] space-y-2">
-                {customPresentations.map((presentation) => (
-                  <div key={presentation.id} className="flex items-center justify-between gap-3 bg-[#00000005] border border-[#00000022] rounded-lg p-3">
-                    <div className="min-w-0">
-                      <p className="text-[16px] max-[1599px]:text-[15px] font-forum font-bold text-black break-words">
-                        {presentation.title}
-                      </p>
-                      <p className="text-[13px] font-forum font-light text-[#00000080]">
-                        {`Слайдов: ${presentation.image_urls?.length || 0}${presentation.presentation_sections && presentation.presentation_sections.length > 0 ? ` • Секций: ${presentation.presentation_sections.length}` : ''}`}
-                      </p>
-                    </div>
-                    <div className="flex gap-2 shrink-0">
-                      <button
-                        onClick={() => onEditCustomPresentation?.(presentation.id)}
-                        className="px-3 py-1 bg-white border border-[#00000033] text-black rounded hover:bg-gray-50 transition-colors cursor-pointer text-[14px] font-forum"
-                      >
-                        Редактировать
-                      </button>
-                      <button
-                        onClick={() => onDeleteCustomPresentation?.(presentation.id)}
-                        className="px-3 py-1 bg-white border border-red-300 text-red-600 rounded hover:bg-red-50 transition-colors cursor-pointer text-[14px] font-forum"
-                      >
-                        Удалить
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                <p className="text-[13px] font-forum font-light text-[#00000080]">
+                  {isStandardPresentationHidden ? 'Скрыта у клиента' : 'Показывается у клиента'}
+                </p>
               </div>
-            )}
+              <button
+                onClick={onToggleStandardPresentationVisibility}
+                className={`px-3 py-1 bg-white border rounded hover:bg-gray-50 transition-colors cursor-pointer text-[14px] font-forum ${
+                  isStandardPresentationHidden ? 'border-[#00000033] text-black' : 'border-red-300 text-red-600'
+                }`}
+              >
+                {isStandardPresentationHidden ? 'Показать' : 'Скрыть'}
+              </button>
+            </div>
+
+            {customPresentations.map((presentation) => (
+              <div key={presentation.id} className="flex items-center justify-between gap-3 bg-[#00000005] border border-[#00000022] rounded-lg p-3">
+                <div className="min-w-0">
+                  <p className="text-[16px] max-[1599px]:text-[15px] font-forum font-bold text-black break-words">
+                    {presentation.title}
+                  </p>
+                  <p className="text-[13px] font-forum font-light text-[#00000080]">
+                    {`Слайдов: ${presentation.image_urls?.length || 0}${presentation.presentation_sections && presentation.presentation_sections.length > 0 ? ` • Секций: ${presentation.presentation_sections.length}` : ''}`}
+                  </p>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <button
+                    onClick={() => onEditCustomPresentation?.(presentation.id)}
+                    className="px-3 py-1 bg-white border border-[#00000033] text-black rounded hover:bg-gray-50 transition-colors cursor-pointer text-[14px] font-forum"
+                  >
+                    Редактировать
+                  </button>
+                  <button
+                    onClick={() => onDeleteCustomPresentation?.(presentation.id)}
+                    className="px-3 py-1 bg-white border border-red-300 text-red-600 rounded hover:bg-red-50 transition-colors cursor-pointer text-[14px] font-forum"
+                  >
+                    Удалить
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>

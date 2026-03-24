@@ -880,6 +880,30 @@ const MainOrganizerDashboard = () => {
     }
   };
 
+  const isStandardPresentationHidden = Boolean((selectedWedding?.presentation as any)?.hidden_for_client);
+
+  const handleToggleStandardPresentationVisibility = async () => {
+    if (!selectedWedding) return;
+    try {
+      const currentPresentation = (selectedWedding.presentation as any) || {};
+      const nextHidden = !Boolean(currentPresentation.hidden_for_client);
+      const updatedPresentation = Object.keys(currentPresentation).length > 0
+        ? { ...currentPresentation, hidden_for_client: nextHidden }
+        : { type: 'company', title: 'Стандартная презентация компании', sections: [], hidden_for_client: nextHidden };
+
+      const updatedWedding = await weddingService.updateWedding(selectedWedding.id, {
+        presentation: updatedPresentation as any,
+      });
+
+      if (updatedWedding) {
+        setSelectedWedding((prev) => (prev ? { ...prev, presentation: updatedWedding.presentation } : prev));
+      }
+    } catch (err) {
+      console.error('Error toggling standard presentation visibility:', err);
+      setError('Ошибка при обновлении стандартной презентации');
+    }
+  };
+
   const handleEditDocument = (document: Document) => {
     setEditingDocument(document);
     setShowDocumentModal(true);
@@ -1103,6 +1127,8 @@ const MainOrganizerDashboard = () => {
             onOpenPresentationModal={() => setShowPresentationModal(true)}
             onEditCustomPresentation={handleEditCustomPresentation}
             onDeleteCustomPresentation={handleDeleteCustomPresentation}
+            isStandardPresentationHidden={isStandardPresentationHidden}
+            onToggleStandardPresentationVisibility={handleToggleStandardPresentationVisibility}
             onOpenContractorModal={() => setShowContractorModal(true)}
           />
         )}

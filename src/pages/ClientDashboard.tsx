@@ -452,8 +452,8 @@ const ClientDashboard = () => {
         ))
       )}
 
-      {/* Базовая презентация компании (всегда ниже загруженных PDF) */}
-      {wedding && (
+      {/* Базовая презентация компании (всегда ниже загруженных PDF), если не скрыта организатором */}
+      {wedding && !(wedding.presentation as any)?.hidden_for_client && (
         <Presentation presentation={wedding.presentation} currentLanguage={currentLanguage} />
       )}
     </div>
