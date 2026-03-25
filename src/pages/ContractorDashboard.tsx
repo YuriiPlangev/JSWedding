@@ -94,6 +94,49 @@ const ContractorDashboard = () => {
     return [name1, name2].map((s) => (s || '').trim()).filter(Boolean).join(' & ');
   };
 
+  const getCountryDisplay = () => {
+    if (!wedding) return '';
+    if (currentLanguage === 'en' && wedding.country_en) return wedding.country_en;
+    if (currentLanguage === 'ru' && wedding.country_ru) return wedding.country_ru;
+    if (currentLanguage === 'ua' && wedding.country_ua) return wedding.country_ua;
+    return wedding.country || wedding.country_en || wedding.country_ru || wedding.country_ua || '';
+  };
+
+  const formatPhonePretty = (phoneRaw: string) => {
+    const digits = phoneRaw.replace(/\D/g, '');
+    if (!digits) return phoneRaw;
+
+    let local = '';
+    if (digits.startsWith('380') && digits.length >= 12) {
+      local = digits.slice(3);
+    } else if (digits.startsWith('0') && digits.length >= 10) {
+      local = digits.slice(1);
+    } else if (digits.length === 9) {
+      local = digits;
+    } else {
+      return phoneRaw;
+    }
+
+    if (local.length !== 9) return phoneRaw;
+    return `+380 ${local.slice(0, 2)} ${local.slice(2, 5)} ${local.slice(5, 7)} ${local.slice(7, 9)}`;
+  };
+
+  const tryParseJson = <T,>(value?: string | null): T | null => {
+    if (!value) return null;
+    try {
+      return JSON.parse(value) as T;
+    } catch {
+      return null;
+    }
+  };
+
+  const getLocalizedName = (names: Record<'en' | 'ru' | 'ua', string> | undefined): string => {
+    if (!names) return '';
+    const current = names[currentLanguage];
+    if (current) return current;
+    return names.ru || names.ua || names.en || '';
+  };
+
   const translations = {
     en: {
       date: 'date',
@@ -104,8 +147,11 @@ const ContractorDashboard = () => {
       documents: 'Documents',
       attachedDocuments: '',
       organizerAndCoordinators: 'Organizer and Coordinators',
-      organizer: 'Organizer',
+      organizer: 'Wedding planner',
       coordinators: 'Coordinators',
+      nameLabel: 'Name',
+      phoneLabel: 'Phone',
+      responsibilityLabel: 'Responsibility',
     },
     ru: {
       date: 'дата события',
@@ -118,6 +164,9 @@ const ContractorDashboard = () => {
       organizerAndCoordinators: 'Контакты организатора и координаторов',
       organizer: 'Организатор',
       coordinators: 'Координаторы',
+      nameLabel: 'Имя',
+      phoneLabel: 'Номер телефона',
+      responsibilityLabel: 'Зона ответственности',
     },
     ua: {
       date: 'дата події',
@@ -130,6 +179,9 @@ const ContractorDashboard = () => {
       organizerAndCoordinators: 'Контакти організатора і координаторів',
       organizer: 'Організатор',
       coordinators: 'Координатори',
+      nameLabel: "Ім'я",
+      phoneLabel: 'Номер телефону',
+      responsibilityLabel: 'Зона відповідальності',
     },
   };
 
@@ -206,7 +258,7 @@ const ContractorDashboard = () => {
           <article className="min-h-[100px] p-3 sm:p-4 border-b sm:border-b border-[#00000033] xl:border-b-0 xl:border-r flex flex-col items-center justify-center text-center">
             <p className="text-[12px] sm:text-[13px] text-[#00000080] font-forum tracking-wide">{t.venue}</p>
             <p className="text-[16px] sm:text-[20px] lg:text-[22px] font-forum leading-tight mt-1 break-words">
-              {wedding.venue}
+              {getCountryDisplay()}
             </p>
           </article>
           <article className="min-h-[100px] p-3 sm:p-4 border-b border-[#00000033] sm:border-b-0 sm:border-r xl:border-r flex flex-col items-center justify-center text-center">
@@ -255,20 +307,84 @@ const ContractorDashboard = () => {
           </article>
         </section>
 
-        <section className="-mt-px border border-[#00000033] p-3 sm:p-4">
-          <h2 className="text-[24px] sm:text-[28px] lg:text-[34px] font-forum leading-tight text-center">{t.organizerAndCoordinators}</h2>
-          <div className="grid grid-cols-1 lg:grid-cols-2 mt-3">
-            <article className="text-center lg:border-r border-[#00000033] lg:pr-4">
-              <p className="text-[12px] sm:text-[13px] text-[#00000080] font-forum mb-2">{t.organizer}</p>
-              <p className="text-[14px] sm:text-[15px] lg:text-[17px] font-forum font-light whitespace-pre-line leading-relaxed">
-                {wedding.contractor_organizer_contacts || wedding.organizer_contacts || 'N/A'}
-              </p>
+        <section className="-mt-px border-y border-[#00000033] p-0">
+          {/* Big header removed; headings are shown per block below */}
+          <div>
+            <article className="text-center pt-3 sm:pt-4">
+              <p className="text-[22px] sm:text-[26px] lg:text-[32px] font-forum font-bold mb-4">{t.organizer}</p>
+
+              {(() => {
+                const parsed = tryParseJson<{
+                  phone?: string;
+                  names?: Record<'en' | 'ru' | 'ua', string>;
+                }>(wedding.contractor_organizer_contacts);
+
+                const name = parsed?.names ? getLocalizedName(parsed.names) : '';
+                const phone = parsed?.phone ? formatPhonePretty(parsed.phone) : '';
+
+                return (
+                  <div className="border-y border-[#00000033] overflow-hidden w-full">
+                    <div className="grid grid-cols-2 text-center">
+                      <div className="p-2 sm:p-3">
+                        <p className="text-[16px] sm:text-[17px] lg:text-[17px] font-forum font-light">{name || '—'}</p>
+                      </div>
+                      <div className="p-2 sm:p-3">
+                        <p className="text-[12px] sm:text-[13px] lg:text-[13px] font-forum font-light">{phone || '—'}</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </article>
-            <article className="text-center mt-3 lg:mt-0 lg:pl-4">
-              <p className="text-[12px] sm:text-[13px] text-[#00000080] font-forum mb-2">{t.coordinators}</p>
-              <p className="text-[14px] sm:text-[15px] lg:text-[17px] font-forum font-light whitespace-pre-line leading-relaxed">
-                {wedding.contractor_coordinator_contacts || 'N/A'}
-              </p>
+
+            <article className="text-center mt-0 pt-3 sm:pt-4 border-t border-[#00000033]">
+              <p className="text-[22px] sm:text-[26px] lg:text-[32px] font-forum font-bold mb-4">{t.coordinators}</p>
+
+              {(() => {
+                const parsed = tryParseJson<{
+                  items?: Array<{
+                    name?: Record<'en' | 'ru' | 'ua', string>;
+                    responsibility?: Record<'en' | 'ru' | 'ua', string>;
+                    phone?: string;
+                  }>;
+                }>(wedding.contractor_coordinator_contacts);
+
+                const items = parsed?.items || [];
+
+                return (
+                  <div className="w-full">
+                    {items.length === 0 ? (
+                      <div className="p-3">
+                        <p className="text-[14px] font-forum text-[#00000060] italic">—</p>
+                      </div>
+                    ) : (
+                      items.map((item, idx) => {
+                        const name = getLocalizedName(item.name);
+                        const responsibility = getLocalizedName(item.responsibility);
+                        const phone = item.phone ? formatPhonePretty(item.phone) : '';
+                        return (
+                          <div
+                            key={idx}
+                            className="p-3 sm:p-4 border-[#00000033]"
+                          >
+                            <div className="grid grid-cols-1 sm:grid-cols-3 text-center">
+                              <div className="py-1">
+                                <p className="text-[16px] sm:text-[17px] lg:text-[17px] font-forum font-light">{name || '—'}</p>
+                              </div>
+                              <div className="py-1">
+                                <p className="text-[12px] sm:text-[13px] font-forum font-light">{phone || '—'}</p>
+                              </div>
+                              <div className="py-1">
+                                <p className="text-[12px] sm:text-[13px] font-forum font-light">{responsibility || '—'}</p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                );
+              })()}
             </article>
           </div>
         </section>

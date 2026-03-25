@@ -5,11 +5,16 @@ import { contractorService } from '../services/contractorService';
 import { getInitialLanguage } from '../utils/languageUtils';
 import downloadIcon from '../assets/download.svg';
 import logo from '../assets/logoV3.svg';
+import secondScreen from '../assets/bgJSSS.jpg';
+import arrowRight from '../assets/arrow-right.svg';
+import logoV2 from '../assets/logoV2.svg';
+import languageIcon from '../assets/language.svg';
 
 const ContractorAccessPage = () => {
   const { token } = useParams<{ token: string }>();
 
   const [currentLanguage, setCurrentLanguage] = useState<'en' | 'ru' | 'ua'>(getInitialLanguage());
+  const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
   const [password, setPassword] = useState('');
   const [authorized, setAuthorized] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -81,12 +86,30 @@ const ContractorAccessPage = () => {
     const year = date.getFullYear();
 
     const monthNames = {
-      en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+      en: ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'],
       ru: ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'],
       ua: ['січня', 'лютого', 'березня', 'квітня', 'травня', 'червня', 'липня', 'серпня', 'вересня', 'жовтня', 'листопада', 'грудня'],
     };
 
     return `${day} ${monthNames[currentLanguage][monthIndex]} ${year}`;
+  };
+
+  const calculateDaysUntilEvent = (dateString: string): number => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const eventDate = new Date(dateString);
+    eventDate.setHours(0, 0, 0, 0);
+    const diffTime = eventDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 ? diffDays : 0;
+  };
+
+  const getCountryDisplay = () => {
+    if (!wedding) return '';
+    if (currentLanguage === 'en' && wedding.country_en) return wedding.country_en;
+    if (currentLanguage === 'ru' && wedding.country_ru) return wedding.country_ru;
+    if (currentLanguage === 'ua' && wedding.country_ua) return wedding.country_ua;
+    return wedding.country || wedding.country_en || wedding.country_ru || wedding.country_ua || '';
   };
 
   const getDocumentName = (doc: ContractorDocument): string => {
@@ -160,17 +183,43 @@ const ContractorAccessPage = () => {
     });
   };
 
-  const getCoupleName = () => {
-    if (!wedding) return '';
-    const name1 =
-      currentLanguage === 'ru' && wedding.couple_name_1_ru
-        ? wedding.couple_name_1_ru
-        : wedding.couple_name_1_en || '';
-    const name2 =
-      currentLanguage === 'ru' && wedding.couple_name_2_ru
-        ? wedding.couple_name_2_ru
-        : wedding.couple_name_2_en || '';
-    return [name1, name2].map((s) => (s || '').trim()).filter(Boolean).join(' & ');
+  const formatPhonePretty = (phoneRaw: string) => {
+    const digits = phoneRaw.replace(/\D/g, '');
+    if (!digits) return phoneRaw;
+
+    // Normalize to 9-digit local number (after +380)
+    let local = '';
+    if (digits.startsWith('380') && digits.length >= 12) {
+      local = digits.slice(3);
+    } else if (digits.startsWith('0') && digits.length >= 10) {
+      local = digits.slice(1);
+    } else if (digits.length === 9) {
+      local = digits;
+    } else {
+      return phoneRaw;
+    }
+
+    if (local.length !== 9) return phoneRaw;
+
+    // +380 67 127 13 23
+    return `+380 ${local.slice(0, 2)} ${local.slice(2, 5)} ${local.slice(5, 7)} ${local.slice(7, 9)}`;
+  };
+
+  const tryParseJson = <T,>(value?: string | null): T | null => {
+    if (!value) return null;
+    try {
+      return JSON.parse(value) as T;
+    } catch {
+      return null;
+    }
+  };
+
+  const getLocalizedName = (names: Record<'en' | 'ru' | 'ua', string> | undefined): string => {
+    if (!names) return '';
+    const current = names[currentLanguage];
+    if (current) return current;
+    // Fallback: any available name.
+    return names.ru || names.ua || names.en || '';
   };
 
   const translations = {
@@ -178,99 +227,153 @@ const ContractorAccessPage = () => {
       title: 'Contractor Access',
       password: 'Password',
       open: 'Open',
-      date: 'date',
-      venue: 'venue',
-      guestCount: 'guest count',
+      eventDetails: 'Event details',
+      keyDetails: 'Key details about your celebration',
+      date: 'event date',
+      locationLabel: 'location',
+      venueLabel: 'venue',
+      guestCount: 'number of Guests',
       coupleNames: 'couple names',
+      days: 'days',
+      daysTillEvent: 'till your celebration',
       dressCode: 'Dress Code',
       documents: 'Documents',
       attachedDocuments: '',
       organizerAndCoordinators: 'Organizer and Coordinators',
-      organizer: 'Organizer',
+      organizer: 'Wedding planner',
       coordinators: 'Coordinators',
+      nameLabel: 'Name',
+      responsibilityLabel: 'Responsibility',
+      phoneLabel: 'Phone',
     },
     ru: {
       title: 'Доступ для подрядчиков',
       password: 'Пароль',
       open: 'Открыть',
+      eventDetails: 'Детали события',
+      keyDetails: 'Ключевые детали вашего праздника',
       date: 'дата события',
-      venue: 'локация',
+      locationLabel: 'локация',
+      venueLabel: 'место',
       guestCount: 'количество гостей',
       coupleNames: 'имена пары',
+      days: 'дней',
+      daysTillEvent: 'до события',
       dressCode: 'Дресс-код',
       documents: 'Документы',
       attachedDocuments: '',
       organizerAndCoordinators: 'Контакты организатора и координаторов',
       organizer: 'Организатор',
       coordinators: 'Координаторы',
+      nameLabel: 'Имя',
+      responsibilityLabel: 'Зона ответственности',
+      phoneLabel: 'Номер телефона',
     },
     ua: {
       title: 'Доступ для підрядників',
       password: 'Пароль',
       open: 'Відкрити',
+      eventDetails: 'Деталі події',
+      keyDetails: 'Ключові деталі вашого свята',
       date: 'дата події',
-      venue: 'локація',
+      locationLabel: 'локація',
+      venueLabel: 'місце',
       guestCount: 'кількість гостей',
       coupleNames: 'імена пари',
+      days: 'днів',
+      daysTillEvent: 'до події',
       dressCode: 'Дрес-код',
       documents: 'Документи',
       attachedDocuments: '',
       organizerAndCoordinators: 'Контакти організатора і координаторів',
       organizer: 'Організатор',
       coordinators: 'Координатори',
+      nameLabel: "Ім'я",
+      responsibilityLabel: 'Зона відповідальності',
+      phoneLabel: 'Номер телефону',
     },
   };
 
   const t = translations[currentLanguage];
 
   if (!authorized) {
+    // Login screen should be 1:1 with /login styles and always in English.
+    const tLogin = translations.en;
     return (
-      <div className="min-h-screen bg-[#eae6db] flex items-center justify-center px-4 py-6">
-        <div className="max-w-[480px] w-full">
-          <div className="flex justify-between items-center mb-8">
-            <img src={logo} alt="logo" className="h-12 w-auto" />
-            <select
-              value={currentLanguage}
-              onChange={(e) => {
-                const lang = e.target.value as 'en' | 'ru' | 'ua';
-                setCurrentLanguage(lang);
-                localStorage.setItem('preferredLanguage', lang);
-              }}
-              className="border border-[#00000033] bg-white rounded-lg pl-3 pr-8 py-2 font-forum text-[14px] cursor-pointer hover:border-[#00000066] transition-colors appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%2712%27%20height%3D%2712%27%20viewBox%3D%270%200%2012%2012%27%3E%3cpath%20fill%3D%27%23333%27%20d%3D%27M10.293%203.293L6%207.586%201.707%203.293A1%201%200%2000.293%204.707l5%205a1%201%200%20001.414%200l5-5a1%201%200%2010-1.414-1.414z%27%2F%3E%3c%2Fsvg%3E')] bg-[position:right_0.5rem_center] bg-no-repeat"
-            >
-              <option value="en">EN</option>
-              <option value="ru">RU</option>
-              <option value="ua">UA</option>
-            </select>
+      <div className="relative min-h-screen w-full overflow-x-hidden">
+        {/* Background */}
+        <div
+          className="absolute inset-0 bg-cover"
+          style={{
+            backgroundImage: `url(${secondScreen})`,
+            backgroundPosition: 'center 35%',
+          }}
+        />
+        {/* Dark radial overlay */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background: 'radial-gradient(circle, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.6) 100%)',
+          }}
+        />
+
+        <div className="relative z-20 flex flex-col items-center justify-center min-h-screen h-screen py-6 px-4">
+          {/* White logo centered (like /login) */}
+          <div className="mb-5 sm:mb-6">
+            <img
+              src={logoV2}
+              alt="logo"
+              className="w-auto h-auto max-w-[85vw] sm:max-w-[80vw] md:max-w-[520px]"
+              style={{ maxHeight: '120px', objectFit: 'contain', filter: 'brightness(0) invert(1)' }}
+            />
           </div>
 
-          <div className="bg-white border border-[#00000033] rounded-lg p-8 shadow-sm">
-            <h1 className="text-[32px] font-forum font-bold text-black mb-6 text-center">{t.title}</h1>
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div>
-                <label className="block text-[16px] font-forum font-bold text-black mb-2">{t.password}</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-white text-[16px]"
-                  placeholder="••••••••"
-                />
-              </div>
-              {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                  <p className="text-[14px] font-forum text-red-600 text-center">{error}</p>
-                </div>
-              )}
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full px-4 py-3 bg-black text-white rounded-lg font-forum text-[16px] hover:bg-[#000000DD] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          <form
+            onSubmit={handleLogin}
+            className="relative bg-[#FBF9F5B2] backdrop-blur-sm w-full max-w-[92vw] sm:max-w-[340px] md:max-w-[420px] lg:max-w-[520px] xl:max-w-[540px] min-[1440px]:max-w-[735px] 2xl:max-w-[825px] p-7 sm:p-8 mx-4 flex flex-col items-center justify-center rounded-lg min-h-[340px] sm:min-h-[380px]"
+          >
+            <div className="flex flex-col items-center justify-center mb-8 w-full">
+              <h1 className="text-black text-[16px] sm:text-[18px] md:text-[20px] lg:text-[18px] font-branch font-regular mt-2 mb-1.5 text-center">
+                Enter the password
+              </h1>
+            </div>
+
+            {/* Password only */}
+            <div className="mb-7 self-start w-full">
+              <label
+                htmlFor="contractor-password"
+                className="block text-sm font-gilroy mb-1.5 text-[10px] sm:text-[11px] md:text-[11px]"
+                style={{ color: 'black', fontWeight: 400 }}
               >
-                {loading ? 'Loading...' : t.open}
-              </button>
-            </form>
-          </div>
+                {tLogin.password}
+              </label>
+              <input
+                id="contractor-password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter the password"
+                className="w-full bg-transparent border-0 border-b-1 focus:outline-none focus:border-b-1 pb-2 font-gilroy text-[16px] sm:text-[12px] md:text-[12px] pl-1"
+                style={{ borderColor: '#00000080', color: 'black', backgroundColor: 'transparent' }}
+                autoComplete="off"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 border font-gilroy text-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer relative overflow-hidden group"
+              style={{ borderColor: 'black', color: 'black' }}
+            >
+              <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-[0.05] group-active:opacity-[0.1] transition-opacity duration-300" />
+              <span className="relative z-10 font-branch text-[16px] sm:text-[18px]">
+                {loading ? 'Loading...' : tLogin.open}
+              </span>
+              <img src={arrowRight} alt="arrow" className="relative z-10 w-4 h-4" />
+            </button>
+
+            {error && <div className="mt-4 text-sm font-branch text-red-600 text-center">{error}</div>}
+          </form>
         </div>
       </div>
     );
@@ -285,7 +388,7 @@ const ContractorAccessPage = () => {
       <main className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 lg:px-[30px] xl:px-[30px] min-[1500px]:px-[60px] py-4">
         {/* Header with logo, language switcher and description */}
         <header className="flex items-center justify-between mb-6 py-2 sm:py-3">
-          <img src={logo} alt="logo" className="h-14 sm:h-16 w-auto" />
+          <img src={logo} alt="logo" className="h-10 sm:h-12 w-auto" />
           <div className="flex-1 mx-4 text-center hidden sm:block">
             <p className="text-[13px] sm:text-[14px] font-forum text-[#00000080]">
               {currentLanguage === 'en' && 'Contractor page – key information and documents for your event'}
@@ -293,47 +396,118 @@ const ContractorAccessPage = () => {
               {currentLanguage === 'ua' && 'Сторінка для підрядників — уся ключова інформація та документи події'}
             </p>
           </div>
-          <select
-            value={currentLanguage}
-            onChange={(e) => {
-              const lang = e.target.value as 'en' | 'ru' | 'ua';
-              setCurrentLanguage(lang);
-              localStorage.setItem('preferredLanguage', lang);
-            }}
-            className="border border-[#00000033] bg-white rounded-lg pl-3 pr-8 py-2 font-forum text-[14px] cursor-pointer hover:border-[#00000066] transition-colors appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%2712%27%20height%3D%2712%27%20viewBox%3D%270%200%2012%2012%27%3E%3cpath%20fill%3D%27%23333%27%20d%3D%27M10.293%203.293L6%207.586%201.707%203.293A1%201%200%2000.293%204.707l5%205a1%201%200%20001.414%200l5-5a1%201%200%2010-1.414-1.414z%27%2F%3E%3c%2Fsvg%3E')] bg-[position:right_0.5rem_center] bg-no-repeat"
-          >
-            <option value="en">EN</option>
-            <option value="ru">RU</option>
-            <option value="ua">UA</option>
-          </select>
+          <div className="relative self-stretch flex items-stretch">
+            <button
+              onClick={() => setIsLanguageMenuOpen(!isLanguageMenuOpen)}
+              className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 cursor-pointer font-forum text-[18px] sm:text-[20px] font-light h-full w-full"
+              style={{ pointerEvents: 'auto' }}
+            >
+              <span className="text-[14px] sm:text-[16px] uppercase text-[#00000080]">{currentLanguage}</span>
+              <img src={languageIcon} alt="language" className="h-2.5 w-3 sm:h-3 sm:w-4" />
+            </button>
+
+            {isLanguageMenuOpen && (
+              <>
+                <div className="fixed inset-0 z-60" onClick={() => setIsLanguageMenuOpen(false)} />
+                <div className="absolute right-0 top-full bg-[#eae6db] border border-[#00000033] z-70 overflow-hidden shadow-lg w-full">
+                  {currentLanguage !== 'en' && (
+                    <button
+                      onClick={() => {
+                        const lang = 'en';
+                        setCurrentLanguage(lang);
+                        localStorage.setItem('preferredLanguage', lang);
+                        setIsLanguageMenuOpen(false);
+                      }}
+                      className="w-full flex items-center justify-center px-4 py-3 text-[20px] font-forum font-light uppercase cursor-pointer text-[#00000080]"
+                    >
+                      EN
+                    </button>
+                  )}
+                  {currentLanguage !== 'ru' && (
+                    <button
+                      onClick={() => {
+                        const lang = 'ru';
+                        setCurrentLanguage(lang);
+                        localStorage.setItem('preferredLanguage', lang);
+                        setIsLanguageMenuOpen(false);
+                      }}
+                      className="w-full flex items-center justify-center px-4 py-3 text-[20px] font-forum font-light uppercase cursor-pointer text-[#00000080]"
+                    >
+                      RU
+                    </button>
+                  )}
+                  {currentLanguage !== 'ua' && (
+                    <button
+                      onClick={() => {
+                        const lang = 'ua';
+                        setCurrentLanguage(lang);
+                        localStorage.setItem('preferredLanguage', lang);
+                        setIsLanguageMenuOpen(false);
+                      }}
+                      className="w-full flex items-center justify-center px-4 py-3 text-[20px] font-forum font-light uppercase cursor-pointer text-[#00000080]"
+                    >
+                      UA
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
         </header>
 
-        {/* Wedding details grid */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 border border-[#00000033]">
-          <article className="min-h-[100px] p-3 sm:p-4 border-b sm:border-b border-[#00000033] xl:border-b-0 xl:border-r flex flex-col items-center justify-center text-center">
-            <p className="text-[12px] sm:text-[13px] text-[#00000080] font-forum tracking-wide">{t.date}</p>
-            <p className="text-[16px] sm:text-[20px] lg:text-[22px] font-forum leading-tight mt-1">
-              {wedding.wedding_date && formatDate(wedding.wedding_date)}
-            </p>
-          </article>
-          <article className="min-h-[100px] p-3 sm:p-4 border-b sm:border-b border-[#00000033] xl:border-b-0 xl:border-r flex flex-col items-center justify-center text-center">
-            <p className="text-[12px] sm:text-[13px] text-[#00000080] font-forum tracking-wide">{t.venue}</p>
-            <p className="text-[16px] sm:text-[20px] lg:text-[22px] font-forum leading-tight mt-1 break-words">{wedding.venue}</p>
-          </article>
-          <article className="min-h-[100px] p-3 sm:p-4 border-b border-[#00000033] sm:border-b-0 sm:border-r xl:border-r flex flex-col items-center justify-center text-center">
-            <p className="text-[12px] sm:text-[13px] text-[#00000080] font-forum tracking-wide">{t.guestCount}</p>
-            <p className="text-[16px] sm:text-[20px] lg:text-[22px] font-forum leading-tight mt-1">{wedding.guest_count}</p>
-          </article>
-          <article className="min-h-[100px] p-3 sm:p-4 flex flex-col items-center justify-center text-center">
-            <p className="text-[12px] sm:text-[13px] text-[#00000080] font-forum tracking-wide">{t.coupleNames}</p>
-            <p className="text-[16px] sm:text-[20px] lg:text-[22px] font-forum leading-tight mt-1 break-words">{getCoupleName()}</p>
-          </article>
+        {/* Event details (table-like like client/couple page) */}
+        <section className="border-y border-[#00000033] bg-transparent w-[100vw] relative left-1/2 -translate-x-1/2">
+          <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr]">
+            <div className="p-3 sm:p-4 border-b lg:border-b-0 border-[#00000033]">
+              <h2 className="text-[22px] sm:text-[26px] lg:text-[32px] font-forum leading-tight text-left">
+                {t.eventDetails}
+              </h2>
+              <p className="text-[12px] sm:text-[13px] text-[#00000080] font-forum font-light mt-1 text-left">
+                {t.keyDetails}
+              </p>
+            </div>
+
+            <div className="flex flex-col lg:flex-row divide-y divide-[#00000033]">
+              <div className="flex-1 p-3 sm:p-4 text-center">
+                <p className="text-[12px] sm:text-[13px] text-[#00000080] font-forum font-light mb-1">{t.date}</p>
+                <p className="text-[16px] sm:text-[18px] lg:text-[22px] font-forum font-bold leading-tight">
+                  {wedding.wedding_date ? formatDate(wedding.wedding_date) : ''}
+                </p>
+              </div>
+
+              <div className="flex-1 p-3 sm:p-4 text-center">
+                <p className="text-[12px] sm:text-[13px] text-[#00000080] font-forum font-light mb-1">{t.locationLabel}</p>
+                <p className="text-[16px] sm:text-[18px] lg:text-[22px] font-forum font-bold leading-tight break-words">
+                  {getCountryDisplay()}
+                </p>
+              </div>
+
+              <div className="flex-1 p-3 sm:p-4 text-center">
+                <p className="text-[12px] sm:text-[13px] text-[#00000080] font-forum font-light mb-1">{t.venueLabel}</p>
+                <p className="text-[16px] sm:text-[18px] lg:text-[22px] font-forum font-bold leading-tight">
+                  {wedding.venue}
+                </p>
+              </div>
+
+              <div className="flex-1 p-3 sm:p-4 text-center">
+                <p className="text-[12px] sm:text-[13px] text-[#00000080] font-forum font-light mb-1">{t.guestCount}</p>
+                <p className="text-[16px] sm:text-[18px] lg:text-[22px] font-forum font-bold leading-tight">{wedding.guest_count}</p>
+              </div>
+
+              <div className="flex-1 p-3 sm:p-4 text-center">
+                <p className="text-[16px] sm:text-[18px] lg:text-[22px] font-forum font-bold leading-tight mb-1">
+                  {wedding.wedding_date ? calculateDaysUntilEvent(wedding.wedding_date) : 0} {t.days}
+                </p>
+                <p className="text-[12px] sm:text-[13px] font-forum font-light text-[#00000080] leading-tight">{t.daysTillEvent}</p>
+              </div>
+            </div>
+          </div>
         </section>
 
-        {/* Documents and Dress Code */}
-        <section className="-mt-px grid grid-cols-1 lg:grid-cols-2 border border-[#00000033]">
-          <article className="p-3 sm:p-4 border-b lg:border-b-0 border-[#00000033] lg:border-r text-center">
-            <h2 className="text-[24px] sm:text-[28px] lg:text-[34px] font-forum leading-tight">{t.documents}</h2>
+        {/* Documents and Dress Code (accent on values) */}
+        <section className="-mt-px grid grid-cols-1 lg:grid-cols-2 border-y border-[#00000033] w-[100vw] relative left-1/2 -translate-x-1/2">
+          <article className="p-3 sm:p-4 border-b lg:border-b-0 lg:border-r border-[#00000033] text-center">
+            <p className="text-[12px] sm:text-[13px] text-[#00000080] font-forum tracking-wide">{t.documents}</p>
             {t.attachedDocuments && (
               <p className="text-[12px] sm:text-[13px] text-[#00000080] font-forum mt-1">{t.attachedDocuments}</p>
             )}
@@ -345,7 +519,7 @@ const ContractorAccessPage = () => {
                       href={doc.link || '#'}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[15px] sm:text-[16px] lg:text-[18px] font-forum font-light underline underline-offset-4 hover:opacity-70 transition-opacity break-words"
+                      className="text-[16px] sm:text-[18px] lg:text-[20px] font-forum font-bold underline underline-offset-4 hover:opacity-70 transition-opacity break-words"
                     >
                       {getDocumentName(doc)}
                     </a>
@@ -370,28 +544,108 @@ const ContractorAccessPage = () => {
           </article>
 
           <article className="p-3 sm:p-4 text-center flex flex-col items-center justify-center">
-            <h2 className="text-[24px] sm:text-[28px] lg:text-[34px] font-forum leading-tight">{t.dressCode}</h2>
-            <p className="text-[15px] sm:text-[17px] lg:text-[20px] font-forum font-light mt-2 leading-relaxed max-w-[520px]">
+            <p className="text-[12px] sm:text-[13px] text-[#00000080] font-forum tracking-wide">{t.dressCode}</p>
+            <p className="text-[16px] sm:text-[18px] lg:text-[20px] font-forum font-bold mt-2 leading-relaxed max-w-[520px]">
               {wedding.contractor_dress_code || 'N/A'}
             </p>
           </article>
         </section>
 
         {/* Contacts */}
-        <section className="-mt-px border border-[#00000033] p-3 sm:p-4">
-          <h2 className="text-[24px] sm:text-[28px] lg:text-[34px] font-forum leading-tight text-center">{t.organizerAndCoordinators}</h2>
-          <div className="grid grid-cols-1 lg:grid-cols-2 mt-3">
-            <article className="text-center lg:border-r border-[#00000033] lg:pr-4">
-              <p className="text-[12px] sm:text-[13px] text-[#00000080] font-forum mb-2">{t.organizer}</p>
-              <div className="text-[14px] sm:text-[15px] lg:text-[17px] font-forum font-light leading-relaxed">
-                {wedding.contractor_organizer_contacts ? formatContactText(wedding.contractor_organizer_contacts) : 'N/A'}
-              </div>
+        <section className="border-b border-[#00000033] p-0 w-[100vw] relative left-1/2 -translate-x-1/2">
+          {/* Big header removed; headings are shown per block below */}
+          <div>
+            <article className="text-center pt-3 sm:pt-4">
+              <p className="text-[16px] sm:text-[18px] lg:text-[20px] font-forum font-light mb-4">{t.organizer}</p>
+
+              {(() => {
+                const parsed = tryParseJson<{
+                  phone?: string;
+                  names?: Record<'en' | 'ru' | 'ua', string>;
+                }>(wedding.contractor_organizer_contacts);
+
+                if (!parsed?.names) {
+                  return (
+                    <div className="text-[14px] sm:text-[15px] lg:text-[17px] font-forum font-light leading-relaxed px-3 sm:px-4">
+                      {wedding.contractor_organizer_contacts ? formatContactText(wedding.contractor_organizer_contacts) : '—'}
+                    </div>
+                  );
+                }
+
+                const name = getLocalizedName(parsed.names);
+                const phone = parsed.phone ? formatPhonePretty(parsed.phone) : '';
+
+                return (
+                  <div className="border-b border-[#00000033] overflow-hidden w-full">
+                    <div className="grid grid-cols-2 text-center">
+                      <div className="p-2 sm:p-3">
+                        <p className="text-[16px] sm:text-[18px] lg:text-[22px] font-forum font-bold leading-tight">{name || '—'}</p>
+                      </div>
+                      <div className="p-2 sm:p-3">
+                        <p className="text-[16px] sm:text-[18px] lg:text-[22px] font-forum font-bold leading-tight">{phone || '—'}</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </article>
-            <article className="text-center mt-3 lg:mt-0 lg:pl-4">
-              <p className="text-[12px] sm:text-[13px] text-[#00000080] font-forum mb-2">{t.coordinators}</p>
-              <div className="text-[14px] sm:text-[15px] lg:text-[17px] font-forum font-light leading-relaxed">
-                {wedding.contractor_coordinator_contacts ? formatContactText(wedding.contractor_coordinator_contacts) : 'N/A'}
-              </div>
+
+            <article className="text-center mt-0 pt-3 sm:pt-4">
+              <p className="text-[16px] sm:text-[18px] lg:text-[20px] font-forum font-light mb-4">{t.coordinators}</p>
+
+              {(() => {
+                const parsed = tryParseJson<{
+                  items?: Array<{
+                    name?: Record<'en' | 'ru' | 'ua', string>;
+                    responsibility?: Record<'en' | 'ru' | 'ua', string>;
+                    phone?: string;
+                  }>;
+                }>(wedding.contractor_coordinator_contacts);
+
+                if (!parsed?.items) {
+                  return (
+                    <div className="text-[14px] sm:text-[15px] lg:text-[17px] font-forum font-light leading-relaxed px-3 sm:px-4">
+                      {wedding.contractor_coordinator_contacts ? formatContactText(wedding.contractor_coordinator_contacts) : '—'}
+                    </div>
+                  );
+                }
+
+                const items = parsed.items;
+
+                return (
+                  <div className="w-full">
+                    {items.length === 0 ? (
+                      <div className="p-3">
+                        <p className="text-[14px] font-forum text-[#00000060] italic">—</p>
+                      </div>
+                    ) : (
+                      items.map((item, idx) => {
+                        const name = getLocalizedName(item.name);
+                        const responsibility = getLocalizedName(item.responsibility);
+                        const phone = item.phone ? formatPhonePretty(item.phone) : '';
+                        return (
+                          <div
+                            key={idx}
+                            className="p-3 sm:p-4 border-[#00000033]"
+                          >
+                            <div className="grid grid-cols-1 sm:grid-cols-3 text-center">
+                              <div className="py-1">
+                                <p className="text-[16px] sm:text-[17px] lg:text-[17px] font-forum font-light">{name || '—'}</p>
+                              </div>
+                              <div className="py-1">
+                                <p className="text-[12px] sm:text-[13px] font-forum font-light">{phone || '—'}</p>
+                              </div>
+                              <div className="py-1">
+                                <p className="text-[12px] sm:text-[13px] font-forum font-light">{responsibility || '—'}</p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                );
+              })()}
             </article>
           </div>
         </section>
