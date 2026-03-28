@@ -102,6 +102,13 @@ const ContractorDashboard = () => {
     return wedding.country || wedding.country_en || wedding.country_ru || wedding.country_ua || '';
   };
 
+  const normalizeMapsUrl = (raw: string) => {
+    const t = raw.trim();
+    if (!t) return '';
+    if (/^https?:\/\//i.test(t)) return t;
+    return `https://${t}`;
+  };
+
   const formatPhonePretty = (phoneRaw: string) => {
     const digits = phoneRaw.replace(/\D/g, '');
     if (!digits) return phoneRaw;
@@ -274,6 +281,23 @@ const ContractorDashboard = () => {
             </p>
           </article>
         </section>
+
+        {(wedding.contractor_venue_address || wedding.contractor_maps_url) && (
+          <div className="-mt-px border border-[#00000033] border-t-0 px-3 py-3 sm:py-4 text-center">
+            {wedding.contractor_maps_url ? (
+              <a
+                href={normalizeMapsUrl(wedding.contractor_maps_url)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[12px] sm:text-[13px] font-forum text-[#00000080] hover:text-black underline underline-offset-2 break-words inline-block max-w-full"
+              >
+                {wedding.contractor_venue_address?.trim() || 'Google Maps'}
+              </a>
+            ) : (
+              <p className="text-[12px] sm:text-[13px] font-forum text-[#00000080] break-words">{wedding.contractor_venue_address}</p>
+            )}
+          </div>
+        )}
 
         <section className="-mt-px grid grid-cols-1 lg:grid-cols-2 border border-[#00000033]">
           <article className="p-3 sm:p-4 border-b lg:border-b-0 border-[#00000033] lg:border-r text-center">

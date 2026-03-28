@@ -112,6 +112,13 @@ const ContractorAccessPage = () => {
     return wedding.country || wedding.country_en || wedding.country_ru || wedding.country_ua || '';
   };
 
+  const normalizeMapsUrl = (raw: string) => {
+    const t = raw.trim();
+    if (!t) return '';
+    if (/^https?:\/\//i.test(t)) return t;
+    return `https://${t}`;
+  };
+
   const getDocumentName = (doc: ContractorDocument): string => {
     if (currentLanguage === 'en' && doc.name_en) return doc.name_en;
     if (currentLanguage === 'ru' && doc.name_ru) return doc.name_ru;
@@ -349,13 +356,13 @@ const ContractorAccessPage = () => {
               </label>
               <input
                 id="contractor-password"
-                type="password"
+                type="text"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter the password"
+                autoComplete="off"
                 className="w-full bg-transparent border-0 border-b-1 focus:outline-none focus:border-b-1 pb-2 font-gilroy text-[16px] sm:text-[12px] md:text-[12px] pl-1"
                 style={{ borderColor: '#00000080', color: 'black', backgroundColor: 'transparent' }}
-                autoComplete="off"
               />
             </div>
 
@@ -487,6 +494,24 @@ const ContractorAccessPage = () => {
                 <p className="text-[16px] sm:text-[18px] lg:text-[22px] font-forum font-bold leading-tight">
                   {wedding.venue}
                 </p>
+                {(wedding.contractor_venue_address || wedding.contractor_maps_url) && (
+                  <div className="mt-2">
+                    {wedding.contractor_maps_url ? (
+                      <a
+                        href={normalizeMapsUrl(wedding.contractor_maps_url)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[12px] sm:text-[13px] font-forum text-[#00000080] hover:text-black underline underline-offset-2 break-words inline-block max-w-full"
+                      >
+                        {wedding.contractor_venue_address?.trim() || 'Google Maps'}
+                      </a>
+                    ) : (
+                      <p className="text-[12px] sm:text-[13px] font-forum text-[#00000080] break-words">
+                        {wedding.contractor_venue_address}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="flex-1 p-3 sm:p-4 text-center">

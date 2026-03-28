@@ -15,6 +15,8 @@ export const contractorService = {
       dressCode?: string;
       organizerContacts?: string;
       coordinatorContacts?: string;
+      venueAddress?: string;
+      mapsUrl?: string;
     }
   ): Promise<{ token: string | null; error: string | null }> {
     try {
@@ -24,6 +26,8 @@ export const contractorService = {
         p_dress_code: settings.dressCode || null,
         p_organizer_contacts: settings.organizerContacts || null,
         p_coordinator_contacts: settings.coordinatorContacts || null,
+        p_venue_address: settings.venueAddress?.trim() || null,
+        p_maps_url: settings.mapsUrl?.trim() || null,
       });
 
       if (error) {
@@ -67,6 +71,8 @@ export const contractorService = {
       dressCode?: string;
       organizerContacts?: string;
       coordinatorContacts?: string;
+      venueAddress?: string;
+      mapsUrl?: string;
     }
   ): Promise<{ success: boolean; error: string | null }> {
     try {
@@ -76,6 +82,8 @@ export const contractorService = {
           contractor_dress_code: settings.dressCode,
           contractor_organizer_contacts: settings.organizerContacts,
           contractor_coordinator_contacts: settings.coordinatorContacts,
+          contractor_venue_address: settings.venueAddress?.trim() || null,
+          contractor_maps_url: settings.mapsUrl?.trim() || null,
         })
         .eq('id', weddingId);
 

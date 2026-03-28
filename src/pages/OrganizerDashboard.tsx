@@ -2593,10 +2593,13 @@ const OrganizerDashboard = () => {
           weddingId={selectedWedding.id}
           existingContractorToken={selectedWedding.contractor_token || null}
           existingContractorPassword={selectedWedding.contractor_password_hash ? 'configured' : null}
+          initialContractorPasswordPlain={selectedWedding.contractor_password_plain ?? null}
           initialSettings={{
             dressCode: selectedWedding.contractor_dress_code,
             organizerContacts: selectedWedding.contractor_organizer_contacts,
             coordinatorContacts: selectedWedding.contractor_coordinator_contacts,
+            venueAddress: selectedWedding.contractor_venue_address,
+            mapsUrl: selectedWedding.contractor_maps_url,
           }}
           onClose={() => setShowContractorModal(false)}
           onSave={async () => {

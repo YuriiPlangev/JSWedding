@@ -22,10 +22,14 @@ interface ContractorManagementModalProps {
   weddingId: string;
   existingContractorToken?: string | null;
   existingContractorPassword?: string | null;
+  /** Открытый пароль с сервера — показываем в инпуте только организатору */
+  initialContractorPasswordPlain?: string | null;
   initialSettings?: {
     dressCode?: string;
     organizerContacts?: string;
     coordinatorContacts?: string;
+    venueAddress?: string;
+    mapsUrl?: string;
   };
   onClose: () => void;
   onSave: () => void;
@@ -35,13 +39,14 @@ const ContractorManagementModal = ({
   weddingId,
   existingContractorToken,
   existingContractorPassword,
+  initialContractorPasswordPlain,
   initialSettings,
   onClose,
   onSave,
 }: ContractorManagementModalProps) => {
   const isPasswordConfigured = !!existingContractorPassword;
   const [step, setStep] = useState<'settings' | 'documents'>(isPasswordConfigured ? 'settings' : 'settings');
-  const [contractorPassword, setContractorPassword] = useState('');
+  const [contractorPassword, setContractorPassword] = useState(initialContractorPasswordPlain ?? '');
   const [contractorLink, setContractorLink] = useState<string>(
     existingContractorToken ? `${window.location.origin}/contractor/${existingContractorToken}` : ''
   );
@@ -168,6 +173,18 @@ const ContractorManagementModal = ({
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  const [venueAddress, setVenueAddress] = useState(initialSettings?.venueAddress || '');
+  const [mapsUrl, setMapsUrl] = useState(initialSettings?.mapsUrl || '');
+
+  useEffect(() => {
+    setVenueAddress(initialSettings?.venueAddress || '');
+    setMapsUrl(initialSettings?.mapsUrl || '');
+  }, [initialSettings?.venueAddress, initialSettings?.mapsUrl]);
+
+  useEffect(() => {
+    setContractorPassword(initialContractorPasswordPlain ?? '');
+  }, [initialContractorPasswordPlain]);
+
   useEffect(() => {
     if (existingContractorToken) {
       void loadDocuments();
@@ -225,6 +242,8 @@ const ContractorManagementModal = ({
         dressCode: settingsData.dressCode,
         organizerContacts: organizerContactsPayload,
         coordinatorContacts: coordinatorContactsPayload,
+        venueAddress,
+        mapsUrl,
       });
 
       setLoading(false);
@@ -244,6 +263,8 @@ const ContractorManagementModal = ({
       dressCode: settingsData.dressCode,
       organizerContacts: organizerContactsPayload,
       coordinatorContacts: coordinatorContactsPayload,
+      venueAddress,
+      mapsUrl,
     });
 
     setLoading(false);
@@ -367,6 +388,8 @@ const ContractorManagementModal = ({
                   value={contractorPassword}
                   onChange={(e) => setContractorPassword(e.target.value)}
                   placeholder={isPasswordConfigured ? 'Введите новый пароль (или оставьте пустым)' : 'Введите пароль'}
+                  autoComplete="off"
+                  spellCheck={false}
                   className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-[#eae6db]"
                 />
                 <p className="text-[12px] font-forum font-light text-[#00000080] mt-1">
@@ -408,6 +431,37 @@ const ContractorManagementModal = ({
                   rows={3}
                   className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-[#eae6db] resize-none"
                 />
+              </div>
+
+              <div>
+                <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
+                  Точный адрес места
+                </label>
+                <input
+                  type="text"
+                  value={venueAddress}
+                  onChange={(e) => setVenueAddress(e.target.value)}
+                  placeholder="улица, дом, город"
+                  autoComplete="off"
+                  className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-[#eae6db] text-[14px]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
+                  Ссылка на Google Maps
+                </label>
+                <input
+                  type="url"
+                  value={mapsUrl}
+                  onChange={(e) => setMapsUrl(e.target.value)}
+                  placeholder="https://maps.google.com/..."
+                  autoComplete="off"
+                  className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-[#eae6db] text-[14px]"
+                />
+                <p className="text-[12px] font-forum font-light text-[#00000080] mt-1">
+                  У подрядчика адрес будет ссылкой на карту (откроется в новой вкладке).
+                </p>
               </div>
 
               <div>
