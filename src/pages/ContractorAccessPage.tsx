@@ -9,6 +9,8 @@ import secondScreen from '../assets/bgJSSS.jpg';
 import arrowRight from '../assets/arrow-right.svg';
 import logoV2 from '../assets/logoV2.svg';
 import languageIcon from '../assets/language.svg';
+import openEye from '../assets/openEye.png';
+import closeEye from '../assets/closeEye.png';
 
 const ContractorAccessPage = () => {
   const { token } = useParams<{ token: string }>();
@@ -16,6 +18,7 @@ const ContractorAccessPage = () => {
   const [currentLanguage, setCurrentLanguage] = useState<'en' | 'ru' | 'ua'>(getInitialLanguage());
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [authorized, setAuthorized] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -354,16 +357,30 @@ const ContractorAccessPage = () => {
               >
                 {tLogin.password}
               </label>
-              <input
-                id="contractor-password"
-                type="text"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter the password"
-                autoComplete="off"
-                className="w-full bg-transparent border-0 border-b-1 focus:outline-none focus:border-b-1 pb-2 font-gilroy text-[16px] sm:text-[12px] md:text-[12px] pl-1"
-                style={{ borderColor: '#00000080', color: 'black', backgroundColor: 'transparent' }}
-              />
+              <div className="relative w-full">
+                <input
+                  id="contractor-password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter the password"
+                  autoComplete="off"
+                  className="w-full bg-transparent border-0 border-b-1 focus:outline-none focus:border-b-1 pb-2 pr-8 font-gilroy text-[16px] sm:text-[12px] md:text-[12px] pl-1"
+                  style={{ borderColor: '#00000080', color: 'black', backgroundColor: 'transparent' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-0 top-0 bottom-0 flex items-center cursor-pointer focus:outline-none"
+                  style={{ paddingBottom: '8px' }}
+                >
+                  <img
+                    src={showPassword ? openEye : closeEye}
+                    alt={showPassword ? 'Hide password' : 'Show password'}
+                    className="w-5 h-5"
+                  />
+                </button>
+              </div>
             </div>
 
             <button
@@ -495,13 +512,13 @@ const ContractorAccessPage = () => {
                   {wedding.venue}
                 </p>
                 {(wedding.contractor_venue_address || wedding.contractor_maps_url) && (
-                  <div className="mt-2">
+                  <div className="mt-0">
                     {wedding.contractor_maps_url ? (
                       <a
                         href={normalizeMapsUrl(wedding.contractor_maps_url)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[12px] sm:text-[13px] font-forum text-[#00000080] hover:text-black underline underline-offset-2 break-words inline-block max-w-full"
+                        className="text-[12px] sm:text-[13px] font-forum text-[#00000080] underline underline-offset-2 break-words inline-block max-w-full"
                       >
                         {wedding.contractor_venue_address?.trim() || 'Google Maps'}
                       </a>
@@ -581,7 +598,7 @@ const ContractorAccessPage = () => {
           {/* Big header removed; headings are shown per block below */}
           <div>
             <article className="text-center pt-3 sm:pt-4">
-              <p className="text-[16px] sm:text-[18px] lg:text-[20px] font-forum font-light mb-4">{t.organizer}</p>
+              <p className="text-[12px] sm:text-[13px] text-[#00000080] font-forum tracking-wide mb-2">{t.organizer}</p>
 
               {(() => {
                 const parsed = tryParseJson<{
@@ -604,10 +621,10 @@ const ContractorAccessPage = () => {
                   <div className="border-b border-[#00000033] overflow-hidden w-full">
                     <div className="grid grid-cols-2 text-center">
                       <div className="p-2 sm:p-3">
-                        <p className="text-[16px] sm:text-[18px] lg:text-[22px] font-forum font-bold leading-tight">{name || '—'}</p>
+                        <p className="text-[22px] font-forum font-light leading-tight">{name || '—'}</p>
                       </div>
                       <div className="p-2 sm:p-3">
-                        <p className="text-[16px] sm:text-[18px] lg:text-[22px] font-forum font-bold leading-tight">{phone || '—'}</p>
+                        <p className="text-[22px] font-forum font-light leading-tight">{phone || '—'}</p>
                       </div>
                     </div>
                   </div>
@@ -616,7 +633,7 @@ const ContractorAccessPage = () => {
             </article>
 
             <article className="text-center mt-0 pt-3 sm:pt-4">
-              <p className="text-[16px] sm:text-[18px] lg:text-[20px] font-forum font-light mb-4">{t.coordinators}</p>
+              <p className="text-[12px] sm:text-[13px] text-[#00000080] font-forum tracking-wide mb-2">{t.coordinators}</p>
 
               {(() => {
                 const parsed = tryParseJson<{
@@ -649,21 +666,16 @@ const ContractorAccessPage = () => {
                         const responsibility = getLocalizedName(item.responsibility);
                         const phone = item.phone ? formatPhonePretty(item.phone) : '';
                         return (
-                          <div
-                            key={idx}
-                            className="p-3 sm:p-4 border-[#00000033]"
-                          >
-                            <div className="grid grid-cols-1 sm:grid-cols-3 text-center">
-                              <div className="py-1">
-                                <p className="text-[16px] sm:text-[17px] lg:text-[17px] font-forum font-light">{name || '—'}</p>
-                              </div>
-                              <div className="py-1">
-                                <p className="text-[12px] sm:text-[13px] font-forum font-light">{phone || '—'}</p>
-                              </div>
-                              <div className="py-1">
-                                <p className="text-[12px] sm:text-[13px] font-forum font-light">{responsibility || '—'}</p>
-                              </div>
-                            </div>
+                          <div key={idx} className="p-3 sm:p-4 text-center">
+                            <p className="text-[22px] font-forum font-light leading-tight">
+                              {name || '—'}
+                            </p>
+                            <p className="mt-1 text-[22px] font-forum font-light leading-tight">
+                              {phone || '—'}
+                            </p>
+                            <p className="mt-1 text-[22px] font-forum font-light leading-tight break-words">
+                              {responsibility || '—'}
+                            </p>
                           </div>
                         );
                       })

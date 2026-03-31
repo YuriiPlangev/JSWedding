@@ -424,12 +424,12 @@ const ContractorManagementModal = ({
                 <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
                   Дресс-код
                 </label>
-                <textarea
+                <input
+                  type="text"
                   value={settingsData.dressCode}
                   onChange={(e) => setSettingsData({ ...settingsData, dressCode: e.target.value })}
                   placeholder="например: Black Tie / Formal Evening Dress"
-                  rows={3}
-                  className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-[#eae6db] resize-none"
+                  className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-[#eae6db] text-[14px]"
                 />
               </div>
 

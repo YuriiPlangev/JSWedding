@@ -267,6 +267,24 @@ const ContractorDashboard = () => {
             <p className="text-[16px] sm:text-[20px] lg:text-[22px] font-forum leading-tight mt-1 break-words">
               {getCountryDisplay()}
             </p>
+            {(wedding.contractor_venue_address || wedding.contractor_maps_url) && (
+              <div className="mt-1">
+                {wedding.contractor_maps_url ? (
+                  <a
+                    href={normalizeMapsUrl(wedding.contractor_maps_url)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[12px] sm:text-[13px] font-forum text-[#00000080] underline underline-offset-2 break-words inline-block max-w-full"
+                  >
+                    {wedding.contractor_venue_address?.trim() || 'Google Maps'}
+                  </a>
+                ) : (
+                  <p className="text-[12px] sm:text-[13px] font-forum text-[#00000080] break-words">
+                    {wedding.contractor_venue_address}
+                  </p>
+                )}
+              </div>
+            )}
           </article>
           <article className="min-h-[100px] p-3 sm:p-4 border-b border-[#00000033] sm:border-b-0 sm:border-r xl:border-r flex flex-col items-center justify-center text-center">
             <p className="text-[12px] sm:text-[13px] text-[#00000080] font-forum tracking-wide">{t.guestCount}</p>
@@ -387,21 +405,16 @@ const ContractorDashboard = () => {
                         const responsibility = getLocalizedName(item.responsibility);
                         const phone = item.phone ? formatPhonePretty(item.phone) : '';
                         return (
-                          <div
-                            key={idx}
-                            className="p-3 sm:p-4 border-[#00000033]"
-                          >
-                            <div className="grid grid-cols-1 sm:grid-cols-3 text-center">
-                              <div className="py-1">
-                                <p className="text-[16px] sm:text-[17px] lg:text-[17px] font-forum font-light">{name || '—'}</p>
-                              </div>
-                              <div className="py-1">
-                                <p className="text-[12px] sm:text-[13px] font-forum font-light">{phone || '—'}</p>
-                              </div>
-                              <div className="py-1">
-                                <p className="text-[12px] sm:text-[13px] font-forum font-light">{responsibility || '—'}</p>
-                              </div>
-                            </div>
+                          <div key={idx} className="p-3 sm:p-4 text-center">
+                            <p className="text-[16px] sm:text-[18px] lg:text-[22px] font-forum font-light leading-tight">
+                              {name || '—'}
+                            </p>
+                            <p className="mt-1 text-[16px] sm:text-[18px] lg:text-[22px] font-forum font-light leading-tight">
+                              {phone || '—'}
+                            </p>
+                            <p className="mt-1 text-[16px] sm:text-[18px] lg:text-[22px] font-forum font-light leading-tight break-words">
+                              {responsibility || '—'}
+                            </p>
                           </div>
                         );
                       })
