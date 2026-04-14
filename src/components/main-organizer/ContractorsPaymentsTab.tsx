@@ -24,6 +24,7 @@ const ContractorsPaymentsTab = () => {
   const [totals, setTotals] = useState<{ грн: number; доллар: number; евро: number }>({ грн: 0, доллар: 0, евро: 0 });
   const [totalsByCurrency, setTotalsByCurrency] = useState<{ грн: number; доллар: number; евро: number }>({ грн: 0, доллар: 0, евро: 0 });
   const [showToast, setShowToast] = useState(false);
+  const [changedFields, setChangedFields] = useState<Record<string, Set<string>>>({});
 
   const loadEvents = async () => {
     if (!user?.id) return;
@@ -179,7 +180,30 @@ const ContractorsPaymentsTab = () => {
 
   // Обновление UI сразу, без сохранения
   const handleUpdatePayment = useCallback((id: string, field: keyof ContractorPayment, value: string | number | Currency | null) => {
-    // Оптимистичное обновление UI сразу
+    const payment = payments.find(p => p.id === id);
+    if (!payment) return;
+
+    const currentValue = payment[field];
+    const hasChanged = currentValue !== value;
+
+    if (hasChanged) {
+      setChangedFields(prev => ({
+        ...prev,
+        [id]: new Set([...(prev[id] || []), field])
+      }));
+    } else {
+      setChangedFields(prev => {
+        const updated = { ...prev };
+        if (updated[id]) {
+          updated[id].delete(field);
+          if (updated[id].size === 0) {
+            delete updated[id];
+          }
+        }
+        return updated;
+      });
+    }
+
     setPayments(prev => prev.map(p => {
       if (p.id === id) {
         const updated = { ...p, [field]: value };
@@ -191,7 +215,7 @@ const ContractorsPaymentsTab = () => {
       }
       return p;
     }));
-  }, []);
+  }, [payments]);
 
   // Функция для парсинга числа из строки
   const parseNumber = useCallback((value: string): number => {
@@ -209,55 +233,12 @@ const ContractorsPaymentsTab = () => {
     return value.toString();
   }, []);
 
-  // Сохранение в Supabase при потере фокуса
-  const handleSavePayment = useCallback(async (id: string, field: keyof ContractorPayment, value: string | number | Currency) => {
-    // Находим текущее значение в состоянии
-    const currentPayment = payments.find(p => p.id === id);
-    if (!currentPayment) return;
-
-    // Для валют всегда сохраняем значение
-    if (field === 'currency' || field === 'cost_currency' || field === 'percent_currency' || field === 'advance_currency') {
-      const updated = await contractorPaymentService.updatePayment(id, { [field]: value as Currency });
-      if (updated) {
-        setPayments(prev => prev.map(p => p.id === id ? updated : p));
-        setShowToast(true);
-      } else {
-        if (selectedEventId) {
-          loadPaymentsByEvent(selectedEventId);
-        }
-      }
-      return;
-    }
-
-    // Преобразуем значение в нужный тип
-    let finalValue: string | number = value;
-    if (field === 'cost' || field === 'percent' || field === 'advance') {
-      finalValue = typeof value === 'string' ? parseNumber(value) : value;
-    }
-
-    // Проверяем, изменилось ли значение (для чисел сравниваем с точностью)
-    const currentValue = currentPayment[field];
-    if (typeof currentValue === 'number' && typeof finalValue === 'number') {
-      if (Math.abs(currentValue - finalValue) < 0.01) {
-        return;
-      }
-    } else if (currentValue === finalValue) {
-      return;
-    }
-
-    const updated = await contractorPaymentService.updatePayment(id, { [field]: finalValue });
-    if (updated) {
-      setPayments(prev => prev.map(p => p.id === id ? updated : p));
-      setShowToast(true);
-    } else {
-      if (selectedEventId) {
-        loadPaymentsByEvent(selectedEventId);
-      }
-    }
-  }, [selectedEventId, loadPaymentsByEvent, payments, parseNumber]);
-
   // Сохранение всей строки сразу
   const handleSaveRow = useCallback(async (id: string) => {
+    if (!changedFields[id] || changedFields[id].size === 0) {
+      return;
+    }
+
     const payment = payments.find(p => p.id === id);
     if (!payment) return;
 
@@ -278,6 +259,11 @@ const ContractorsPaymentsTab = () => {
       const updated = await contractorPaymentService.updatePayment(id, updateData);
       if (updated) {
         setPayments(prev => prev.map(p => p.id === id ? updated : p));
+        setChangedFields(prev => {
+          const updatedFields = { ...prev };
+          delete updatedFields[id];
+          return updatedFields;
+        });
         setShowToast(true);
       } else {
         console.error('Ошибка сохранения');
@@ -291,7 +277,7 @@ const ContractorsPaymentsTab = () => {
         loadPaymentsByEvent(selectedEventId);
       }
     }
-  }, [payments, selectedEventId, loadPaymentsByEvent, parseNumber]);
+  }, [payments, selectedEventId, loadPaymentsByEvent, parseNumber, changedFields]);
 
   const handleDeletePayment = async (id: string) => {
     if (!confirm('Вы точно хотите удалить эту оплату подрядчику?')) {
@@ -307,7 +293,7 @@ const ContractorsPaymentsTab = () => {
   const getCurrencySymbol = (currency: Currency): string => {
     switch (currency) {
       case 'грн':
-        return '₴';
+        return 'грн';
       case 'доллар':
         return '$';
       case 'евро':
@@ -420,7 +406,27 @@ const ContractorsPaymentsTab = () => {
           margin: [0, 0, 0, 3],
         },
         {
-          text: `ГРН: ${formatCurrencyAmount(toPayTotals.грн)}`,
+          text: `грн: ${formatCurrencyAmount(toPayTotals.грн)}`,
+          style: 'totalText',
+          margin: [0, 0, 0, 3],
+        },
+        {
+          text: 'Нужно взять на ивент:',
+          style: 'totalHeader',
+          margin: [0, 10, 0, 5],
+        },
+        {
+          text: `USD: ${totalsByCurrency.доллар.toFixed(2)}`,
+          style: 'totalText',
+          margin: [0, 0, 0, 3],
+        },
+        {
+          text: `EUR: ${totalsByCurrency.евро.toFixed(2)}`,
+          style: 'totalText',
+          margin: [0, 0, 0, 3],
+        },
+        {
+          text: `грн: ${totalsByCurrency.грн.toFixed(2)}`,
           style: 'totalText',
           margin: [0, 0, 0, 0],
         },
@@ -640,7 +646,7 @@ const ContractorsPaymentsTab = () => {
                       type="text"
                       value={payment.service || ''}
                       onChange={(e) => handleUpdatePayment(payment.id, 'service', e.target.value)}
-                      onBlur={(e) => handleSavePayment(payment.id, 'service', e.target.value)}
+                      onBlur={() => handleSaveRow(payment.id)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           e.currentTarget.blur();
@@ -660,9 +666,8 @@ const ContractorsPaymentsTab = () => {
                           const numValue = parseNumber(e.target.value);
                           handleUpdatePayment(payment.id, 'cost', numValue);
                         }}
-                        onBlur={(e) => {
-                          const numValue = parseNumber(e.target.value);
-                          handleSavePayment(payment.id, 'cost', numValue);
+                        onBlur={() => {
+                          handleSaveRow(payment.id);
                         }}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
@@ -680,10 +685,11 @@ const ContractorsPaymentsTab = () => {
                           const newCurrency = e.target.value as Currency;
                           handleUpdatePayment(payment.id, 'cost_currency', newCurrency);
                         }}
+                        onBlur={() => handleSaveRow(payment.id)}
                         className="px-0.5 py-0.5 -ml-0.5 border-0 focus:ring-2 focus:ring-black focus:outline-none font-forum text-[16px] max-[1599px]:text-[15px] bg-transparent cursor-pointer min-w-[35px]"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <option value="грн">₴</option>
+                        <option value="грн">грн</option>
                         <option value="доллар">$</option>
                         <option value="евро">€</option>
                       </select>
@@ -698,9 +704,8 @@ const ContractorsPaymentsTab = () => {
                           const numValue = parseNumber(e.target.value);
                           handleUpdatePayment(payment.id, 'percent', numValue);
                         }}
-                        onBlur={(e) => {
-                          const numValue = parseNumber(e.target.value);
-                          handleSavePayment(payment.id, 'percent', numValue);
+                        onBlur={() => {
+                          handleSaveRow(payment.id);
                         }}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
@@ -718,10 +723,11 @@ const ContractorsPaymentsTab = () => {
                           const newCurrency = e.target.value as Currency;
                           handleUpdatePayment(payment.id, 'percent_currency', newCurrency);
                         }}
+                        onBlur={() => handleSaveRow(payment.id)}
                         className="px-0.5 py-0.5 -ml-0.5 border-0 focus:ring-2 focus:ring-black focus:outline-none font-forum text-[16px] max-[1599px]:text-[15px] bg-transparent cursor-pointer min-w-[35px]"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <option value="грн">₴</option>
+                        <option value="грн">грн</option>
                         <option value="доллар">$</option>
                         <option value="евро">€</option>
                       </select>
@@ -736,9 +742,8 @@ const ContractorsPaymentsTab = () => {
                           const numValue = parseNumber(e.target.value);
                           handleUpdatePayment(payment.id, 'advance', numValue);
                         }}
-                        onBlur={(e) => {
-                          const numValue = parseNumber(e.target.value);
-                          handleSavePayment(payment.id, 'advance', numValue);
+                        onBlur={() => {
+                          handleSaveRow(payment.id);
                         }}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
@@ -756,10 +761,11 @@ const ContractorsPaymentsTab = () => {
                           const newCurrency = e.target.value as Currency;
                           handleUpdatePayment(payment.id, 'advance_currency', newCurrency);
                         }}
+                        onBlur={() => handleSaveRow(payment.id)}
                         className="px-0.5 py-0.5 -ml-0.5 border-0 focus:ring-2 focus:ring-black focus:outline-none font-forum text-[16px] max-[1599px]:text-[15px] bg-transparent cursor-pointer min-w-[35px]"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <option value="грн">₴</option>
+                        <option value="грн">грн</option>
                         <option value="доллар">$</option>
                         <option value="евро">€</option>
                       </select>
@@ -770,7 +776,7 @@ const ContractorsPaymentsTab = () => {
                       type="date"
                       value={payment.date}
                       onChange={(e) => handleUpdatePayment(payment.id, 'date', e.target.value)}
-                      onBlur={(e) => handleSavePayment(payment.id, 'date', e.target.value)}
+                      onBlur={() => handleSaveRow(payment.id)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           e.currentTarget.blur();
@@ -784,7 +790,7 @@ const ContractorsPaymentsTab = () => {
                     <div className="flex items-center justify-end gap-1">
                       <span>{payment.to_pay?.toFixed(2) || '0.00'}</span>
                       <span className="text-[16px] max-[1599px]:text-[15px]">
-                        {(payment.cost_currency || payment.currency) === 'доллар' ? '$' : (payment.cost_currency || payment.currency) === 'евро' ? '€' : '₴'}
+                        {(payment.cost_currency || payment.currency) === 'доллар' ? '$' : (payment.cost_currency || payment.currency) === 'евро' ? '€' : 'грн'}
                       </span>
                     </div>
                   </td>
@@ -809,7 +815,7 @@ const ContractorsPaymentsTab = () => {
                         input.style.width = 'auto';
                         input.style.width = `${Math.max(150, Math.min(textWidth + 20, window.innerWidth * 0.5))}px`;
                       }}
-                      onBlur={(e) => handleSavePayment(payment.id, 'comment', e.target.value)}
+                      onBlur={() => handleSaveRow(payment.id)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           e.currentTarget.blur();
@@ -890,7 +896,7 @@ const ContractorsPaymentsTab = () => {
                       <span>EUR: {formatCurrencyAmount(totals.евро)}</span>
                     </div>
                     <div className="text-[14px] max-[1599px]:text-[13px] font-forum">
-                      <span>ГРН: {formatCurrencyAmount(totals.грн)}</span>
+                      <span>грн: {formatCurrencyAmount(totals.грн)}</span>
                     </div>
                   </div>
                   <div className="flex flex-col gap-0.5">
@@ -904,7 +910,7 @@ const ContractorsPaymentsTab = () => {
                       <span>EUR: {totalsByCurrency.евро.toFixed(2)}</span>
                     </div>
                     <div className="text-[14px] max-[1599px]:text-[13px] font-forum">
-                      <span>ГРН: {totalsByCurrency.грн.toFixed(2)}</span>
+                      <span>грн: {totalsByCurrency.грн.toFixed(2)}</span>
                     </div>
                   </div>
                 </div>

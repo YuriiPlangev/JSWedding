@@ -754,7 +754,7 @@ const SalariesTab = () => {
                             className="px-0.5 py-0.5 -ml-0.5 border-0 focus:ring-2 focus:ring-black focus:outline-none font-forum text-[16px] max-[1599px]:text-[15px] bg-transparent cursor-pointer min-w-[35px]"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <option value="грн">₴</option>
+                            <option value="грн">грн</option>
                             <option value="доллар">$</option>
                             <option value="евро">€</option>
                           </select>
@@ -796,7 +796,7 @@ const SalariesTab = () => {
                             className="px-0.5 py-0.5 -ml-0.5 border-0 focus:ring-2 focus:ring-black focus:outline-none font-forum text-[16px] max-[1599px]:text-[15px] bg-transparent cursor-pointer min-w-[35px]"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <option value="">₴</option>
+                            <option value="">грн</option>
                             <option value="доллар">$</option>
                             <option value="евро">€</option>
                           </select>
@@ -863,7 +863,7 @@ const SalariesTab = () => {
                                 className="px-0.5 py-0.5 border-0 focus:ring-1 focus:ring-black focus:outline-none font-forum text-[13px] max-[1599px]:text-[12px] bg-transparent cursor-pointer"
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                <option value="грн">₴</option>
+                                <option value="грн">грн</option>
                                 <option value="доллар">$</option>
                                 <option value="евро">€</option>
                               </select>
