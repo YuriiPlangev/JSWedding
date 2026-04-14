@@ -483,29 +483,72 @@ const ContractorAccessPage = () => {
         <section className="border-y border-[#00000033] bg-transparent w-[100vw] relative left-1/2 -translate-x-1/2">
           <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr]">
             <div className="p-3 sm:p-4 border-b lg:border-b-0 border-[#00000033]">
-              <h2 className="text-[22px] sm:text-[26px] lg:text-[32px] font-forum leading-tight text-left">
+              <h2 className="text-[22px] sm:text-[26px] lg:text-[32px] font-forum leading-tight text-center lg:text-left">
                 {t.eventDetails}
               </h2>
-              <p className="text-[12px] sm:text-[13px] text-[#00000080] font-forum font-light mt-1 text-left">
+              <p className="text-[12px] sm:text-[13px] text-[#00000080] font-forum font-light mt-1 text-center lg:text-left">
                 {t.keyDetails}
               </p>
             </div>
 
-            <div className="flex flex-col lg:flex-row divide-y divide-[#00000033]">
+            {/* Mobile: 2 columns grid */}
+            <div className="lg:hidden grid grid-cols-2">
+              <div className="p-3 text-center border-b border-[#00000033]">
+                <p className="text-[12px] text-[#00000080] font-forum font-light mb-1">{t.date}</p>
+                <p className="text-[16px] font-forum font-bold leading-tight">
+                  {wedding.wedding_date ? formatDate(wedding.wedding_date) : ''}
+                </p>
+              </div>
+              <div className="p-3 text-center border-b border-l border-[#00000033]">
+                <p className="text-[12px] text-[#00000080] font-forum font-light mb-1">{t.locationLabel}</p>
+                <p className="text-[16px] font-forum font-bold leading-tight break-words">{getCountryDisplay()}</p>
+              </div>
+              <div className="p-3 text-center border-b border-[#00000033]">
+                <p className="text-[12px] text-[#00000080] font-forum font-light mb-1">{t.venueLabel}</p>
+                <p className="text-[16px] font-forum font-bold leading-tight">{wedding.venue}</p>
+                {(wedding.contractor_venue_address || wedding.contractor_maps_url) && (
+                  <div>
+                    {wedding.contractor_maps_url ? (
+                      <a
+                        href={normalizeMapsUrl(wedding.contractor_maps_url)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[12px] font-forum text-[#00000080] underline underline-offset-2 break-words inline-block max-w-full"
+                      >
+                        {wedding.contractor_venue_address?.trim() || 'Google Maps'}
+                      </a>
+                    ) : (
+                      <p className="text-[12px] font-forum text-[#00000080] break-words">{wedding.contractor_venue_address}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div className="p-3 text-center border-b border-l border-[#00000033]">
+                <p className="text-[12px] text-[#00000080] font-forum font-light mb-1">{t.guestCount}</p>
+                <p className="text-[16px] font-forum font-bold leading-tight">{wedding.guest_count}</p>
+              </div>
+              <div className="col-span-2 p-3 text-center">
+                <p className="text-[16px] font-forum font-bold leading-tight mb-1">
+                  {wedding.wedding_date ? calculateDaysUntilEvent(wedding.wedding_date) : 0} {t.days}
+                </p>
+                <p className="text-[12px] font-forum font-light text-[#00000080] leading-tight">{t.daysTillEvent}</p>
+              </div>
+            </div>
+
+            {/* Desktop: row layout */}
+            <div className="hidden lg:flex lg:flex-row divide-y lg:divide-y-0 divide-[#00000033]">
               <div className="flex-1 p-3 sm:p-4 text-center">
                 <p className="text-[12px] sm:text-[13px] text-[#00000080] font-forum font-light mb-1">{t.date}</p>
                 <p className="text-[16px] sm:text-[18px] lg:text-[22px] font-forum font-bold leading-tight">
                   {wedding.wedding_date ? formatDate(wedding.wedding_date) : ''}
                 </p>
               </div>
-
               <div className="flex-1 p-3 sm:p-4 text-center">
                 <p className="text-[12px] sm:text-[13px] text-[#00000080] font-forum font-light mb-1">{t.locationLabel}</p>
                 <p className="text-[16px] sm:text-[18px] lg:text-[22px] font-forum font-bold leading-tight break-words">
                   {getCountryDisplay()}
                 </p>
               </div>
-
               <div className="flex-1 p-3 sm:p-4 text-center">
                 <p className="text-[12px] sm:text-[13px] text-[#00000080] font-forum font-light mb-1">{t.venueLabel}</p>
                 <p className="text-[16px] sm:text-[18px] lg:text-[22px] font-forum font-bold leading-tight">
@@ -530,12 +573,10 @@ const ContractorAccessPage = () => {
                   </div>
                 )}
               </div>
-
               <div className="flex-1 p-3 sm:p-4 text-center">
                 <p className="text-[12px] sm:text-[13px] text-[#00000080] font-forum font-light mb-1">{t.guestCount}</p>
                 <p className="text-[16px] sm:text-[18px] lg:text-[22px] font-forum font-bold leading-tight">{wedding.guest_count}</p>
               </div>
-
               <div className="flex-1 p-3 sm:p-4 text-center">
                 <p className="text-[16px] sm:text-[18px] lg:text-[22px] font-forum font-bold leading-tight mb-1">
                   {wedding.wedding_date ? calculateDaysUntilEvent(wedding.wedding_date) : 0} {t.days}
