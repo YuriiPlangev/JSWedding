@@ -20,7 +20,7 @@ interface TaskColumnProps {
   taskLogs: Record<string, OrganizerTaskLog[]>;
   loadingLogs: Record<string, boolean>;
   initiallyCompletedTaskIds: Set<string>;
-  creatingTaskGroupId: string | null;
+  creatingTaskGroupId: string | null | 'unsorted';
   newTaskText: string;
   newTaskPriority?: 'low' | 'medium' | 'high';
   newTaskAssignedOrganizerId?: string | null;

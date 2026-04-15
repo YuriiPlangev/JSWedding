@@ -146,7 +146,7 @@ const OrganizerDashboard = () => {
     const [expandedCompletedSections, setExpandedCompletedSections] = useState<Set<string>>(new Set());
     
     // Состояния для inline создания задач
-    const [creatingTaskGroupId, setCreatingTaskGroupId] = useState<string | null>(null);
+    const [creatingTaskGroupId, setCreatingTaskGroupId] = useState<string | null | 'unsorted'>(null);
     const [newTaskText, setNewTaskText] = useState('');
     const [newTaskPriority, setNewTaskPriority] = useState<'low' | 'medium' | 'high'>('medium');
     const newTaskInputRef = useRef<HTMLInputElement | null>(null);
@@ -271,7 +271,8 @@ const OrganizerDashboard = () => {
 
 
     const handleCreateTask = (groupId: string | null) => {
-      setCreatingTaskGroupId(groupId);
+      // Для несортированных задач используем специальный маркер
+      setCreatingTaskGroupId(groupId === null ? 'unsorted' : groupId);
       setNewTaskText('');
       // Фокус на input будет установлен через useEffect
     };
@@ -473,7 +474,8 @@ const OrganizerDashboard = () => {
       
       // Возвращаем фокус на input сразу
       setTimeout(() => {
-        if (creatingTaskGroupId === groupId && newTaskInputRef.current) {
+        const isCreating = (groupId === null && creatingTaskGroupId === 'unsorted') || creatingTaskGroupId === groupId;
+        if (isCreating && newTaskInputRef.current) {
           newTaskInputRef.current.focus();
         }
       }, 0);
@@ -536,7 +538,7 @@ const OrganizerDashboard = () => {
 
     // Автофокус на input при создании новой задачи
     useEffect(() => {
-      if (creatingTaskGroupId && newTaskInputRef.current) {
+      if (creatingTaskGroupId !== null && newTaskInputRef.current) {
         // Небольшая задержка для корректной работы после перерендера
         setTimeout(() => {
           newTaskInputRef.current?.focus();
