@@ -174,7 +174,7 @@ const ContractorsPaymentsTab = () => {
   const handleCreatePayment = async (payment: Omit<ContractorPayment, 'id' | 'created_at' | 'updated_at' | 'to_pay'>) => {
     const created = await contractorPaymentService.createPayment(payment);
     if (created) {
-      setPayments(prev => [created, ...prev]);
+      setPayments(prev => [...prev, created]);
     }
   };
 

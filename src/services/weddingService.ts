@@ -1494,7 +1494,7 @@ export const advanceService = {
       .from('advances')
       .select('*')
       .eq('event_id', eventId)
-      .order('date', { ascending: false })
+      // Порядок как в таблице: сверху раньше добавленные, снизу новые (кнопка «+ строка» под таблицей)
       .order('created_at', { ascending: true });
 
     if (error) {
@@ -1764,7 +1764,6 @@ export const contractorPaymentService = {
       .from('contractor_payments')
       .select('*')
       .eq('created_by', userId)
-      .order('date', { ascending: false })
       .order('created_at', { ascending: true });
 
     if (error) {
@@ -1781,7 +1780,6 @@ export const contractorPaymentService = {
       .from('contractor_payments')
       .select('*')
       .eq('event_id', eventId)
-      .order('date', { ascending: false })
       .order('created_at', { ascending: true });
 
     if (error) {
