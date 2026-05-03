@@ -1494,7 +1494,8 @@ export const advanceService = {
       .from('advances')
       .select('*')
       .eq('event_id', eventId)
-      .order('date', { ascending: false });
+      .order('date', { ascending: false })
+      .order('created_at', { ascending: true });
 
     if (error) {
       console.error('Error fetching advances:', error);
@@ -1628,7 +1629,8 @@ export const salaryService = {
       .from('salaries')
       .select('*')
       .eq('employee_id', employeeId)
-      .order('month', { ascending: false });
+      .order('month', { ascending: false })
+      .order('created_at', { ascending: true });
 
     if (error) {
       console.error('Error fetching salaries:', error);
@@ -1762,7 +1764,8 @@ export const contractorPaymentService = {
       .from('contractor_payments')
       .select('*')
       .eq('created_by', userId)
-      .order('date', { ascending: false });
+      .order('date', { ascending: false })
+      .order('created_at', { ascending: true });
 
     if (error) {
       console.error('Error fetching contractor payments:', error);
@@ -1778,7 +1781,8 @@ export const contractorPaymentService = {
       .from('contractor_payments')
       .select('*')
       .eq('event_id', eventId)
-      .order('date', { ascending: false });
+      .order('date', { ascending: false })
+      .order('created_at', { ascending: true });
 
     if (error) {
       console.error('Error fetching contractor payments by event:', error);
