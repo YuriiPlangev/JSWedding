@@ -171,7 +171,8 @@ const ContractorManagementModal = ({
 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedPassword, setCopiedPassword] = useState(false);
 
   const [venueAddress, setVenueAddress] = useState(initialSettings?.venueAddress || '');
   const [mapsUrl, setMapsUrl] = useState(initialSettings?.mapsUrl || '');
@@ -205,8 +206,17 @@ const ContractorManagementModal = ({
       return;
     }
     await navigator.clipboard.writeText(contractorLink);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 1500);
+  };
+
+  const handleCopyPassword = async () => {
+    if (!contractorPassword.trim()) {
+      return;
+    }
+    await navigator.clipboard.writeText(contractorPassword);
+    setCopiedPassword(true);
+    setTimeout(() => setCopiedPassword(false), 1500);
   };
 
   const handleSaveSettings = async () => {
@@ -383,15 +393,25 @@ const ContractorManagementModal = ({
                 <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
                   Пароль подрядчиков
                 </label>
-                <input
-                  type="text"
-                  value={contractorPassword}
-                  onChange={(e) => setContractorPassword(e.target.value)}
-                  placeholder={isPasswordConfigured ? 'Введите новый пароль (или оставьте пустым)' : 'Введите пароль'}
-                  autoComplete="off"
-                  spellCheck={false}
-                  className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-[#eae6db]"
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={contractorPassword}
+                    onChange={(e) => setContractorPassword(e.target.value)}
+                    placeholder={isPasswordConfigured ? 'Введите новый пароль (или оставьте пустым)' : 'Введите пароль'}
+                    autoComplete="off"
+                    spellCheck={false}
+                    className="flex-1 px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-[#eae6db]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void handleCopyPassword()}
+                    disabled={!contractorPassword.trim()}
+                    className="px-4 py-2 bg-black text-white rounded-lg font-forum text-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {copiedPassword ? 'Скопировано' : 'Копировать'}
+                  </button>
+                </div>
                 <p className="text-[12px] font-forum font-light text-[#00000080] mt-1">
                   {isPasswordConfigured
                     ? 'Если введете новый пароль — он будет обновлен. Оставьте пустым, чтобы не менять.'
@@ -414,7 +434,7 @@ const ContractorManagementModal = ({
                       onClick={() => void handleCopyLink()}
                       className="px-4 py-2 bg-black text-white rounded-lg font-forum text-sm"
                     >
-                      {copied ? 'Скопировано' : 'Копировать'}
+                      {copiedLink ? 'Скопировано' : 'Копировать'}
                     </button>
                   </div>
                 </div>
@@ -424,12 +444,12 @@ const ContractorManagementModal = ({
                 <label className="block text-[16px] max-[1599px]:text-[14px] font-forum font-bold text-black mb-1">
                   Дресс-код
                 </label>
-                <input
-                  type="text"
+                <textarea
+                  rows={4}
                   value={settingsData.dressCode}
                   onChange={(e) => setSettingsData({ ...settingsData, dressCode: e.target.value })}
                   placeholder="например: Black Tie / Formal Evening Dress"
-                  className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-[#eae6db] text-[14px]"
+                  className="w-full px-3 py-2 border border-[#00000033] rounded-lg focus:ring-2 focus:ring-black focus:border-black font-forum bg-[#eae6db] text-[14px] resize-y min-h-[96px]"
                 />
               </div>
 
@@ -679,8 +699,8 @@ const ContractorManagementModal = ({
                           </div>
 
                           <input
-                            type="tel"
-                            placeholder="Номер телефона"
+                            type="text"
+                            placeholder="Номер телефона, Telegram и т.д."
                             value={coordinator.phone}
                             onChange={(e) => {
                               const updated = coordinators.map((c) =>
@@ -734,7 +754,7 @@ const ContractorManagementModal = ({
                       onClick={() => void handleCopyLink()}
                       className="px-4 py-2 bg-black text-white rounded-lg font-forum text-sm"
                     >
-                      {copied ? 'Скопировано' : 'Копировать'}
+                      {copiedLink ? 'Скопировано' : 'Копировать'}
                     </button>
                   </div>
                 </div>

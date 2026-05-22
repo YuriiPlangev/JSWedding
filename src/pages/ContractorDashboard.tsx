@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import type { Wedding, ContractorDocument } from '../types';
 import Header from '../components/Header';
 import { getInitialLanguage } from '../utils/languageUtils';
+import { formatPhonePretty } from '../utils/phoneUtils';
 import { contractorService } from '../services/contractorService';
 import downloadIcon from '../assets/download.svg';
 
@@ -107,25 +108,6 @@ const ContractorDashboard = () => {
     if (!t) return '';
     if (/^https?:\/\//i.test(t)) return t;
     return `https://${t}`;
-  };
-
-  const formatPhonePretty = (phoneRaw: string) => {
-    const digits = phoneRaw.replace(/\D/g, '');
-    if (!digits) return phoneRaw;
-
-    let local = '';
-    if (digits.startsWith('380') && digits.length >= 12) {
-      local = digits.slice(3);
-    } else if (digits.startsWith('0') && digits.length >= 10) {
-      local = digits.slice(1);
-    } else if (digits.length === 9) {
-      local = digits;
-    } else {
-      return phoneRaw;
-    }
-
-    if (local.length !== 9) return phoneRaw;
-    return `+380 ${local.slice(0, 2)} ${local.slice(2, 5)} ${local.slice(5, 7)} ${local.slice(7, 9)}`;
   };
 
   const tryParseJson = <T,>(value?: string | null): T | null => {
@@ -343,7 +325,7 @@ const ContractorDashboard = () => {
 
           <article className="p-3 sm:p-4 text-center flex flex-col items-center justify-center">
             <h2 className="text-[24px] sm:text-[28px] lg:text-[34px] font-forum leading-tight">{t.dressCode}</h2>
-            <p className="text-[15px] sm:text-[17px] lg:text-[20px] font-forum font-light mt-2 leading-relaxed max-w-[520px]">
+            <p className="text-[15px] sm:text-[17px] lg:text-[20px] font-forum font-light mt-2 leading-relaxed max-w-[520px] whitespace-pre-wrap">
               {wedding.contractor_dress_code || wedding.dress_code || 'N/A'}
             </p>
           </article>

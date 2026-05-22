@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import type { Wedding, ContractorDocument } from '../types';
 import { contractorService } from '../services/contractorService';
 import { getInitialLanguage } from '../utils/languageUtils';
+import { formatPhonePretty } from '../utils/phoneUtils';
 import downloadIcon from '../assets/download.svg';
 import logo from '../assets/logoV3.svg';
 import secondScreen from '../assets/bgJSSS.jpg';
@@ -193,28 +194,6 @@ const ContractorAccessPage = () => {
     });
   };
 
-  const formatPhonePretty = (phoneRaw: string) => {
-    const digits = phoneRaw.replace(/\D/g, '');
-    if (!digits) return phoneRaw;
-
-    // Normalize to 9-digit local number (after +380)
-    let local = '';
-    if (digits.startsWith('380') && digits.length >= 12) {
-      local = digits.slice(3);
-    } else if (digits.startsWith('0') && digits.length >= 10) {
-      local = digits.slice(1);
-    } else if (digits.length === 9) {
-      local = digits;
-    } else {
-      return phoneRaw;
-    }
-
-    if (local.length !== 9) return phoneRaw;
-
-    // +380 67 127 13 23
-    return `+380 ${local.slice(0, 2)} ${local.slice(2, 5)} ${local.slice(5, 7)} ${local.slice(7, 9)}`;
-  };
-
   const tryParseJson = <T,>(value?: string | null): T | null => {
     if (!value) return null;
     try {
@@ -240,8 +219,8 @@ const ContractorAccessPage = () => {
       eventDetails: 'Event details',
       keyDetails: 'Key details about your celebration',
       date: 'event date',
+      countryLabel: 'country',
       locationLabel: 'location',
-      venueLabel: 'venue',
       guestCount: 'number of Guests',
       coupleNames: 'couple names',
       days: 'days',
@@ -263,8 +242,8 @@ const ContractorAccessPage = () => {
       eventDetails: 'Детали события',
       keyDetails: 'Ключевые детали вашего праздника',
       date: 'дата события',
+      countryLabel: 'страна',
       locationLabel: 'локация',
-      venueLabel: 'место',
       guestCount: 'количество гостей',
       coupleNames: 'имена пары',
       days: 'дней',
@@ -286,8 +265,8 @@ const ContractorAccessPage = () => {
       eventDetails: 'Деталі події',
       keyDetails: 'Ключові деталі вашого свята',
       date: 'дата події',
+      countryLabel: 'країна',
       locationLabel: 'локація',
-      venueLabel: 'місце',
       guestCount: 'кількість гостей',
       coupleNames: 'імена пари',
       days: 'днів',
@@ -340,16 +319,16 @@ const ContractorAccessPage = () => {
 
           <form
             onSubmit={handleLogin}
-            className="relative bg-[#FBF9F5B2] backdrop-blur-sm w-full max-w-[92vw] sm:max-w-[340px] md:max-w-[420px] lg:max-w-[520px] xl:max-w-[540px] min-[1440px]:max-w-[735px] 2xl:max-w-[825px] p-7 sm:p-8 mx-4 flex flex-col items-center justify-center rounded-lg min-h-[340px] sm:min-h-[380px]"
+            className="relative bg-[#FBF9F5B2] backdrop-blur-sm w-full max-w-[92vw] sm:max-w-[340px] md:max-w-[420px] lg:max-w-[520px] xl:max-w-[540px] min-[1440px]:max-w-[735px] 2xl:max-w-[825px] p-5 sm:p-6 mx-4 flex flex-col items-center rounded-lg"
           >
-            <div className="flex flex-col items-center justify-center mb-8 w-full">
-              <h1 className="text-black text-[16px] sm:text-[18px] md:text-[20px] lg:text-[18px] font-branch font-regular mt-2 mb-1.5 text-center">
+            <div className="flex flex-col items-center w-full mb-4">
+              <h1 className="text-black text-[16px] sm:text-[18px] md:text-[20px] lg:text-[18px] font-branch font-regular text-center">
                 Enter the password
               </h1>
             </div>
 
             {/* Password only */}
-            <div className="mb-7 self-start w-full">
+            <div className="mb-4 self-start w-full">
               <label
                 htmlFor="contractor-password"
                 className="block text-sm font-gilroy mb-1.5 text-[10px] sm:text-[11px] md:text-[11px]"
@@ -386,7 +365,7 @@ const ContractorAccessPage = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 border font-gilroy text-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer relative overflow-hidden group"
+              className="w-full py-2.5 border font-gilroy text-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer relative overflow-hidden group"
               style={{ borderColor: 'black', color: 'black' }}
             >
               <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-[0.05] group-active:opacity-[0.1] transition-opacity duration-300" />
@@ -500,11 +479,11 @@ const ContractorAccessPage = () => {
                 </p>
               </div>
               <div className="p-3 text-center border-b border-l border-[#00000033]">
-                <p className="text-[12px] text-[#00000080] font-forum font-light mb-1">{t.locationLabel}</p>
+                <p className="text-[12px] text-[#00000080] font-forum font-light mb-1">{t.countryLabel}</p>
                 <p className="text-[16px] font-forum font-bold leading-tight break-words">{getCountryDisplay()}</p>
               </div>
               <div className="p-3 text-center border-b border-[#00000033]">
-                <p className="text-[12px] text-[#00000080] font-forum font-light mb-1">{t.venueLabel}</p>
+                <p className="text-[12px] text-[#00000080] font-forum font-light mb-1">{t.locationLabel}</p>
                 <p className="text-[16px] font-forum font-bold leading-tight">{wedding.venue}</p>
                 {(wedding.contractor_venue_address || wedding.contractor_maps_url) && (
                   <div>
@@ -544,13 +523,13 @@ const ContractorAccessPage = () => {
                 </p>
               </div>
               <div className="flex-1 p-3 sm:p-4 text-center">
-                <p className="text-[12px] sm:text-[13px] text-[#00000080] font-forum font-light mb-1">{t.locationLabel}</p>
+                <p className="text-[12px] sm:text-[13px] text-[#00000080] font-forum font-light mb-1">{t.countryLabel}</p>
                 <p className="text-[16px] sm:text-[18px] lg:text-[22px] font-forum font-bold leading-tight break-words">
                   {getCountryDisplay()}
                 </p>
               </div>
               <div className="flex-1 p-3 sm:p-4 text-center">
-                <p className="text-[12px] sm:text-[13px] text-[#00000080] font-forum font-light mb-1">{t.venueLabel}</p>
+                <p className="text-[12px] sm:text-[13px] text-[#00000080] font-forum font-light mb-1">{t.locationLabel}</p>
                 <p className="text-[16px] sm:text-[18px] lg:text-[22px] font-forum font-bold leading-tight">
                   {wedding.venue}
                 </p>
@@ -628,7 +607,7 @@ const ContractorAccessPage = () => {
 
           <article className="p-3 sm:p-4 text-center flex flex-col items-center justify-center">
             <p className="text-[12px] sm:text-[13px] text-[#00000080] font-forum tracking-wide">{t.dressCode}</p>
-            <p className="text-[16px] sm:text-[18px] lg:text-[20px] font-forum font-bold mt-2 leading-relaxed max-w-[520px]">
+            <p className="text-[16px] sm:text-[18px] lg:text-[20px] font-forum font-bold mt-2 leading-relaxed max-w-[520px] whitespace-pre-wrap">
               {wedding.contractor_dress_code || 'N/A'}
             </p>
           </article>
