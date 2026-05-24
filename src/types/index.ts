@@ -236,6 +236,7 @@ export interface CustomPresentation {
   pdf_file_path?: string;
   image_urls?: string[];
   type?: string;
+  audience?: 'client' | 'contractor';
   presentation_sections?: CustomPresentationSection[];
   created_at?: string;
   updated_at?: string;

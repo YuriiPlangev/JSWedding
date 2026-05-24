@@ -1,7 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useParams } from 'react-router-dom';
-import type { Wedding, ContractorDocument } from '../types';
+import type { Wedding, ContractorDocument, CustomPresentation } from '../types';
 import { contractorService } from '../services/contractorService';
+import Presentation from '../components/Presentation';
 import { getInitialLanguage } from '../utils/languageUtils';
 import { formatPhonePretty } from '../utils/phoneUtils';
 import downloadIcon from '../assets/download.svg';
@@ -25,6 +26,7 @@ const ContractorAccessPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [wedding, setWedding] = useState<Wedding | null>(null);
   const [documents, setDocuments] = useState<ContractorDocument[]>([]);
+  const [presentations, setPresentations] = useState<CustomPresentation[]>([]);
 
   useEffect(() => {
     if (!token) {
@@ -59,7 +61,10 @@ const ContractorAccessPage = () => {
       return;
     }
 
-    const { documents: docs, error: docsError } = await contractorService.getContractorDocumentsByAccess(token, passwordToCheck);
+    const [{ documents: docs, error: docsError }, { presentations: pres, error: presError }] = await Promise.all([
+      contractorService.getContractorDocumentsByAccess(token, passwordToCheck),
+      contractorService.getContractorPresentationsByAccess(token, passwordToCheck),
+    ]);
 
     if (docsError) {
       setLoading(false);
@@ -67,8 +72,15 @@ const ContractorAccessPage = () => {
       return;
     }
 
+    if (presError) {
+      setLoading(false);
+      setError(presError);
+      return;
+    }
+
     setWedding(weddingData);
     setDocuments(docs);
+    setPresentations(pres);
     setAuthorized(true);
     sessionStorage.setItem(`contractor_access_${token}`, passwordToCheck);
     setLoading(false);
@@ -707,6 +719,22 @@ const ContractorAccessPage = () => {
           </div>
         </section>
       </main>
+
+      {presentations.length > 0 &&
+        presentations.map((p) => (
+          <Presentation
+            key={p.id}
+            presentation={{
+              id: p.id,
+              wedding_id: p.wedding_id,
+              type: 'wedding',
+              title: p.title,
+              image_urls: p.image_urls,
+              presentation_sections: p.presentation_sections,
+            }}
+            currentLanguage={currentLanguage}
+          />
+        ))}
     </div>
   );
 };

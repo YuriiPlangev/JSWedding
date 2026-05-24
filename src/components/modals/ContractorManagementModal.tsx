@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react';
 import type { ContractorDocument } from '../../types';
 import { contractorService } from '../../services/contractorService';
+import { presentationServiceExtended } from '../../services/weddingService';
+import { useContractorPresentations } from '../../hooks';
+import { convertPdfToImages, dataUrlToFile } from '../../utils/pdfToImages';
+import PresentationModal from './PresentationModal';
+import EditPresentationModal from './EditPresentationModal';
 
 type Language = 'en' | 'ru' | 'ua';
 
@@ -173,6 +178,15 @@ const ContractorManagementModal = ({
   const [loading, setLoading] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedPassword, setCopiedPassword] = useState(false);
+  const [showPresentationModal, setShowPresentationModal] = useState(false);
+  const [uploadingPresentation, setUploadingPresentation] = useState(false);
+  const [editingPresentationId, setEditingPresentationId] = useState<string | null>(null);
+  const [savingPresentation, setSavingPresentation] = useState(false);
+
+  const {
+    data: contractorPresentations = [],
+    refetch: refetchContractorPresentations,
+  } = useContractorPresentations(weddingId);
 
   const [venueAddress, setVenueAddress] = useState(initialSettings?.venueAddress || '');
   const [mapsUrl, setMapsUrl] = useState(initialSettings?.mapsUrl || '');
@@ -337,6 +351,78 @@ const ContractorManagementModal = ({
   const handleFinish = () => {
     onSave();
     onClose();
+  };
+
+  const handleUploadPresentation = async (data: {
+    title: string;
+    pdfFile: File;
+    sections: Array<{ title: string; page_number: number }>;
+  }) => {
+    setUploadingPresentation(true);
+    setError(null);
+    try {
+      const pdfFilePath = await presentationServiceExtended.uploadPresentationPdf(weddingId, data.pdfFile);
+      const presentation = await presentationServiceExtended.createPresentation(
+        weddingId,
+        data.title,
+        pdfFilePath,
+        'contractor'
+      );
+
+      const imageDataUrls = await convertPdfToImages(data.pdfFile);
+      const imageFiles = imageDataUrls.map((dataUrl, index) =>
+        dataUrlToFile(dataUrl, `page_${index + 1}.jpg`)
+      );
+
+      await presentationServiceExtended.uploadPresentationImages(weddingId, presentation.id, imageFiles);
+
+      if (data.sections.length > 0) {
+        await presentationServiceExtended.updatePresentationSections(presentation.id, data.sections);
+      }
+
+      await refetchContractorPresentations();
+      setShowPresentationModal(false);
+    } catch (err) {
+      console.error('Error uploading contractor presentation:', err);
+      setError('Ошибка при загрузке презентации');
+      throw err;
+    } finally {
+      setUploadingPresentation(false);
+    }
+  };
+
+  const handleDeletePresentation = async (presentationId: string) => {
+    if (!confirm('Вы уверены, что хотите удалить эту презентацию?')) {
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      await presentationServiceExtended.deletePresentation(presentationId);
+      await refetchContractorPresentations();
+    } catch (err) {
+      console.error('Error deleting contractor presentation:', err);
+      setError('Ошибка при удалении презентации');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSavePresentation = async (data: { title: string; sections: Array<{ title: string; page_number: number }> }) => {
+    if (!editingPresentationId) return;
+    setSavingPresentation(true);
+    setError(null);
+    try {
+      await presentationServiceExtended.updatePresentationMeta(editingPresentationId, { title: data.title });
+      await presentationServiceExtended.updatePresentationSections(editingPresentationId, data.sections);
+      await refetchContractorPresentations();
+      setEditingPresentationId(null);
+    } catch (err) {
+      console.error('Error saving contractor presentation:', err);
+      setError('Ошибка при сохранении презентации');
+    } finally {
+      setSavingPresentation(false);
+    }
   };
 
   return (
@@ -806,6 +892,59 @@ const ContractorManagementModal = ({
                 </div>
               </div>
 
+              <div>
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="text-[20px] font-forum font-bold text-black">Презентация для подрядчиков</h3>
+                  <button
+                    type="button"
+                    onClick={() => setShowPresentationModal(true)}
+                    className="px-4 py-2 bg-black text-white rounded-lg font-forum text-sm hover:bg-[#000000DD] transition-colors"
+                  >
+                    + Загрузить презентацию
+                  </button>
+                </div>
+                {contractorPresentations.length === 0 ? (
+                  <p className="text-[14px] text-[#00000060] font-forum italic py-2">
+                    Презентация не загружена — на странице подрядчиков блок не отображается
+                  </p>
+                ) : (
+                  <ul className="space-y-2">
+                    {contractorPresentations.map((presentation) => (
+                      <li
+                        key={presentation.id}
+                        className="flex items-center justify-between p-3 border border-[#00000033] rounded-lg gap-3"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="font-forum text-sm font-bold break-words">{presentation.title}</p>
+                          <p className="text-xs font-forum text-[#00000080] mt-0.5">
+                            Слайдов: {presentation.image_urls?.length || 0}
+                            {presentation.presentation_sections && presentation.presentation_sections.length > 0
+                              ? ` • Секций: ${presentation.presentation_sections.length}`
+                              : ''}
+                          </p>
+                        </div>
+                        <div className="flex gap-2 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => setEditingPresentationId(presentation.id)}
+                            className="px-3 py-1 bg-white border border-[#00000033] text-black rounded font-forum text-sm hover:bg-[#00000010] transition-colors"
+                          >
+                            Редактировать
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void handleDeletePresentation(presentation.id)}
+                            className="px-3 py-1 text-red-600 hover:text-red-800 font-forum text-sm"
+                          >
+                            Удалить
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
               {documents.length > 0 && (
                 <div>
                   <h3 className="text-[18px] font-forum font-bold text-black mb-3">Документы ({documents.length})</h3>
@@ -854,6 +993,27 @@ const ContractorManagementModal = ({
           )}
         </div>
       </div>
+
+      {showPresentationModal && (
+        <PresentationModal
+          uploading={uploadingPresentation}
+          onClose={() => setShowPresentationModal(false)}
+          onUpload={handleUploadPresentation}
+        />
+      )}
+
+      {editingPresentationId && (
+        <EditPresentationModal
+          isOpen={!!editingPresentationId}
+          isSaving={savingPresentation}
+          initialTitle={contractorPresentations.find((p) => p.id === editingPresentationId)?.title || ''}
+          initialSections={
+            contractorPresentations.find((p) => p.id === editingPresentationId)?.presentation_sections || []
+          }
+          onClose={() => setEditingPresentationId(null)}
+          onSave={handleSavePresentation}
+        />
+      )}
     </div>
   );
 };

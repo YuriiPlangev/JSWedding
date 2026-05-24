@@ -27,3 +27,19 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# --- Supabase: migrations, SQL, edge functions (DB is configured in Supabase dashboard) ---
+/supabase/
+
+# --- Dev / one-off scripts (not part of the frontend app) ---
+/scripts/
+
+# --- Internal docs at repo root (guides, implementation notes) ---
+/*.md
+
+# --- Optional local docs inside src ---
+src/fonts/pdf/README.md
+
+# --- Cursor / local assets (if present) ---
+.cursor/
+assets/

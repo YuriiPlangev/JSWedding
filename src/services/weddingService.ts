@@ -1864,7 +1864,8 @@ export const presentationServiceExtended = {
   async createPresentation(
     weddingId: string,
     title: string,
-    pdfFilePath: string
+    pdfFilePath: string,
+    audience: 'client' | 'contractor' = 'client'
   ): Promise<{ id: string; wedding_id: string; title: string; pdf_file_path: string; image_urls?: string[] }> {
     // Проверяем параметры
     console.log('createPresentation called with:', { weddingId, title, pdfFilePath });
@@ -1888,6 +1889,7 @@ export const presentationServiceExtended = {
         title,
         pdf_file_path: pdfFilePath,
         type: 'wedding',
+        audience,
       })
       .select()
       .single();
@@ -1974,7 +1976,10 @@ export const presentationServiceExtended = {
   },
 
   // Получить все презентации для свадьбы (с секциями)
-  async getPresentationsByWedding(weddingId: string): Promise<any[]> {
+  async getPresentationsByWedding(
+    weddingId: string,
+    audience: 'client' | 'contractor' = 'client'
+  ): Promise<any[]> {
     // Проверяем параметры
     if (!weddingId || weddingId === 'undefined') {
       console.error('getPresentationsByWedding: weddingId is undefined');
@@ -1982,11 +1987,18 @@ export const presentationServiceExtended = {
     }
 
     try {
-      const { data: presentations, error } = await supabase
+      let query = supabase
         .from('presentations')
         .select('*')
-        .eq('wedding_id', weddingId)
-        .order('created_at', { ascending: false });
+        .eq('wedding_id', weddingId);
+
+      if (audience === 'contractor') {
+        query = query.eq('audience', 'contractor');
+      } else {
+        query = query.or('audience.is.null,audience.eq.client');
+      }
+
+      const { data: presentations, error } = await query.order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching presentations for wedding:', error);

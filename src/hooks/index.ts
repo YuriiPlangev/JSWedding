@@ -5,4 +5,5 @@ export { useTaskLogs } from './useTaskLogs';
 export { useTaskDragAndDrop } from './useTaskDragAndDrop';
 export { useGroupDragAndDrop } from './useGroupDragAndDrop';
 export { useCustomPresentations } from './useCustomPresentations';
+export { useContractorPresentations } from './useContractorPresentations';
 

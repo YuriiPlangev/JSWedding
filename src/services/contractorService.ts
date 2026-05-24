@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import type { ContractorDocument, Wedding } from '../types';
+import type { ContractorDocument, CustomPresentation, Wedding } from '../types';
 
 /**
  * Service for managing contractor access and contractor documents.
@@ -257,6 +257,31 @@ export const contractorService = {
     } catch (error) {
       console.error('Error fetching contractor documents by access:', error);
       return { documents: [], error: 'Unexpected error occurred' };
+    }
+  },
+
+  /**
+   * Get contractor presentations by token/password (public flow).
+   */
+  async getContractorPresentationsByAccess(
+    token: string,
+    password: string
+  ): Promise<{ presentations: CustomPresentation[]; error: string | null }> {
+    try {
+      const { data, error } = await supabase.rpc('get_contractor_presentations_by_access', {
+        p_token: token,
+        p_password: password,
+      });
+
+      if (error) {
+        return { presentations: [], error: error.message };
+      }
+
+      const list = Array.isArray(data) ? data : [];
+      return { presentations: list as CustomPresentation[], error: null };
+    } catch (error) {
+      console.error('Error fetching contractor presentations by access:', error);
+      return { presentations: [], error: 'Unexpected error occurred' };
     }
   },
 
