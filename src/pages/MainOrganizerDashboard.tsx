@@ -1191,6 +1191,9 @@ const MainOrganizerDashboard = () => {
             coordinatorContacts: selectedWedding.contractor_coordinator_contacts,
             venueAddress: selectedWedding.contractor_venue_address,
             mapsUrl: selectedWedding.contractor_maps_url,
+            venueName: selectedWedding.venue,
+            weddingDate: selectedWedding.wedding_date,
+            contractorSlug: selectedWedding.contractor_slug,
           }}
           onClose={() => setShowContractorModal(false)}
           onSave={async () => {

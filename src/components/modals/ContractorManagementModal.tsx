@@ -35,6 +35,9 @@ interface ContractorManagementModalProps {
     coordinatorContacts?: string;
     venueAddress?: string;
     mapsUrl?: string;
+    venueName?: string;
+    weddingDate?: string;
+    contractorSlug?: string;
   };
   onClose: () => void;
   onSave: () => void;
@@ -52,8 +55,39 @@ const ContractorManagementModal = ({
   const isPasswordConfigured = !!existingContractorPassword;
   const [step, setStep] = useState<'settings' | 'documents'>(isPasswordConfigured ? 'settings' : 'settings');
   const [contractorPassword, setContractorPassword] = useState(initialContractorPasswordPlain ?? '');
+  const slugify = (value?: string | null): string =>
+    (value || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9а-яёіїєґ]+/gi, '-')
+      .replace(/^-+|-+$/g, '')
+      .replace(/-+/g, '-');
+
+  const formatDateForSlug = (value?: string | null): string => {
+    if (!value) return '';
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return '';
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const buildContractorSlug = (): string => {
+    const venueSlug = slugify(initialSettings?.venueName);
+    const dateSlug = formatDateForSlug(initialSettings?.weddingDate);
+    return [venueSlug, dateSlug].filter(Boolean).join('-');
+  };
+
+  const buildContractorLink = (slug: string): string => {
+    return `${window.location.origin}/contractor/${encodeURIComponent(slug)}`;
+  };
+
   const [contractorLink, setContractorLink] = useState<string>(
-    existingContractorToken ? `${window.location.origin}/contractor/${existingContractorToken}` : ''
+    initialSettings?.contractorSlug
+      ? buildContractorLink(initialSettings.contractorSlug)
+      : (buildContractorSlug()
+        ? buildContractorLink(buildContractorSlug())
+        : (existingContractorToken ? `${window.location.origin}/contractor/${existingContractorToken}` : ''))
   );
 
   const tryParseJson = <T,>(value?: string | null): T | null => {
@@ -206,6 +240,23 @@ const ContractorManagementModal = ({
     }
   }, [existingContractorToken]);
 
+  useEffect(() => {
+    const generatedSlug = buildContractorSlug();
+    if (initialSettings?.contractorSlug) {
+      setContractorLink(buildContractorLink(initialSettings.contractorSlug));
+      return;
+    }
+    if (generatedSlug) {
+      setContractorLink(buildContractorLink(generatedSlug));
+      return;
+    }
+    if (existingContractorToken) {
+      setContractorLink(`${window.location.origin}/contractor/${existingContractorToken}`);
+      return;
+    }
+    setContractorLink('');
+  }, [initialSettings?.contractorSlug, initialSettings?.venueName, initialSettings?.weddingDate, existingContractorToken]);
+
   const loadDocuments = async () => {
     const { documents: docs, error: err } = await contractorService.getContractorDocuments(weddingId);
     if (err) {
@@ -268,6 +319,7 @@ const ContractorManagementModal = ({
         coordinatorContacts: coordinatorContactsPayload,
         venueAddress,
         mapsUrl,
+        contractorSlug: buildContractorSlug(),
       });
 
       setLoading(false);
@@ -278,6 +330,10 @@ const ContractorManagementModal = ({
       }
 
       setStep('documents');
+      const contractorSlug = buildContractorSlug();
+      if (contractorSlug) {
+        setContractorLink(buildContractorLink(contractorSlug));
+      }
       onSave();
       return;
     }
@@ -289,6 +345,7 @@ const ContractorManagementModal = ({
       coordinatorContacts: coordinatorContactsPayload,
       venueAddress,
       mapsUrl,
+      contractorSlug: buildContractorSlug(),
     });
 
     setLoading(false);
@@ -298,7 +355,10 @@ const ContractorManagementModal = ({
       return;
     }
 
-    const accessLink = `${window.location.origin}/contractor/${token}`;
+    const contractorSlug = buildContractorSlug();
+    const accessLink = contractorSlug
+      ? buildContractorLink(contractorSlug)
+      : `${window.location.origin}/contractor/${token}`;
     setContractorLink(accessLink);
     setStep('documents');
     onSave();

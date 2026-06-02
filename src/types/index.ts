@@ -32,6 +32,7 @@ export interface Wedding {
   timing?: string; // Тайминг события
   organizer_contacts?: string; // Контакты организатора (телефон, email и т.д.)
   contractor_token?: string; // Токен уникальной ссылки для подрядчиков
+  contractor_slug?: string; // Человекочитаемая ссылка для подрядчиков (venue-date)
   contractor_password_hash?: string; // Хеш пароля доступа подрядчиков
   contractor_password_plain?: string; // Копия пароля для отображения только организатору (не для подрядчика)
   contractor_dress_code?: string; // Дресс-код для подрядчиков

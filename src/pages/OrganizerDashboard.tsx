@@ -2249,10 +2249,10 @@ const OrganizerDashboard = () => {
                   onClick={() => setShowContractorModal(true)}
                   className="px-4 md:px-6 py-2 md:py-3 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[18px] max-[1599px]:text-[16px] font-forum"
                 >
-                  {selectedWedding.contractor_token ? 'Управление' : '+ Настроить'}
+                  {selectedWedding.contractor_slug || selectedWedding.contractor_token ? 'Управление' : '+ Настроить'}
                 </button>
               </div>
-              {selectedWedding.contractor_token ? (
+              {selectedWedding.contractor_slug || selectedWedding.contractor_token ? (
                 <div className="space-y-3">
                   <div className="bg-[#eae6db] border border-[#00000033] rounded-lg p-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -2602,6 +2602,9 @@ const OrganizerDashboard = () => {
             coordinatorContacts: selectedWedding.contractor_coordinator_contacts,
             venueAddress: selectedWedding.contractor_venue_address,
             mapsUrl: selectedWedding.contractor_maps_url,
+            venueName: selectedWedding.venue,
+            weddingDate: selectedWedding.wedding_date,
+            contractorSlug: selectedWedding.contractor_slug,
           }}
           onClose={() => setShowContractorModal(false)}
           onSave={async () => {

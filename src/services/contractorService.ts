@@ -5,6 +5,10 @@ import type { ContractorDocument, CustomPresentation, Wedding } from '../types';
  * Service for managing contractor access and contractor documents.
  */
 export const contractorService = {
+  isUuid(value: string): boolean {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+  },
+
   /**
    * Create or refresh contractor access for an event (token + password).
    */
@@ -17,6 +21,7 @@ export const contractorService = {
       coordinatorContacts?: string;
       venueAddress?: string;
       mapsUrl?: string;
+      contractorSlug?: string;
     }
   ): Promise<{ token: string | null; error: string | null }> {
     try {
@@ -28,6 +33,7 @@ export const contractorService = {
         p_coordinator_contacts: settings.coordinatorContacts || null,
         p_venue_address: settings.venueAddress?.trim() || null,
         p_maps_url: settings.mapsUrl?.trim() || null,
+        p_slug: settings.contractorSlug?.trim() || null,
       });
 
       if (error) {
@@ -73,6 +79,7 @@ export const contractorService = {
       coordinatorContacts?: string;
       venueAddress?: string;
       mapsUrl?: string;
+      contractorSlug?: string;
     }
   ): Promise<{ success: boolean; error: string | null }> {
     try {
@@ -84,6 +91,7 @@ export const contractorService = {
           contractor_coordinator_contacts: settings.coordinatorContacts,
           contractor_venue_address: settings.venueAddress?.trim() || null,
           contractor_maps_url: settings.mapsUrl?.trim() || null,
+          contractor_slug: settings.contractorSlug?.trim() || null,
         })
         .eq('id', weddingId);
 
@@ -215,24 +223,38 @@ export const contractorService = {
   },
 
   /**
-   * Get wedding data for contractor by token/password (public flow).
+   * Get wedding data for contractor by slug/password (public flow).
    */
-  async getContractorWeddingByAccess(token: string, password: string): Promise<{ wedding: Wedding | null; error: string | null }> {
+  async getContractorWeddingByAccess(slug: string, password: string): Promise<{ wedding: Wedding | null; error: string | null }> {
     try {
-      const { data, error } = await supabase.rpc('get_contractor_wedding_by_access', {
-        p_token: token,
+      const { data, error } = await supabase.rpc('get_contractor_wedding_by_access_slug', {
+        p_slug: slug,
         p_password: password,
       });
 
-      if (error) {
+      if (error && !this.isUuid(slug)) {
         return { wedding: null, error: error.message };
       }
 
-      if (!data || data.length === 0) {
-        return { wedding: null, error: 'Invalid link or password' };
+      if (data && data.length > 0) {
+        return { wedding: data[0], error: null };
       }
 
-      return { wedding: data[0], error: null };
+      if (this.isUuid(slug)) {
+        const { data: tokenData, error: tokenError } = await supabase.rpc('get_contractor_wedding_by_access', {
+          p_token: slug,
+          p_password: password,
+        });
+        if (tokenError) {
+          return { wedding: null, error: tokenError.message };
+        }
+        if (!tokenData || tokenData.length === 0) {
+          return { wedding: null, error: 'Invalid link or password' };
+        }
+        return { wedding: tokenData[0], error: null };
+      }
+
+      return { wedding: null, error: 'Invalid link or password' };
     } catch (error) {
       console.error('Error fetching contractor wedding by access:', error);
       return { wedding: null, error: 'Unexpected error occurred' };
@@ -240,20 +262,35 @@ export const contractorService = {
   },
 
   /**
-   * Get contractor documents by token/password (public flow).
+   * Get contractor documents by slug/password (public flow).
    */
-  async getContractorDocumentsByAccess(token: string, password: string): Promise<{ documents: ContractorDocument[]; error: string | null }> {
+  async getContractorDocumentsByAccess(slug: string, password: string): Promise<{ documents: ContractorDocument[]; error: string | null }> {
     try {
-      const { data, error } = await supabase.rpc('get_contractor_documents_by_access', {
-        p_token: token,
+      const { data, error } = await supabase.rpc('get_contractor_documents_by_access_slug', {
+        p_slug: slug,
         p_password: password,
       });
 
-      if (error) {
+      if (error && !this.isUuid(slug)) {
         return { documents: [], error: error.message };
       }
 
-      return { documents: data || [], error: null };
+      if (data) {
+        return { documents: data || [], error: null };
+      }
+
+      if (this.isUuid(slug)) {
+        const { data: tokenData, error: tokenError } = await supabase.rpc('get_contractor_documents_by_access', {
+          p_token: slug,
+          p_password: password,
+        });
+        if (tokenError) {
+          return { documents: [], error: tokenError.message };
+        }
+        return { documents: tokenData || [], error: null };
+      }
+
+      return { documents: [], error: null };
     } catch (error) {
       console.error('Error fetching contractor documents by access:', error);
       return { documents: [], error: 'Unexpected error occurred' };
@@ -261,24 +298,39 @@ export const contractorService = {
   },
 
   /**
-   * Get contractor presentations by token/password (public flow).
+   * Get contractor presentations by slug/password (public flow).
    */
   async getContractorPresentationsByAccess(
-    token: string,
+    slug: string,
     password: string
   ): Promise<{ presentations: CustomPresentation[]; error: string | null }> {
     try {
-      const { data, error } = await supabase.rpc('get_contractor_presentations_by_access', {
-        p_token: token,
+      const { data, error } = await supabase.rpc('get_contractor_presentations_by_access_slug', {
+        p_slug: slug,
         p_password: password,
       });
 
-      if (error) {
+      if (error && !this.isUuid(slug)) {
         return { presentations: [], error: error.message };
       }
 
-      const list = Array.isArray(data) ? data : [];
-      return { presentations: list as CustomPresentation[], error: null };
+      if (Array.isArray(data)) {
+        return { presentations: data as CustomPresentation[], error: null };
+      }
+
+      if (this.isUuid(slug)) {
+        const { data: tokenData, error: tokenError } = await supabase.rpc('get_contractor_presentations_by_access', {
+          p_token: slug,
+          p_password: password,
+        });
+        if (tokenError) {
+          return { presentations: [], error: tokenError.message };
+        }
+        const list = Array.isArray(tokenData) ? tokenData : [];
+        return { presentations: list as CustomPresentation[], error: null };
+      }
+
+      return { presentations: [], error: null };
     } catch (error) {
       console.error('Error fetching contractor presentations by access:', error);
       return { presentations: [], error: 'Unexpected error occurred' };

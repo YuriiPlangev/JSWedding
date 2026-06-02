@@ -71,6 +71,35 @@ const WeddingDetails = ({
   onToggleStandardPresentationVisibility,
   onOpenContractorModal,
 }: WeddingDetailsProps) => {
+  const slugify = (value?: string | null): string =>
+    (value || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9а-яёіїєґ]+/gi, '-')
+      .replace(/^-+|-+$/g, '')
+      .replace(/-+/g, '-');
+
+  const formatDateForSlug = (value?: string | null): string => {
+    if (!value) return '';
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return '';
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const generatedContractorSlug = [slugify(selectedWedding.venue), formatDateForSlug(selectedWedding.wedding_date)]
+    .filter(Boolean)
+    .join('-');
+
+  const contractorSlug = selectedWedding.contractor_slug || generatedContractorSlug;
+
+  const contractorPublicLink = contractorSlug
+    ? `${window.location.origin}/contractor/${encodeURIComponent(contractorSlug)}`
+    : (selectedWedding.contractor_token ? `${window.location.origin}/contractor/${selectedWedding.contractor_token}` : '');
+
+  const isContractorAccessConfigured = Boolean(selectedWedding.contractor_slug || selectedWedding.contractor_token);
+
   return (
     <div className="h-full flex flex-col">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 mb-4 sm:mb-5 md:mb-6 flex-shrink-0">
@@ -257,10 +286,10 @@ const WeddingDetails = ({
               onClick={onOpenContractorModal}
               className="px-4 md:px-6 py-2 md:py-3 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[18px] max-[1599px]:text-[16px] font-forum"
             >
-              {selectedWedding.contractor_token ? 'Управление' : '+ Настроить'}
+              {isContractorAccessConfigured ? 'Управление' : '+ Настроить'}
             </button>
           </div>
-          {selectedWedding.contractor_token ? (
+          {isContractorAccessConfigured ? (
             <div className="space-y-3">
               <div className="bg-[#eae6db] border border-[#00000033] rounded-lg p-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -274,18 +303,16 @@ const WeddingDetails = ({
                     <p className="text-[14px] sm:text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">Ссылка для подрядчиков</p>
                     <div className="flex items-center gap-2 mt-1">
                       <a
-                        href={`${window.location.origin}/contractor/${selectedWedding.contractor_token}`}
+                        href={contractorPublicLink}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-[16px] sm:text-[18px] max-[1599px]:text-[16px] font-forum text-black hover:underline cursor-pointer break-all"
                       >
-                        {`${window.location.origin}/contractor/${selectedWedding.contractor_token}`}
+                        {contractorPublicLink}
                       </a>
                       <button
                         onClick={() => {
-                          navigator.clipboard.writeText(
-                            `${window.location.origin}/contractor/${selectedWedding.contractor_token}`
-                          );
+                          navigator.clipboard.writeText(contractorPublicLink);
                         }}
                         className="px-3 py-1 bg-white border border-[#00000033] rounded hover:bg-gray-50 transition-colors cursor-pointer text-[14px] font-forum whitespace-nowrap"
                       >

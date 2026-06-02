@@ -15,7 +15,15 @@ import openEye from '../assets/openEye.png';
 import closeEye from '../assets/closeEye.png';
 
 const ContractorAccessPage = () => {
-  const { token } = useParams<{ token: string }>();
+  const { token: rawSlug } = useParams<{ token: string }>();
+  const accessSlug = (() => {
+    if (!rawSlug) return '';
+    try {
+      return decodeURIComponent(rawSlug).trim();
+    } catch {
+      return rawSlug.trim();
+    }
+  })();
 
   const [currentLanguage, setCurrentLanguage] = useState<'en' | 'ru' | 'ua'>(getInitialLanguage());
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
@@ -29,19 +37,19 @@ const ContractorAccessPage = () => {
   const [presentations, setPresentations] = useState<CustomPresentation[]>([]);
 
   useEffect(() => {
-    if (!token) {
+    if (!accessSlug) {
       return;
     }
 
-    const savedPassword = sessionStorage.getItem(`contractor_access_${token}`);
+    const savedPassword = sessionStorage.getItem(`contractor_access_${accessSlug}`);
     if (savedPassword) {
       setPassword(savedPassword);
       void authenticate(savedPassword);
     }
-  }, [token]);
+  }, [accessSlug]);
 
   const authenticate = async (passwordToCheck: string) => {
-    if (!token) {
+    if (!accessSlug) {
       setError('Invalid link');
       return;
     }
@@ -50,7 +58,7 @@ const ContractorAccessPage = () => {
     setError(null);
 
     const { wedding: weddingData, error: weddingError } = await contractorService.getContractorWeddingByAccess(
-      token,
+      accessSlug,
       passwordToCheck
     );
 
@@ -62,8 +70,8 @@ const ContractorAccessPage = () => {
     }
 
     const [{ documents: docs, error: docsError }, { presentations: pres, error: presError }] = await Promise.all([
-      contractorService.getContractorDocumentsByAccess(token, passwordToCheck),
-      contractorService.getContractorPresentationsByAccess(token, passwordToCheck),
+      contractorService.getContractorDocumentsByAccess(accessSlug, passwordToCheck),
+      contractorService.getContractorPresentationsByAccess(accessSlug, passwordToCheck),
     ]);
 
     if (docsError) {
@@ -82,7 +90,7 @@ const ContractorAccessPage = () => {
     setDocuments(docs);
     setPresentations(pres);
     setAuthorized(true);
-    sessionStorage.setItem(`contractor_access_${token}`, passwordToCheck);
+    sessionStorage.setItem(`contractor_access_${accessSlug}`, passwordToCheck);
     setLoading(false);
   };
 
