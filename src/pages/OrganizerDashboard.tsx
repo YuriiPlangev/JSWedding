@@ -1868,12 +1868,35 @@ const OrganizerDashboard = () => {
               <p className="text-[14px] sm:text-[16px] md:text-[18px] max-[1599px]:text-[16px] lg:max-[1599px]:text-[15px] min-[1300px]:max-[1599px]:text-[16px] font-forum font-light text-[#00000080] leading-tight mt-1">Добро пожаловать, {user?.name}</p>
               </div>
             </div>
-            <button
-              onClick={logout}
-              className="px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 md:py-3 text-[14px] sm:text-[16px] md:text-[18px] max-[1599px]:text-[16px] font-forum text-[#00000080] hover:text-black transition-colors cursor-pointer border border-[#00000033] rounded-lg hover:bg-white w-full sm:w-auto"
-            >
-              Выйти
-            </button>
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-3">
+                <div className="flex flex-col gap-1">
+                  <button
+                    onClick={handleCreateClient}
+                    className="h-6 w-24 px-3 bg-[#eae6db] border border-[#00000033] text-[#00000080] rounded-lg hover:text-black transition-colors cursor-pointer text-[12px] font-forum flex items-center justify-center"
+                    title="Создать клиента"
+                  >
+                    + Клиент
+                  </button>
+                  <button
+                    onClick={handleCreateWedding}
+                    className="h-6 w-24 px-3 bg-[#eae6db] border border-[#00000033] text-[#00000080] rounded-lg hover:text-black transition-colors cursor-pointer text-[12px] font-forum flex items-center justify-center"
+                    title="Добавить ивент"
+                  >
+                    + Ивент
+                  </button>
+                </div>
+
+                <div>
+                  <button
+                    onClick={logout}
+                    className="h-12 w-40 px-4 text-[16px] font-forum text-[#00000080] hover:text-black transition-colors cursor-pointer border border-[#00000033] rounded-lg bg-[#eae6db] flex items-center justify-center"
+                  >
+                    Выйти
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </header>
@@ -1881,7 +1904,8 @@ const OrganizerDashboard = () => {
       {/* Navigation */}
       <nav className="bg-[#eae6db] border-b border-[#00000033] overflow-x-auto flex-shrink-0">
         <div className="px-3 sm:px-4 md:px-8 lg:px-12 xl:px-[60px]">
-          <div className="flex space-x-4 sm:space-x-6 md:space-x-8 min-w-max">
+          <div className="flex justify-between items-center">
+            <div className="flex space-x-4 sm:space-x-6 md:space-x-8 min-w-max">
             <button
               onClick={() => {
                 setViewMode('tasks');
@@ -1951,6 +1975,18 @@ const OrganizerDashboard = () => {
                 </div>
               );
             })}
+            </div>
+
+            <div className="flex items-center">
+              {viewMode === 'weddings' && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowArchive(!showArchive); }}
+                  className={`px-4 py-2 rounded font-forum text-[14px] font-medium transition-colors cursor-pointer border border-[#00000033] bg-white text-[#00000080] hover:text-black ${showArchive ? 'bg-blue-50 border-blue-200 text-blue-700' : ''}`}
+                >
+                  {showArchive ? 'Активные' : 'Архив'}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </nav>
@@ -1978,43 +2014,11 @@ const OrganizerDashboard = () => {
 
         {viewMode === 'weddings' && (
           <div className="h-full flex flex-col">
-            {/* Кнопки над списком ивентов слева сверху */}
-            <div className="flex gap-2 mb-4 flex-shrink-0">
-              <button
-                onClick={handleCreateClient}
-                className="px-2 py-1.5 bg-white border border-[#00000033] text-black rounded-lg hover:bg-gray-50 transition-colors cursor-pointer text-[12px] max-[1599px]:text-[11px] font-forum"
-                title="Создать клиента"
-              >
-                + Клиент
-              </button>
-              <button
-                onClick={handleCreateWedding}
-                className="px-2 py-1.5 bg-white border border-[#00000033] text-black rounded-lg hover:bg-gray-50 transition-colors cursor-pointer text-[12px] max-[1599px]:text-[11px] font-forum"
-                title="Добавить ивент"
-              >
-                + Ивент
-              </button>
-            </div>
+            {/* Buttons moved to header */}
+
+            
 
             <div className="flex-1 overflow-y-auto">
-              <div className="flex justify-between items-center mb-4 px-0 sm:px-0">
-                <h2 className="text-[20px] sm:text-[24px] font-forum font-bold text-black">
-                  {showArchive ? 'Архивированные ивенты' : 'Ивенты'}
-                </h2>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowArchive(!showArchive);
-                  }}
-                  className={`px-4 py-2 rounded font-forum text-[14px] font-medium transition-colors cursor-pointer ${
-                    showArchive
-                      ? 'bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100'
-                      : 'bg-gray-50 border border-gray-200 text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  {showArchive ? 'Активные' : 'Архив'}
-                </button>
-              </div>
               {weddings.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
                 {[...weddings].sort((a, b) => {
