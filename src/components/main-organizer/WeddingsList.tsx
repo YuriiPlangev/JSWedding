@@ -4,11 +4,9 @@ interface WeddingsListProps {
   weddings: Wedding[];
   onWeddingClick: (weddingId: string) => void;
   onEditWedding: (wedding: Wedding) => void;
-  onCreateClient: () => void;
-  onCreateWedding: () => void;
 }
 
-const WeddingsList = ({ weddings, onWeddingClick, onEditWedding, onCreateClient, onCreateWedding }: WeddingsListProps) => {
+const WeddingsList = ({ weddings, onWeddingClick, onEditWedding }: WeddingsListProps) => {
   // Функция для форматирования даты
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -41,24 +39,6 @@ const WeddingsList = ({ weddings, onWeddingClick, onEditWedding, onCreateClient,
 
   return (
     <div className="h-full flex flex-col">
-      {/* Кнопки над списком ивентов слева сверху */}
-      <div className="flex gap-2 mb-4 flex-shrink-0">
-        <button
-          onClick={onCreateClient}
-          className="px-2 py-1.5 bg-white border border-[#00000033] text-black rounded-lg hover:bg-gray-50 transition-colors cursor-pointer text-[12px] max-[1599px]:text-[11px] font-forum"
-          title="Создать клиента"
-        >
-          + Клиент
-        </button>
-        <button
-          onClick={onCreateWedding}
-          className="px-2 py-1.5 bg-white border border-[#00000033] text-black rounded-lg hover:bg-gray-50 transition-colors cursor-pointer text-[12px] max-[1599px]:text-[11px] font-forum"
-          title="Добавить ивент"
-        >
-          + Ивент
-        </button>
-      </div>
-
       {weddings.length > 0 ? (
         <div className="flex-1 overflow-y-auto">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
@@ -159,12 +139,6 @@ const WeddingsList = ({ weddings, onWeddingClick, onEditWedding, onCreateClient,
       ) : (
         <div className="bg-white border border-[#00000033] rounded-lg p-12 text-center">
           <p className="text-[18px] font-forum font-light text-[#00000080] mb-4">Нет ивентов</p>
-          <button
-            onClick={onCreateWedding}
-            className="px-4 md:px-6 py-2 md:py-3 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[18px] max-[1599px]:text-[16px] font-forum"
-          >
-            Создать первый ивент
-          </button>
         </div>
       )}
     </div>

@@ -83,6 +83,7 @@ const MainOrganizerDashboard = () => {
   const [showPresentationModal, setShowPresentationModal] = useState(false);
   const [showClientModal, setShowClientModal] = useState(false);
   const [showContractorModal, setShowContractorModal] = useState(false);
+  const [showArchive, setShowArchive] = useState(false);
   const [editingWedding, setEditingWedding] = useState<Wedding | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editingDocument, setEditingDocument] = useState<Document | null>(null);
@@ -115,7 +116,7 @@ const MainOrganizerDashboard = () => {
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [user?.id, showArchive]);
 
   // useEffect для загрузки данных при монтировании
   useEffect(() => {
@@ -149,6 +150,11 @@ const MainOrganizerDashboard = () => {
       console.error('Error saving viewMode to localStorage:', error);
     }
   }, [viewMode]);
+
+  // Перезагружаем данные при переключении между активными и архивированными ивентами
+  useEffect(() => {
+    loadData();
+  }, [showArchive, loadData]);
 
   // Восстанавливаем открытые вкладки после загрузки данных
   const hasRestoredTabsRef = useRef(false);
@@ -475,6 +481,34 @@ const MainOrganizerDashboard = () => {
 
   const handleCreateClient = () => {
     setShowClientModal(true);
+  };
+
+  const handleArchiveWedding = async (weddingId: string) => {
+    try {
+      const success = await weddingService.archiveWedding(weddingId);
+      if (success) {
+        await loadData();
+      } else {
+        setError('Не удалось архивировать ивент. Проверьте консоль для деталей.');
+      }
+    } catch (err) {
+      console.error('Error archiving wedding:', err);
+      setError(err instanceof Error ? err.message : 'Ошибка при архивировании ивента');
+    }
+  };
+
+  const handleUnarchiveWedding = async (weddingId: string) => {
+    try {
+      const success = await weddingService.unarchiveWedding(weddingId);
+      if (success) {
+        await loadData();
+      } else {
+        setError('Не удалось восстановить ивент. Проверьте консоль для деталей.');
+      }
+    } catch (err) {
+      console.error('Error unarchiving wedding:', err);
+      setError(err instanceof Error ? err.message : 'Ошибка при восстановлении ивента');
+    }
   };
 
   const handleSaveClient = async (clientData: { email: string; password: string; role: UserRole }) => {
@@ -956,74 +990,95 @@ const MainOrganizerDashboard = () => {
                 <p className="text-[14px] sm:text-[16px] md:text-[18px] max-[1599px]:text-[16px] lg:max-[1599px]:text-[15px] min-[1300px]:max-[1599px]:text-[16px] font-forum font-light text-[#00000080] leading-tight mt-1">Добро пожаловать, {user?.name}</p>
               </div>
             </div>
-            <button
-              onClick={logout}
-              className="px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 md:py-3 text-[14px] sm:text-[16px] md:text-[18px] max-[1599px]:text-[16px] font-forum text-[#00000080] hover:text-black transition-colors cursor-pointer border border-[#00000033] rounded-lg hover:bg-white w-full sm:w-auto"
-            >
-              Выйти
-            </button>
+            <div className="flex items-center gap-3">
+              <div className="flex flex-col gap-1">
+                <button
+                  onClick={handleCreateClient}
+                  className="h-6 w-24 px-3 bg-[#eae6db] border border-[#00000033] text-[#00000080] rounded-lg hover:text-black transition-colors cursor-pointer text-[12px] font-forum flex items-center justify-center"
+                  title="Создать клиента"
+                >
+                  + Клиент
+                </button>
+                <button
+                  onClick={handleCreateWedding}
+                  className="h-6 w-24 px-3 bg-[#eae6db] border border-[#00000033] text-[#00000080] rounded-lg hover:text-black transition-colors cursor-pointer text-[12px] font-forum flex items-center justify-center"
+                  title="Добавить ивент"
+                >
+                  + Ивент
+                </button>
+              </div>
+              <div>
+                <button
+                  onClick={logout}
+                  className="h-12 w-40 px-4 text-[16px] font-forum text-[#00000080] hover:text-black transition-colors cursor-pointer border border-[#00000033] rounded-lg bg-[#eae6db] flex items-center justify-center"
+                >
+                  Выйти
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </header>
 
       {/* Navigation */}
       <nav className="bg-[#eae6db] border-b border-[#00000033] flex-shrink-0 overflow-x-auto">
-        <div className="flex items-center gap-2 px-3 sm:px-4 md:px-8 lg:px-12 xl:px-[60px] py-2">
-          <button
-            onClick={() => {
-              setViewMode('tasks');
-              setSelectedWedding(null);
-            }}
-            className={`px-3 sm:px-4 py-2 text-[14px] sm:text-[16px] max-[1599px]:text-[14px] font-forum rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
-              viewMode === 'tasks'
-                ? 'bg-black text-white'
-                : 'bg-white text-[#00000080] hover:text-black border border-[#00000033]'
-            }`}
-          >
-            Задания
-          </button>
-          <button
-            onClick={() => {
-              setViewMode('weddings');
-              setSelectedWedding(null);
-            }}
-            className={`px-3 sm:px-4 py-2 text-[14px] sm:text-[16px] max-[1599px]:text-[14px] font-forum rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
-              viewMode === 'weddings'
-                ? 'bg-black text-white'
-                : 'bg-white text-[#00000080] hover:text-black border border-[#00000033]'
-            }`}
-          >
-            Ивенты
-          </button>
-          {openTabs.map(tab => {
-            const wedding = weddings.find(w => w.id === tab.weddingId);
-            if (!wedding) return null;
-            
-            return (
-              <div
-                key={tab.id}
-                onClick={() => handleTabClick(tab)}
-                className={`flex items-center gap-2 px-3 sm:px-4 py-2 text-[14px] sm:text-[16px] max-[1599px]:text-[14px] font-forum rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
-                  selectedWedding?.id === tab.weddingId
-                    ? 'bg-black text-white'
-                    : 'bg-white text-[#00000080] hover:text-black border border-[#00000033]'
-                }`}
-              >
-                <span>{tab.name}</span>
-                <button
-                  onClick={(e) => handleCloseTab(tab.id, e)}
-                  className="ml-1 hover:bg-[#00000020] rounded px-1"
+        <div className="flex items-center justify-between gap-2 px-3 sm:px-4 md:px-8 lg:px-12 xl:px-[60px] py-2">
+          <div className="flex items-center gap-2 overflow-x-auto">
+            <button
+              onClick={() => {
+                setViewMode('tasks');
+                setSelectedWedding(null);
+              }}
+              className={`px-3 sm:px-4 py-2 text-[14px] sm:text-[16px] max-[1599px]:text-[14px] font-forum rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
+                viewMode === 'tasks'
+                  ? 'bg-black text-white'
+                  : 'bg-white text-[#00000080] hover:text-black border border-[#00000033]'
+              }`}
+            >
+              Задания
+            </button>
+            <button
+              onClick={() => {
+                setViewMode('weddings');
+                setSelectedWedding(null);
+              }}
+              className={`px-3 sm:px-4 py-2 text-[14px] sm:text-[16px] max-[1599px]:text-[14px] font-forum rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
+                viewMode === 'weddings'
+                  ? 'bg-black text-white'
+                  : 'bg-white text-[#00000080] hover:text-black border border-[#00000033]'
+              }`}
+            >
+              Ивенты
+            </button>
+            {openTabs.map(tab => {
+              const wedding = weddings.find(w => w.id === tab.weddingId);
+              if (!wedding) return null;
+              
+              return (
+                <div
+                  key={tab.id}
+                  onClick={() => handleTabClick(tab)}
+                  className={`flex items-center gap-2 px-3 sm:px-4 py-2 text-[14px] sm:text-[16px] max-[1599px]:text-[14px] font-forum rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
+                    selectedWedding?.id === tab.weddingId
+                      ? 'bg-black text-white'
+                      : 'bg-white text-[#00000080] hover:text-black border border-[#00000033]'
+                  }`}
                 >
-                  ✕
-                </button>
-              </div>
-            );
-          })}
-          <button
-            onClick={() => {
-              setViewMode('advances');
-              setSelectedWedding(null);
-            }}
+                  <span>{tab.name}</span>
+                  <button
+                    onClick={(e) => handleCloseTab(tab.id, e)}
+                    className="ml-1 hover:bg-[#00000020] rounded px-1"
+                  >
+                    ✕
+                  </button>
+                </div>
+              );
+            })}
+            <button
+              onClick={() => {
+                setViewMode('advances');
+                setSelectedWedding(null);
+              }}
             className={`px-3 sm:px-4 py-2 text-[14px] sm:text-[16px] max-[1599px]:text-[14px] font-forum rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
               viewMode === 'advances'
                 ? 'bg-black text-white'
@@ -1058,6 +1113,19 @@ const MainOrganizerDashboard = () => {
           >
             Оплаты подрядчикам
           </button>
+          </div>
+          {viewMode === 'weddings' && (
+            <button
+              onClick={() => setShowArchive(!showArchive)}
+              className={`px-3 sm:px-4 py-2 text-[14px] sm:text-[16px] max-[1599px]:text-[14px] font-forum rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
+                showArchive
+                  ? 'bg-black text-white'
+                  : 'bg-white text-[#00000080] hover:text-black border border-[#00000033]'
+              }`}
+            >
+              Архив
+            </button>
+          )}
         </div>
       </nav>
 
@@ -1069,11 +1137,9 @@ const MainOrganizerDashboard = () => {
 
         {viewMode === 'weddings' && (
           <WeddingsList
-            weddings={weddings}
+            weddings={weddings.filter(w => showArchive ? w.archived : !w.archived)}
             onWeddingClick={(weddingId: string) => loadWeddingDetails(weddingId)}
             onEditWedding={(wedding: Wedding) => handleEditWedding(wedding)}
-            onCreateClient={handleCreateClient}
-            onCreateWedding={handleCreateWedding}
           />
         )}
 
@@ -1126,6 +1192,8 @@ const MainOrganizerDashboard = () => {
             setEditingWedding(null);
           }}
           onSave={handleSaveWedding}
+          onArchive={handleArchiveWedding}
+          onUnarchive={handleUnarchiveWedding}
         />
       )}
 
