@@ -32,18 +32,15 @@ export interface Wedding {
   timing?: string; // Тайминг события
   organizer_contacts?: string; // Контакты организатора (телефон, email и т.д.)
   contractor_token?: string; // Токен уникальной ссылки для подрядчиков
-  contractor_slug?: string; // Человекочитаемая ссылка для подрядчиков (venue-date)
   contractor_password_hash?: string; // Хеш пароля доступа подрядчиков
-  contractor_password_plain?: string; // Копия пароля для отображения только организатору (не для подрядчика)
   contractor_dress_code?: string; // Дресс-код для подрядчиков
   contractor_organizer_contacts?: string; // Контакты организатора для подрядчиков
   contractor_coordinator_contacts?: string; // Контакты координаторов для подрядчиков
-  contractor_venue_address?: string; // Точный адрес места для подрядчиков
-  contractor_maps_url?: string; // Ссылка на Google Maps для подрядчиков
   welcome_message_en?: string; // Кастомное приветственное сообщение на английском (для основного приветствия)
   splash_welcome_text_en?: string; // Полный текст приветствия в заглушке на английском (включая имена)
   full_welcome_text_en?: string; // Полный текст приветствия в основном контенте на английском (включая имена)
   presentation?: Presentation; // Презентация (компании или свадьбы)
+  archived?: boolean; // true если свадьба в архиве
   created_at: string;
   updated_at: string;
 }
@@ -237,7 +234,6 @@ export interface CustomPresentation {
   pdf_file_path?: string;
   image_urls?: string[];
   type?: string;
-  audience?: 'client' | 'contractor';
   presentation_sections?: CustomPresentationSection[];
   created_at?: string;
   updated_at?: string;

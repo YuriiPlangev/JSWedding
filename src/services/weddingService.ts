@@ -42,6 +42,7 @@ export const weddingService = {
     const { data, error } = await supabase
       .from('weddings')
       .select('*')
+      .not('archived', 'eq', true)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -50,6 +51,54 @@ export const weddingService = {
     }
 
     return data || [];
+  },
+
+  // Получить все архивированные свадьбы организатора
+  async getArchivedWeddings(): Promise<Wedding[]> {
+    const { data, error } = await supabase
+      .from('weddings')
+      .select('*')
+      .eq('archived', true)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching archived weddings:', error);
+      return [];
+    }
+
+    return data || [];
+  },
+
+  // Архивировать свадьбу
+  async archiveWedding(weddingId: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('weddings')
+      .update({ archived: true })
+      .eq('id', weddingId);
+
+    if (error) {
+      console.error('Error archiving wedding:', error);
+      return false;
+    }
+
+    invalidateCache('organizer_weddings');
+    return true;
+  },
+
+  // Восстановить свадьбу из архива
+  async unarchiveWedding(weddingId: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('weddings')
+      .update({ archived: false })
+      .eq('id', weddingId);
+
+    if (error) {
+      console.error('Error unarchiving wedding:', error);
+      return false;
+    }
+
+    invalidateCache('organizer_weddings');
+    return true;
   },
 
   // Получить все свадьбы (для главного организатора)
@@ -1494,8 +1543,7 @@ export const advanceService = {
       .from('advances')
       .select('*')
       .eq('event_id', eventId)
-      // Порядок как в таблице: сверху раньше добавленные, снизу новые (кнопка «+ строка» под таблицей)
-      .order('created_at', { ascending: true });
+      .order('date', { ascending: false });
 
     if (error) {
       console.error('Error fetching advances:', error);
@@ -1629,8 +1677,7 @@ export const salaryService = {
       .from('salaries')
       .select('*')
       .eq('employee_id', employeeId)
-      .order('month', { ascending: false })
-      .order('created_at', { ascending: true });
+      .order('month', { ascending: false });
 
     if (error) {
       console.error('Error fetching salaries:', error);
@@ -1764,7 +1811,7 @@ export const contractorPaymentService = {
       .from('contractor_payments')
       .select('*')
       .eq('created_by', userId)
-      .order('created_at', { ascending: true });
+      .order('date', { ascending: false });
 
     if (error) {
       console.error('Error fetching contractor payments:', error);
@@ -1780,7 +1827,7 @@ export const contractorPaymentService = {
       .from('contractor_payments')
       .select('*')
       .eq('event_id', eventId)
-      .order('created_at', { ascending: true });
+      .order('date', { ascending: false });
 
     if (error) {
       console.error('Error fetching contractor payments by event:', error);
@@ -1864,8 +1911,7 @@ export const presentationServiceExtended = {
   async createPresentation(
     weddingId: string,
     title: string,
-    pdfFilePath: string,
-    audience: 'client' | 'contractor' = 'client'
+    pdfFilePath: string
   ): Promise<{ id: string; wedding_id: string; title: string; pdf_file_path: string; image_urls?: string[] }> {
     // Проверяем параметры
     console.log('createPresentation called with:', { weddingId, title, pdfFilePath });
@@ -1889,7 +1935,6 @@ export const presentationServiceExtended = {
         title,
         pdf_file_path: pdfFilePath,
         type: 'wedding',
-        audience,
       })
       .select()
       .single();
@@ -1901,29 +1946,6 @@ export const presentationServiceExtended = {
 
     console.log('Presentation created successfully:', data);
     return data;
-  },
-
-  async updatePresentationMeta(
-    presentationId: string,
-    payload: { title?: string }
-  ): Promise<void> {
-    if (!presentationId || presentationId === 'undefined') {
-      throw new Error('Ошибка: ID презентации не предоставлен');
-    }
-
-    const updateData: { title?: string } = {};
-    if (typeof payload.title === 'string' && payload.title.trim() !== '') {
-      updateData.title = payload.title.trim();
-    }
-
-    const { error } = await supabase
-      .from('presentations')
-      .update(updateData)
-      .eq('id', presentationId);
-
-    if (error) {
-      throw new Error(`Ошибка обновления презентации: ${error.message}`);
-    }
   },
 
   // Вызвать Edge Function для преобразования PDF в изображения
@@ -1976,10 +1998,7 @@ export const presentationServiceExtended = {
   },
 
   // Получить все презентации для свадьбы (с секциями)
-  async getPresentationsByWedding(
-    weddingId: string,
-    audience: 'client' | 'contractor' = 'client'
-  ): Promise<any[]> {
+  async getPresentationsByWedding(weddingId: string): Promise<any[]> {
     // Проверяем параметры
     if (!weddingId || weddingId === 'undefined') {
       console.error('getPresentationsByWedding: weddingId is undefined');
@@ -1987,51 +2006,18 @@ export const presentationServiceExtended = {
     }
 
     try {
-      let query = supabase
+      const { data, error } = await supabase
         .from('presentations')
-        .select('*')
-        .eq('wedding_id', weddingId);
-
-      if (audience === 'contractor') {
-        query = query.eq('audience', 'contractor');
-      } else {
-        query = query.or('audience.is.null,audience.eq.client');
-      }
-
-      const { data: presentations, error } = await query.order('created_at', { ascending: false });
+        .select('*, presentation_sections(*)')
+        .eq('wedding_id', weddingId)
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching presentations for wedding:', error);
         return [];
       }
 
-      const list = presentations || [];
-      if (list.length === 0) return [];
-
-      const ids = list.map((p: any) => p.id);
-      const { data: sections, error: sectionsError } = await supabase
-        .from('presentation_sections')
-        .select('*')
-        .in('presentation_id', ids)
-        .order('order_index', { ascending: true });
-
-      if (sectionsError) {
-        console.error('Error fetching presentation sections:', sectionsError);
-      }
-
-      const sectionsByPresentationId = new Map<string, any[]>();
-      (sections || []).forEach((section: any) => {
-        const key = section.presentation_id;
-        if (!sectionsByPresentationId.has(key)) {
-          sectionsByPresentationId.set(key, []);
-        }
-        sectionsByPresentationId.get(key)!.push(section);
-      });
-
-      return list.map((presentation: any) => ({
-        ...presentation,
-        presentation_sections: sectionsByPresentationId.get(presentation.id) || [],
-      }));
+      return data || [];
     } catch (error) {
       console.error('Error in getPresentationsByWedding:', error);
       return [];
@@ -2050,7 +2036,7 @@ export const presentationServiceExtended = {
 
     const { data, error } = await supabase
       .from('presentations')
-      .select('*')
+      .select('*, presentation_sections(*)')
       .eq('wedding_id', weddingId)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -2061,28 +2047,8 @@ export const presentationServiceExtended = {
       throw new Error(`Ошибка получения презентации: ${error.message}`);
     }
 
-    if (!data) {
-      console.log('getPresentation result: null');
-      return null;
-    }
-
-    const { data: sections, error: sectionsError } = await supabase
-      .from('presentation_sections')
-      .select('*')
-      .eq('presentation_id', data.id)
-      .order('order_index', { ascending: true });
-
-    if (sectionsError) {
-      console.error('Error fetching presentation sections for latest presentation:', sectionsError);
-    }
-
-    const result = {
-      ...data,
-      presentation_sections: sections || [],
-    };
-
-    console.log('getPresentation result:', result);
-    return result;
+    console.log('getPresentation result:', data);
+    return data;
   },
 
   // Удалить презентацию

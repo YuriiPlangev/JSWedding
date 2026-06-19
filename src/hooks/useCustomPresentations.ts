@@ -7,7 +7,7 @@ export const useCustomPresentations = (weddingId: string | undefined) => {
     queryKey: ['presentations', weddingId],
     queryFn: async () => {
       if (!weddingId) return [];
-      return await presentationServiceExtended.getPresentationsByWedding(weddingId, 'client');
+      return await presentationServiceExtended.getPresentationsByWedding(weddingId);
     },
     enabled: !!weddingId,
     staleTime: 5 * 60 * 1000, // 5 минут

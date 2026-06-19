@@ -9,9 +9,11 @@ interface WeddingModalProps {
   onClose: () => void;
   onSave: (data: Omit<Wedding, 'id' | 'created_at' | 'updated_at'>) => void;
   onDelete?: (weddingId: string) => void;
+  onArchive?: (weddingId: string) => void;
+  onUnarchive?: (weddingId: string) => void;
 }
 
-const WeddingModal = ({ wedding, clients, onClose, onSave, onDelete }: WeddingModalProps) => {
+const WeddingModal = ({ wedding, clients, onClose, onSave, onDelete, onArchive, onUnarchive }: WeddingModalProps) => {
   const currentLanguage = getInitialLanguage();
   const t = getTranslation(currentLanguage);
 
@@ -366,19 +368,59 @@ const WeddingModal = ({ wedding, clients, onClose, onSave, onDelete }: WeddingMo
             </div>
 
             <div className="flex justify-between items-center gap-4 mt-6">
-              {wedding && onDelete && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (confirm('Вы уверены, что хотите удалить этот проект?')) {
-                      onDelete(wedding.id);
-                      onClose();
-                    }
-                  }}
-                  className="px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum"
-                >
-                  {t.common.delete}
-                </button>
+              {wedding && (
+                <div className="flex items-center gap-2">
+                  {wedding && (
+                    <>
+                      {!wedding.archived ? (
+                        onArchive && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (confirm('Вы уверены, что хотите переместить этот ивент в архив?')) {
+                                onArchive(wedding.id);
+                                onClose();
+                              }
+                            }}
+                            className="px-4 py-2 bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-lg hover:bg-yellow-100 transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum"
+                          >
+                            Архив
+                          </button>
+                        )
+                      ) : (
+                        onUnarchive && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (confirm('Вы уверены, что хотите вернуть этот ивент в активные?')) {
+                                onUnarchive(wedding.id);
+                                onClose();
+                              }
+                            }}
+                            className="px-4 py-2 bg-green-50 border border-green-200 text-green-700 rounded-lg hover:bg-green-100 transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum"
+                          >
+                            В активные
+                          </button>
+                        )
+                      )}
+                    </>
+                  )}
+
+                  {onDelete && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (confirm('Вы уверены, что хотите удалить этот проект?')) {
+                          onDelete(wedding.id);
+                          onClose();
+                        }
+                      }}
+                      className="px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum"
+                    >
+                      {t.common.delete}
+                    </button>
+                  )}
+                </div>
               )}
               <div className="flex justify-end gap-4 ml-auto">
                 <button
