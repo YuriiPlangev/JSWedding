@@ -1911,7 +1911,8 @@ export const presentationServiceExtended = {
   async createPresentation(
     weddingId: string,
     title: string,
-    pdfFilePath: string
+    pdfFilePath: string,
+    typeParam: string = 'wedding'
   ): Promise<{ id: string; wedding_id: string; title: string; pdf_file_path: string; image_urls?: string[] }> {
     // Проверяем параметры
     console.log('createPresentation called with:', { weddingId, title, pdfFilePath });
@@ -1934,7 +1935,7 @@ export const presentationServiceExtended = {
         wedding_id: weddingId,
         title,
         pdf_file_path: pdfFilePath,
-        type: 'wedding',
+        type: typeParam,
       })
       .select()
       .single();
@@ -1998,7 +1999,7 @@ export const presentationServiceExtended = {
   },
 
   // Получить все презентации для свадьбы (с секциями)
-  async getPresentationsByWedding(weddingId: string): Promise<any[]> {
+  async getPresentationsByWedding(weddingId: string, typeFilter?: string): Promise<any[]> {
     // Проверяем параметры
     if (!weddingId || weddingId === 'undefined') {
       console.error('getPresentationsByWedding: weddingId is undefined');
@@ -2006,11 +2007,17 @@ export const presentationServiceExtended = {
     }
 
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('presentations')
         .select('*, presentation_sections(*)')
         .eq('wedding_id', weddingId)
         .order('created_at', { ascending: false });
+
+      if (typeFilter) {
+        query = query.eq('type', typeFilter) as any;
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('Error fetching presentations for wedding:', error);
@@ -2021,6 +2028,20 @@ export const presentationServiceExtended = {
     } catch (error) {
       console.error('Error in getPresentationsByWedding:', error);
       return [];
+    }
+  },
+
+  // Обновить метаданные презентации (title и т.п.)
+  async updatePresentationMeta(presentationId: string, meta: Record<string, any>): Promise<void> {
+    if (!presentationId) throw new Error('presentationId is required');
+    const { error } = await supabase
+      .from('presentations')
+      .update(meta)
+      .eq('id', presentationId);
+
+    if (error) {
+      console.error('Error updating presentation meta:', error);
+      throw new Error(error.message || 'Ошибка при обновлении метаданных презентации');
     }
   },
 
