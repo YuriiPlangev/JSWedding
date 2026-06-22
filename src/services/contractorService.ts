@@ -9,6 +9,79 @@ export const contractorService = {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
   },
 
+  async syncContractorSettingsToWedding(
+    weddingId: string,
+    settings: {
+      dressCode?: string;
+      organizerContacts?: string;
+      coordinatorContacts?: string;
+      venueAddress?: string;
+      mapsUrl?: string;
+      contractorSlug?: string;
+    },
+    passwordPlain?: string | null
+  ): Promise<{ success: boolean; error: string | null }> {
+    try {
+      const payload: Record<string, string | null> = {
+        contractor_dress_code: settings.dressCode ?? null,
+        contractor_organizer_contacts: settings.organizerContacts ?? null,
+        contractor_coordinator_contacts: settings.coordinatorContacts ?? null,
+        contractor_venue_address: settings.venueAddress?.trim() || null,
+        contractor_maps_url: settings.mapsUrl?.trim() || null,
+        contractor_slug: settings.contractorSlug?.trim() || null,
+      };
+
+      if (passwordPlain !== undefined) {
+        payload.contractor_password_plain = passwordPlain;
+      }
+
+      const { error } = await supabase.from('weddings').update(payload).eq('id', weddingId);
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      return { success: true, error: null };
+    } catch (error) {
+      console.error('Error syncing contractor settings:', error);
+      return { success: false, error: 'Unexpected error occurred' };
+    }
+  },
+
+  async enrichContractorWeddingWithVenueInfo(
+    slug: string,
+    password: string,
+    wedding: Wedding
+  ): Promise<Wedding> {
+    try {
+      const rpcName = this.isUuid(slug)
+        ? 'get_contractor_venue_info_by_access'
+        : 'get_contractor_venue_info_by_access_slug';
+      const rpcParams = this.isUuid(slug)
+        ? { p_token: slug, p_password: password }
+        : { p_slug: slug, p_password: password };
+
+      const { data, error } = await supabase.rpc(rpcName, rpcParams);
+      if (error || !Array.isArray(data) || data.length === 0) {
+        return wedding;
+      }
+
+      const extras = data[0] as {
+        contractor_venue_address?: string | null;
+        contractor_maps_url?: string | null;
+      };
+
+      return {
+        ...wedding,
+        contractor_venue_address: extras.contractor_venue_address ?? wedding.contractor_venue_address,
+        contractor_maps_url: extras.contractor_maps_url ?? wedding.contractor_maps_url,
+      };
+    } catch (error) {
+      console.error('Error enriching contractor wedding with venue info:', error);
+      return wedding;
+    }
+  },
+
   /**
    * Create or refresh contractor access for an event (token + password).
    */
@@ -38,6 +111,11 @@ export const contractorService = {
 
       if (error) {
         return { token: null, error: error.message };
+      }
+
+      const syncResult = await this.syncContractorSettingsToWedding(weddingId, settings, password);
+      if (!syncResult.success) {
+        return { token: null, error: syncResult.error };
       }
 
       return { token: data || null, error: null };
@@ -82,28 +160,7 @@ export const contractorService = {
       contractorSlug?: string;
     }
   ): Promise<{ success: boolean; error: string | null }> {
-    try {
-      const { error } = await supabase
-        .from('weddings')
-        .update({
-          contractor_dress_code: settings.dressCode,
-          contractor_organizer_contacts: settings.organizerContacts,
-          contractor_coordinator_contacts: settings.coordinatorContacts,
-          contractor_venue_address: settings.venueAddress?.trim() || null,
-          contractor_maps_url: settings.mapsUrl?.trim() || null,
-          contractor_slug: settings.contractorSlug?.trim() || null,
-        })
-        .eq('id', weddingId);
-
-      if (error) {
-        return { success: false, error: error.message };
-      }
-
-      return { success: true, error: null };
-    } catch (error) {
-      console.error('Error updating contractor settings:', error);
-      return { success: false, error: 'Unexpected error occurred' };
-    }
+    return this.syncContractorSettingsToWedding(weddingId, settings);
   },
 
   /**
@@ -237,7 +294,8 @@ export const contractorService = {
       }
 
       if (data && data.length > 0) {
-        return { wedding: data[0], error: null };
+        const wedding = await this.enrichContractorWeddingWithVenueInfo(slug, password, data[0] as Wedding);
+        return { wedding, error: null };
       }
 
       if (this.isUuid(slug)) {
@@ -251,7 +309,8 @@ export const contractorService = {
         if (!tokenData || tokenData.length === 0) {
           return { wedding: null, error: 'Invalid link or password' };
         }
-        return { wedding: tokenData[0], error: null };
+        const wedding = await this.enrichContractorWeddingWithVenueInfo(slug, password, tokenData[0] as Wedding);
+        return { wedding, error: null };
       }
 
       return { wedding: null, error: 'Invalid link or password' };
@@ -266,19 +325,6 @@ export const contractorService = {
    */
   async getContractorDocumentsByAccess(slug: string, password: string): Promise<{ documents: ContractorDocument[]; error: string | null }> {
     try {
-      const { data, error } = await supabase.rpc('get_contractor_documents_by_access_slug', {
-        p_slug: slug,
-        p_password: password,
-      });
-
-      if (error && !this.isUuid(slug)) {
-        return { documents: [], error: error.message };
-      }
-
-      if (data) {
-        return { documents: data || [], error: null };
-      }
-
       if (this.isUuid(slug)) {
         const { data: tokenData, error: tokenError } = await supabase.rpc('get_contractor_documents_by_access', {
           p_token: slug,
@@ -290,7 +336,16 @@ export const contractorService = {
         return { documents: tokenData || [], error: null };
       }
 
-      return { documents: [], error: null };
+      const { data, error } = await supabase.rpc('get_contractor_documents_by_access_slug', {
+        p_slug: slug,
+        p_password: password,
+      });
+
+      if (error) {
+        return { documents: [], error: error.message };
+      }
+
+      return { documents: data || [], error: null };
     } catch (error) {
       console.error('Error fetching contractor documents by access:', error);
       return { documents: [], error: 'Unexpected error occurred' };
@@ -305,19 +360,6 @@ export const contractorService = {
     password: string
   ): Promise<{ presentations: CustomPresentation[]; error: string | null }> {
     try {
-      const { data, error } = await supabase.rpc('get_contractor_presentations_by_access_slug', {
-        p_slug: slug,
-        p_password: password,
-      });
-
-      if (error && !this.isUuid(slug)) {
-        return { presentations: [], error: error.message };
-      }
-
-      if (Array.isArray(data)) {
-        return { presentations: data as CustomPresentation[], error: null };
-      }
-
       if (this.isUuid(slug)) {
         const { data: tokenData, error: tokenError } = await supabase.rpc('get_contractor_presentations_by_access', {
           p_token: slug,
@@ -330,7 +372,16 @@ export const contractorService = {
         return { presentations: list as CustomPresentation[], error: null };
       }
 
-      return { presentations: [], error: null };
+      const { data, error } = await supabase.rpc('get_contractor_presentations_by_access_slug', {
+        p_slug: slug,
+        p_password: password,
+      });
+
+      if (error) {
+        return { presentations: [], error: error.message };
+      }
+
+      return { presentations: (Array.isArray(data) ? data : []) as CustomPresentation[], error: null };
     } catch (error) {
       console.error('Error fetching contractor presentations by access:', error);
       return { presentations: [], error: 'Unexpected error occurred' };

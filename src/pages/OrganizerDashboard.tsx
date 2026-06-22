@@ -1,14 +1,15 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { weddingService, taskService, documentService, clientService, presentationService, presentationServiceExtended, organizerService } from '../services/weddingService';
+import { weddingService, taskService, documentService, clientService, presentationServiceExtended, organizerService } from '../services/weddingService';
 import { convertPdfToImages, dataUrlToFile } from '../utils/pdfToImages';
 import type { Wedding, Task, TaskGroup, Document, User, UserRole } from '../types';
 import { WeddingModal, TaskModal, OrganizerTaskModal, DocumentModal, PresentationModal, ClientModal } from '../components/modals';
 import TaskViewModal from '../components/modals/TaskViewModal';
+import EditPresentationModal from '../components/modals/EditPresentationModal';
 import ContractorManagementModal from '../components/modals/ContractorManagementModal';
 import { TaskColumn, ScrollbarStyles } from '../components/organizer';
-import { useTaskGroups, useTaskLogs, useTaskDragAndDrop, useGroupDragAndDrop } from '../hooks';
+import { useTaskGroups, useTaskLogs, useTaskDragAndDrop, useGroupDragAndDrop, useCustomPresentations } from '../hooks';
 import { hexToHsl, hslToHex } from '../utils/colorUtils';
 import { splitTasksByStatus } from '../utils/taskUtils';
 import logoV3 from '../assets/logoV3.svg';
@@ -90,6 +91,9 @@ const OrganizerDashboard = () => {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editingDocument, setEditingDocument] = useState<Document | null>(null);
   const [uploadingPresentation, setUploadingPresentation] = useState(false);
+  const [editingCustomPresentationId, setEditingCustomPresentationId] = useState<string | null>(null);
+  const [savingCustomPresentation, setSavingCustomPresentation] = useState(false);
+  const { data: customPresentations = [], refetch: refetchCustomPresentations } = useCustomPresentations(selectedWedding?.id);
   
   // Состояния для drag and drop
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
@@ -1718,24 +1722,66 @@ const OrganizerDashboard = () => {
     }
   };
 
-  // Обработчики для презентации
-  const handleDeletePresentation = async () => {
-    if (!selectedWedding) return;
-
+  const handleDeleteCustomPresentation = async (presentationId: string) => {
     if (!confirm('Вы уверены, что хотите удалить эту презентацию?')) {
       return;
     }
 
     try {
-      const success = await presentationService.deletePresentation(selectedWedding.id);
-      if (success) {
-        await loadWeddingDetails(selectedWedding.id);
-      } else {
-        setError('Не удалось удалить презентацию');
+      await presentationServiceExtended.deletePresentation(presentationId);
+      await refetchCustomPresentations();
+    } catch (err) {
+      console.error('Error deleting custom presentation:', err);
+      setError('Ошибка при удалении презентации');
+    }
+  };
+
+  const handleEditCustomPresentation = (presentationId: string) => {
+    setEditingCustomPresentationId(presentationId);
+  };
+
+  const handleSaveCustomPresentation = async (data: {
+    title: string;
+    sections: Array<{ title: string; page_number: number }>;
+  }) => {
+    if (!editingCustomPresentationId) return;
+    setSavingCustomPresentation(true);
+    try {
+      await presentationServiceExtended.updatePresentationMeta(editingCustomPresentationId, {
+        title: data.title,
+      });
+      await presentationServiceExtended.updatePresentationSections(editingCustomPresentationId, data.sections);
+      await refetchCustomPresentations();
+      setEditingCustomPresentationId(null);
+    } catch (err) {
+      console.error('Error saving custom presentation:', err);
+      setError('Ошибка при сохранении презентации');
+    } finally {
+      setSavingCustomPresentation(false);
+    }
+  };
+
+  const isStandardPresentationHidden = Boolean((selectedWedding?.presentation as { hidden_for_client?: boolean } | undefined)?.hidden_for_client);
+
+  const handleToggleStandardPresentationVisibility = async () => {
+    if (!selectedWedding) return;
+    try {
+      const currentPresentation = (selectedWedding.presentation as any) || {};
+      const nextHidden = !Boolean(currentPresentation.hidden_for_client);
+      const updatedPresentation = Object.keys(currentPresentation).length > 0
+        ? { ...currentPresentation, hidden_for_client: nextHidden }
+        : { type: 'company', title: 'Стандартная презентация компании', sections: [], hidden_for_client: nextHidden };
+
+      const updatedWedding = await weddingService.updateWedding(selectedWedding.id, {
+        presentation: updatedPresentation as any,
+      });
+
+      if (updatedWedding) {
+        setSelectedWedding((prev) => (prev ? { ...prev, presentation: updatedWedding.presentation } : prev));
       }
     } catch (err) {
-      console.error('Error deleting presentation:', err);
-      setError('Ошибка при удалении презентации');
+      console.error('Error toggling standard presentation visibility:', err);
+      setError('Ошибка при обновлении стандартной презентации');
     }
   };
 
@@ -1778,6 +1824,7 @@ const OrganizerDashboard = () => {
       }
 
       await loadWeddingDetails(selectedWedding.id);
+      await refetchCustomPresentations();
       setShowPresentationModal(false);
     } catch (err) {
       console.error('Error uploading presentation:', err);
@@ -2469,37 +2516,60 @@ const OrganizerDashboard = () => {
             {/* Presentation */}
             <div className="bg-white border border-[#00000033] rounded-lg p-6">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-[26px] max-[1599px]:text-[22px] font-forum font-bold text-black">Презентация</h3>
-                <div className="flex gap-2">
-                  {selectedWedding.presentation && selectedWedding.presentation.type === 'wedding' && (
-                    <button
-                      onClick={handleDeletePresentation}
-                      className="px-4 md:px-6 py-2 md:py-3 bg-white border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors cursor-pointer text-[18px] max-[1599px]:text-[16px] font-forum"
-                    >
-                      Удалить презентацию
-                    </button>
-                  )}
-                  <button
-                    onClick={() => setShowPresentationModal(true)}
-                    className="px-4 md:px-6 py-2 md:py-3 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[18px] max-[1599px]:text-[16px] font-forum"
-                  >
-                    {selectedWedding.presentation && selectedWedding.presentation.type === 'wedding' 
-                      ? 'Изменить презентацию' 
-                      : 'Загрузить презентацию'}
-                  </button>
-                </div>
+                <h3 className="text-[26px] max-[1599px]:text-[22px] font-forum font-bold text-black">Презентации</h3>
+                <button
+                  onClick={() => setShowPresentationModal(true)}
+                  className="px-4 md:px-6 py-2 md:py-3 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[18px] max-[1599px]:text-[16px] font-forum"
+                >
+                  + Загрузить презентацию
+                </button>
               </div>
               <div className="space-y-2">
-                <p className="text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">
-                  {selectedWedding.presentation && selectedWedding.presentation.type === 'wedding' 
-                    ? `Тип: Презентация свадьбы - "${selectedWedding.presentation.title}"`
-                    : `Тип: Стандартная презентация компании`}
-                </p>
-                {selectedWedding.presentation && selectedWedding.presentation.sections && (
-                  <p className="text-[16px] max-[1599px]:text-[15px] font-forum font-light text-[#00000080]">
-                    Секций: {selectedWedding.presentation.sections.length}
-                  </p>
-                )}
+                <div className="flex items-center justify-between gap-3 bg-[#00000005] border border-[#00000022] rounded-lg p-3">
+                  <div className="min-w-0">
+                    <p className="text-[16px] max-[1599px]:text-[15px] font-forum font-bold text-black break-words">
+                      Стандартная презентация компании
+                    </p>
+                    <p className="text-[13px] font-forum font-light text-[#00000080]">
+                      {isStandardPresentationHidden ? 'Скрыта у клиента' : 'Показывается у клиента'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => void handleToggleStandardPresentationVisibility()}
+                    className={`px-3 py-1 bg-white border rounded hover:bg-gray-50 transition-colors cursor-pointer text-[14px] font-forum ${
+                      isStandardPresentationHidden ? 'border-[#00000033] text-black' : 'border-red-300 text-red-600'
+                    }`}
+                  >
+                    {isStandardPresentationHidden ? 'Показать' : 'Скрыть'}
+                  </button>
+                </div>
+
+                {customPresentations.map((presentation) => (
+                  <div key={presentation.id} className="flex items-center justify-between gap-3 bg-[#00000005] border border-[#00000022] rounded-lg p-3">
+                    <div className="min-w-0">
+                      <p className="text-[16px] max-[1599px]:text-[15px] font-forum font-bold text-black break-words">
+                        {presentation.title}
+                      </p>
+                      <p className="text-[13px] font-forum font-light text-[#00000080]">
+                        {`Слайдов: ${presentation.image_urls?.length || 0}${presentation.presentation_sections && presentation.presentation_sections.length > 0 ? ` • Секций: ${presentation.presentation_sections.length}` : ''}`}
+                      </p>
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <button
+                        onClick={() => handleEditCustomPresentation(presentation.id)}
+                        className="px-3 py-1 bg-white border border-[#00000033] text-black rounded hover:bg-gray-50 transition-colors cursor-pointer text-[14px] font-forum"
+                      >
+                        Редактировать
+                      </button>
+                      <button
+                        onClick={() => void handleDeleteCustomPresentation(presentation.id)}
+                        className="px-3 py-1 bg-white border border-red-300 text-red-600 rounded hover:bg-red-50 transition-colors cursor-pointer text-[14px] font-forum"
+                      >
+                        Удалить
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
             </div>
@@ -2557,6 +2627,17 @@ const OrganizerDashboard = () => {
         />
       )}
 
+      {editingCustomPresentationId && (
+        <EditPresentationModal
+          isOpen={!!editingCustomPresentationId}
+          isSaving={savingCustomPresentation}
+          initialTitle={customPresentations.find((p) => p.id === editingCustomPresentationId)?.title || ''}
+          initialSections={customPresentations.find((p) => p.id === editingCustomPresentationId)?.presentation_sections || []}
+          onClose={() => setEditingCustomPresentationId(null)}
+          onSave={handleSaveCustomPresentation}
+        />
+      )}
+
       {/* Client Modal */}
       {showClientModal && (
         <ClientModal
@@ -2571,10 +2652,16 @@ const OrganizerDashboard = () => {
           weddingId={selectedWedding.id}
           existingContractorToken={selectedWedding.contractor_token || null}
           existingContractorPassword={selectedWedding.contractor_password_hash ? 'configured' : null}
+          initialContractorPasswordPlain={selectedWedding.contractor_password_plain ?? null}
           initialSettings={{
             dressCode: selectedWedding.contractor_dress_code,
             organizerContacts: selectedWedding.contractor_organizer_contacts,
             coordinatorContacts: selectedWedding.contractor_coordinator_contacts,
+            venueAddress: selectedWedding.contractor_venue_address,
+            mapsUrl: selectedWedding.contractor_maps_url,
+            venueName: selectedWedding.venue,
+            weddingDate: selectedWedding.wedding_date,
+            contractorSlug: selectedWedding.contractor_slug,
           }}
           onClose={() => setShowContractorModal(false)}
           onSave={async () => {
