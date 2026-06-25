@@ -59,7 +59,7 @@ const TasksPage = ({ user, viewMode }: TasksPageProps) => {
   const [editingTaskGroup, setEditingTaskGroup] = useState<TaskGroup | null>(null);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [showGroupMenu, setShowGroupMenu] = useState<string | null>(null);
-  
+  const [showArchiveSection, setShowArchiveSection] = useState(false);
   // Состояния для раскрытия/сворачивания секций "Выполнено"
   const [expandedCompletedSections, setExpandedCompletedSections] = useState<Set<string>>(new Set());
   
@@ -181,7 +181,56 @@ const TasksPage = ({ user, viewMode }: TasksPageProps) => {
     }
   };
 
+  const handleArchiveGroup = async (groupId: string) => {
+    setTaskGroups(prevGroups =>
+      prevGroups.map(({ group, tasks, isUnsorted }) => {
+        if (group?.id === groupId) {
+          return { group: { ...group, archived: true }, tasks, isUnsorted };
+        }
+        return { group, tasks, isUnsorted };
+      })
+    );
 
+    try {
+      const result = await taskService.updateTaskGroup(groupId, { archived: true });
+      if (!result) {
+        await loadOrganizerTasks();
+        setLocalError('Не удалось переместить блок в архив');
+        return;
+      }
+      setShowArchiveSection(true);
+      setLocalError(null);
+    } catch (err) {
+      console.error('Error archiving task group:', err);
+      await loadOrganizerTasks();
+      setLocalError('Ошибка при архивировании блока заданий');
+    }
+  };
+
+  const handleUnarchiveGroup = async (groupId: string) => {
+    setTaskGroups(prevGroups =>
+      prevGroups.map(({ group, tasks, isUnsorted }) => {
+        if (group?.id === groupId) {
+          return { group: { ...group, archived: false }, tasks, isUnsorted };
+        }
+        return { group, tasks, isUnsorted };
+      })
+    );
+
+    try {
+      const result = await taskService.updateTaskGroup(groupId, { archived: false });
+      if (!result) {
+        await loadOrganizerTasks();
+        setLocalError('Не удалось восстановить блок из архива');
+        return;
+      }
+      setLocalError(null);
+    } catch (err) {
+      console.error('Error unarchiving task group:', err);
+      await loadOrganizerTasks();
+      setLocalError('Ошибка при восстановлении блока заданий');
+    }
+  };
   const handleCreateTask = (groupId: string | null) => {
     // Для несортированных задач используем специальный маркер
     setCreatingTaskGroupId(groupId === null ? 'unsorted' : groupId);
@@ -632,6 +681,98 @@ const TasksPage = ({ user, viewMode }: TasksPageProps) => {
     });
   }, [taskGroups, initiallyCompletedTaskIds]);
 
+  const activeTaskGroupsWithSplit = useMemo(
+    () => taskGroupsWithSplit.filter(({ group, isUnsorted }) => isUnsorted || !group?.archived),
+    [taskGroupsWithSplit]
+  );
+
+  const archivedTaskGroupsWithSplit = useMemo(
+    () => taskGroupsWithSplit.filter(({ group, isUnsorted }) => !isUnsorted && group?.archived),
+    [taskGroupsWithSplit]
+  );
+
+  const renderTaskColumn = (
+    { group, activeTasks, completedTasks, isUnsorted }: typeof taskGroupsWithSplit[number],
+    { isArchived = false }: { isArchived?: boolean } = {}
+  ) => {
+    const groupId = group?.id || null;
+    const isCompletedExpanded = groupId ? expandedCompletedSections.has(groupId) : false;
+    const backgroundColor = group?.color || '#f0f0f0';
+    const isMenuOpen = groupId ? showGroupMenu === groupId : false;
+
+    return (
+      <TaskColumn
+        key={isArchived ? `archived-${groupId}` : groupId || 'unsorted'}
+        group={group}
+        tasks={[...activeTasks, ...completedTasks]}
+        isUnsorted={isUnsorted}
+        activeTasks={activeTasks}
+        completedTasks={completedTasks}
+        isCompletedExpanded={isCompletedExpanded}
+        backgroundColor={backgroundColor}
+        isMenuOpen={isMenuOpen}
+        isArchived={isArchived}
+        editingTaskId={editingTaskId}
+        editingTaskText={editingTaskText}
+        expandedTaskLogs={expandedTaskLogs}
+        taskLogs={taskLogs}
+        loadingLogs={loadingLogs}
+        initiallyCompletedTaskIds={initiallyCompletedTaskIds}
+        creatingTaskGroupId={isArchived ? null : creatingTaskGroupId}
+        newTaskText={newTaskText}
+        newTaskInputRef={newTaskInputRef}
+        onToggleCompleted={(gId) => {
+          if (!gId) return;
+          setExpandedCompletedSections(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(gId)) {
+              newSet.delete(gId);
+            } else {
+              newSet.add(gId);
+            }
+            return newSet;
+          });
+        }}
+        onTaskToggle={handleToggleTask}
+        onViewTask={handleViewTask}
+        onEditTask={handleEditTask}
+        onDeleteTask={handleDeleteTask}
+        onSaveInlineEdit={handleSaveInlineEditTask}
+        onCancelInlineEdit={handleCancelInlineEditTask}
+        onEditingTaskTextChange={setEditingTaskText}
+        onToggleTaskLogs={toggleTaskLogs}
+        onTaskDragStart={handleTaskDragStartWrapper}
+        onTaskDragOver={handleTaskDragOver}
+        onTaskDragEnd={handleTaskDragEnd}
+        onGroupMenuClick={setShowGroupMenu}
+        onEditGroup={handleEditGroup}
+        onDeleteGroup={handleDeleteGroup}
+        onArchiveGroup={isArchived ? undefined : handleArchiveGroup}
+        onUnarchiveGroup={isArchived ? handleUnarchiveGroup : undefined}
+        onSaveInlineTask={handleSaveInlineTask}
+        onNewTaskTextChange={setNewTaskText}
+        newTaskPriority={newTaskPriority}
+        onNewTaskPriorityChange={setNewTaskPriority}
+        onCancelCreatingTask={() => {
+          setCreatingTaskGroupId(null);
+          setNewTaskText('');
+          setNewTaskPriority('medium');
+          setNewTaskAssignedOrganizerId(null);
+        }}
+        newTaskAssignedOrganizerId={newTaskAssignedOrganizerId}
+        onNewTaskAssignedOrganizerChange={setNewTaskAssignedOrganizerId}
+        onCreateTask={isArchived ? undefined : handleCreateTask}
+        onGroupDragStart={isArchived ? undefined : handleGroupDragStartWrapper}
+        onGroupDragOver={isArchived ? undefined : handleGroupDragOver}
+        onGroupDrop={isArchived ? undefined : handleGroupDrop}
+        onGroupDragEnd={isArchived ? undefined : handleGroupDragEnd}
+        onTaskDropOnGroup={isArchived ? undefined : handleTaskDropOnGroup}
+        draggedGroupId={isArchived ? null : draggedGroupId}
+        draggedTaskId={isArchived ? null : draggedTaskId}
+      />
+    );
+  };
+
   // Показываем загрузку только если данных еще нет
   if (loadingTasks && taskGroups.length === 0) {
     return (
@@ -657,93 +798,63 @@ const TasksPage = ({ user, viewMode }: TasksPageProps) => {
       )}
       
       {/* Блоки заданий в Kanban-стиле */}
-      {taskGroups.length > 0 ? (
-        <div className="flex gap-4 overflow-x-auto -mx-4 px-4 items-start task-blocks-scroll flex-1" style={{
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none'
-        }}>
-          {taskGroupsWithSplit.map(({ group, activeTasks, completedTasks, isUnsorted }) => {
-            const groupId = group?.id || null;
-            const isCompletedExpanded = groupId ? expandedCompletedSections.has(groupId) : false;
-            const backgroundColor = group?.color || '#f0f0f0';
-            const isMenuOpen = groupId ? showGroupMenu === groupId : false;
+      {activeTaskGroupsWithSplit.length > 0 || archivedTaskGroupsWithSplit.length > 0 ? (
+        <div className="flex flex-col gap-4 flex-1 min-h-0">
+          {archivedTaskGroupsWithSplit.length > 0 && (
+            <div className="flex justify-end flex-shrink-0">
+              <button
+                onClick={() => setShowArchiveSection(prev => !prev)}
+                className={`px-4 py-2 rounded-lg font-forum text-[14px] transition-colors cursor-pointer border border-[#00000033] ${
+                  showArchiveSection
+                    ? 'bg-black text-white'
+                    : 'bg-white text-[#00000080] hover:text-black'
+                }`}
+              >
+                Архив ({archivedTaskGroupsWithSplit.length})
+              </button>
+            </div>
+          )}
 
-            return (
-              <TaskColumn
-                key={groupId || 'unsorted'}
-                group={group}
-                tasks={[...activeTasks, ...completedTasks]}
-                isUnsorted={isUnsorted}
-                activeTasks={activeTasks}
-                completedTasks={completedTasks}
-                isCompletedExpanded={isCompletedExpanded}
-                backgroundColor={backgroundColor}
-                isMenuOpen={isMenuOpen}
-                editingTaskId={editingTaskId}
-                editingTaskText={editingTaskText}
-                expandedTaskLogs={expandedTaskLogs}
-                taskLogs={taskLogs}
-                loadingLogs={loadingLogs}
-                initiallyCompletedTaskIds={initiallyCompletedTaskIds}
-                creatingTaskGroupId={creatingTaskGroupId}
-                newTaskText={newTaskText}
-                newTaskInputRef={newTaskInputRef}
-                onToggleCompleted={(gId) => {
-                  if (!gId) return;
-                  setExpandedCompletedSections(prev => {
-                    const newSet = new Set(prev);
-                    if (newSet.has(gId)) {
-                      newSet.delete(gId);
-                    } else {
-                      newSet.add(gId);
-                    }
-                    return newSet;
-                  });
-                }}
-                onTaskToggle={handleToggleTask}
-                onViewTask={handleViewTask}
-                onEditTask={handleEditTask}
-                onDeleteTask={handleDeleteTask}
-                onSaveInlineEdit={handleSaveInlineEditTask}
-                onCancelInlineEdit={handleCancelInlineEditTask}
-                onEditingTaskTextChange={setEditingTaskText}
-                onToggleTaskLogs={toggleTaskLogs}
-                onTaskDragStart={handleTaskDragStartWrapper}
-                onTaskDragOver={handleTaskDragOver}
-                onTaskDragEnd={handleTaskDragEnd}
-                onGroupMenuClick={setShowGroupMenu}
-                onEditGroup={handleEditGroup}
-                onDeleteGroup={handleDeleteGroup}
-                onSaveInlineTask={handleSaveInlineTask}
-                onNewTaskTextChange={setNewTaskText}
-                newTaskPriority={newTaskPriority}
-                onNewTaskPriorityChange={setNewTaskPriority}
-                onCancelCreatingTask={() => {
-                  setCreatingTaskGroupId(null);
-                  setNewTaskText('');
-                  setNewTaskPriority('medium');
-                  setNewTaskAssignedOrganizerId(null);
-                }}
-                newTaskAssignedOrganizerId={newTaskAssignedOrganizerId}
-                onNewTaskAssignedOrganizerChange={setNewTaskAssignedOrganizerId}
-                onCreateTask={handleCreateTask}
-                onGroupDragStart={handleGroupDragStartWrapper}
-                onGroupDragOver={handleGroupDragOver}
-                onGroupDrop={handleGroupDrop}
-                onGroupDragEnd={handleGroupDragEnd}
-                onTaskDropOnGroup={handleTaskDropOnGroup}
-                draggedGroupId={draggedGroupId}
-                draggedTaskId={draggedTaskId}
-              />
-            );
-          })}
-          {/* Кнопка создания нового блока в конце списка */}
-          <button
-            onClick={handleCreateGroup}
-            className="flex-shrink-0 w-[240px] sm:w-[280px] h-[80px] border border-[#00000033] rounded-lg bg-white hover:bg-gray-50 transition-colors cursor-pointer flex items-center justify-center text-[12px] max-[1599px]:text-[11px] font-forum text-[#00000080] hover:text-black border-dashed"
-          >
-            + Создать
-          </button>
+          {activeTaskGroupsWithSplit.length > 0 ? (
+            <div className="flex gap-4 overflow-x-auto -mx-4 px-4 items-start task-blocks-scroll flex-1" style={{
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none'
+            }}>
+              {activeTaskGroupsWithSplit.map((groupData) => renderTaskColumn(groupData))}
+              <button
+                onClick={handleCreateGroup}
+                className="flex-shrink-0 w-[240px] sm:w-[280px] h-[80px] border border-[#00000033] rounded-lg bg-white hover:bg-gray-50 transition-colors cursor-pointer flex items-center justify-center text-[12px] max-[1599px]:text-[11px] font-forum text-[#00000080] hover:text-black border-dashed"
+              >
+                + Создать
+              </button>
+            </div>
+          ) : (
+            <div className="bg-white border border-[#00000033] rounded-lg p-6 text-center flex-shrink-0">
+              <p className="text-[16px] font-forum font-light text-[#00000080] mb-3">Нет активных блоков заданий</p>
+              <button
+                onClick={handleCreateGroup}
+                className="px-4 md:px-6 py-2 md:py-3 bg-black text-white rounded-lg hover:bg-[#333] transition-colors cursor-pointer text-[16px] max-[1599px]:text-[14px] font-forum"
+              >
+                Создать блок
+              </button>
+            </div>
+          )}
+
+          {showArchiveSection && archivedTaskGroupsWithSplit.length > 0 && (
+            <div className="flex-shrink-0 border-t border-[#00000033] pt-4">
+              <h3 className="text-[16px] font-forum font-bold text-[#00000080] mb-3 px-4">
+                Архив
+              </h3>
+              <div className="flex gap-4 overflow-x-auto -mx-4 px-4 items-start task-blocks-scroll pb-2" style={{
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none'
+              }}>
+                {archivedTaskGroupsWithSplit.map((groupData) =>
+                  renderTaskColumn(groupData, { isArchived: true })
+                )}
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <div className="bg-white border border-[#00000033] rounded-lg p-8 text-center">

@@ -66,6 +66,7 @@ export interface TaskGroup {
   organizer_id: string; // ID организатора
   name: string; // Название блока (только на русском)
   color?: string; // Цвет блока (hex код)
+  archived?: boolean; // true если блок в архиве
   created_at: string;
   updated_at: string;
 }

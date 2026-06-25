@@ -42,6 +42,9 @@ interface TaskColumnProps {
   onGroupMenuClick: (groupId: string | null) => void;
   onEditGroup: (group: TaskGroup) => void;
   onDeleteGroup: (groupId: string) => void;
+  onArchiveGroup?: (groupId: string) => void;
+  onUnarchiveGroup?: (groupId: string) => void;
+  isArchived?: boolean;
   onSaveInlineTask: (groupId: string | null, e?: React.MouseEvent | React.KeyboardEvent) => void;
   onNewTaskTextChange: (text: string) => void;
   onCancelCreatingTask: () => void;
@@ -90,6 +93,9 @@ const TaskColumn = memo(({
   onGroupMenuClick,
   onEditGroup,
   onDeleteGroup,
+  onArchiveGroup,
+  onUnarchiveGroup,
+  isArchived = false,
   onSaveInlineTask,
   onNewTaskTextChange,
   onCancelCreatingTask,
@@ -144,8 +150,8 @@ const TaskColumn = memo(({
   return (
     <div
       key={groupId || 'unsorted'}
-      draggable={!isUnsortedGroup}
-      onDragStart={!isUnsortedGroup && groupId && onGroupDragStart
+      draggable={!isUnsortedGroup && !isArchived}
+      onDragStart={!isUnsortedGroup && !isArchived && groupId && onGroupDragStart
         ? (e) => onGroupDragStart(e, groupId)
         : undefined}
       onDragOver={onGroupDragOver}
@@ -164,7 +170,9 @@ const TaskColumn = memo(({
         }
       }}
       className={`flex-shrink-0 w-[240px] sm:w-[280px] border border-[#00000033] rounded-lg flex flex-col transition-opacity ${
-        !isUnsortedGroup && groupId && draggedGroupId === groupId
+        isArchived ? 'opacity-80' : ''
+      } ${
+        !isUnsortedGroup && !isArchived && groupId && draggedGroupId === groupId
           ? 'opacity-50 cursor-grabbing'
           : 'cursor-default hover:shadow-md'
       }`}
@@ -214,6 +222,30 @@ const TaskColumn = memo(({
                   >
                     Редактировать
                   </button>
+                  {!isArchived && groupId && onArchiveGroup && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onGroupMenuClick(null);
+                        onArchiveGroup(groupId);
+                      }}
+                      className="w-full px-4 py-2 text-left text-[14px] font-forum text-black hover:bg-gray-50 transition-colors cursor-pointer"
+                    >
+                      В архив
+                    </button>
+                  )}
+                  {isArchived && groupId && onUnarchiveGroup && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onGroupMenuClick(null);
+                        onUnarchiveGroup(groupId);
+                      }}
+                      className="w-full px-4 py-2 text-left text-[14px] font-forum text-black hover:bg-gray-50 transition-colors cursor-pointer"
+                    >
+                      Восстановить
+                    </button>
+                  )}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
